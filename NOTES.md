@@ -233,3 +233,71 @@ Sharpe with no identifiable counterparty = bug until proven otherwise.
 ## 13. Stage 2a — grid instrumentation results (to fill after the re-run)
 
 Pending the train grid re-run and the §2a decomposition.
+
+## 14. Stage 2b — corrections (Part A)
+
+- **A1/A2 — `MIN_WEIGHT_FRACTION` 0.25 → 0.5.** The one authorised change to
+  `pitdata/store.py`. The 0.25 double-counted the vol factor (once as 0.5×,
+  again inside `L`). Now a single exported constant; `weights.WEIGHT_BAND`
+  uses it as the band's lower bound; `tools/diagnose.py` imports it; Test 15
+  asserts all three agree. Effect on the partially-built store (220
+  symbols): tradeable at 1.0× went from **0** (reported by the reviewer's
+  diagnose on their copy) to **44** of 46 liquid — the "0 tradeable" was an
+  artifact of the double count. Stage 1 still 13/13; the fixture's intent
+  (a $100-floor symbol excluded, a $5-floor one included) holds unchanged.
+- **A3 — the `L ≥ 1.0` floor is exact**, not comfortable: `0.5·L·100/10 ≥ 5`.
+  The Stage 2a §4 instrumentation (leverage distribution, `below_min_notional`
+  share) is therefore the first thing to read in the grid output. Synthetic
+  runs put realised leverage at median ≈0.95, i.e. *just under* — expect this
+  to bind on real data (see `TEST_NOTES.md` obs. 4). Nothing changes until
+  the numbers say so.
+- **A5 — holdout ends 2026-07-31** (1.58 y), where the data ends. The Binance
+  monthly futures dumps also start at **2020-01-01**, not 2019-09-01, so the
+  train split's effective first bar is 2020-01-01 and its first tradeable day
+  ~2020-03 after warm-up; the nominal 2019-09-01 start is harmless (empty
+  views skip and are logged). `ensure_data_covers()` refuses any split whose
+  end the data does not reach, *before* the holdout look is recorded. The
+  report prints the resolution caveat: 1.58 y resolves only a true Sharpe
+  above ~1.6 (2 SE = 2/√1.58); 0.7–1.0 is below what the holdout can confirm.
+- **A6 — BTCUSDT $50**: reference only, documented in `weights.py`.
+
+## 15. Stage 2b — paper-trading harness (Part B)
+
+Built offline while the backfill ran; 19 tests in `tests/test_live.py`
+against an in-memory fake of the USDS-M REST surface with Binance's real
+rejection codes. Design choices and their reasons:
+
+- **REST is the only source of truth.** Positions, orders, fills, fees and
+  funding are always read from the exchange; there is no local position
+  file. The user-data WebSocket is telemetry: any reconnect triggers a REST
+  reconcile, so a stream gap cannot become a state gap. `--no-stream` runs
+  REST-only with no loss of correctness.
+- **Dependency note.** `websocket-client` (already installed on this
+  machine, not added by me) is imported lazily and only by the optional
+  stream class. Say the word and it goes.
+- **Watchdog and kill switch are stdlib-only and import nothing from the
+  trader or client** — deliberately duplicated signing code. The failure
+  they exist for is a wedged trader; shared code is a shared wedge. A test
+  greps for this.
+- **Phase 1 sizes through `backtest.weights` itself** (`rank_weights` →
+  `beta_hedge` → `vol_target_scale`) at a **$100 equity cap** even though
+  the testnet account holds ~10k, so `MIN_NOTIONAL` and `step_size` are
+  exercised at the real scale. Phase 2 is refused in code.
+- **No PnL anywhere.** Tests assert the daily record, the cost report and
+  the rebalance result contain no `pnl` key.
+- **Exchange-side stops** (`STOP_MARKET`, `closePosition`, mark-price
+  trigger) are placed after every fill at ±20% — an operational safety
+  distance, not a strategy parameter — and replaced daily.
+- **Injections available in-process** (`--inject`): `below-min-notional`,
+  `unquantised`, `clock-skew` (+5 min on the request timestamp → −1021 →
+  one resync), `raise` (fail closed), `ws-kill`. All covered by tests.
+  **Not doable by me**: the physical ones (kill −9 with the watchdog live,
+  pull the cable), the rate-limit trip, the funding-settlement hold and any
+  run against the real testnet — those need keys and a person. The runbook
+  has the acceptance table with an "observed" column to fill in.
+- **Unmodelled-in-backtest items surface here**, on purpose: order-level
+  `MIN_NOTIONAL` with the reduce-only exemption, `step_size` floor-rounding
+  (never up), and post-only (`GTX`) rejection when the touch moves. Whatever
+  the exchange does with them feeds back into `costs.py`.
+- **Not verified**: the testnet WebSocket host name (`WS_BASE`) — flagged in
+  the runbook; a wrong host only costs telemetry.
