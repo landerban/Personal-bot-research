@@ -1,96 +1,136 @@
 #!/usr/bin/env python3
 """
-Dataset diagnostics: what is in the store, and what is tradeable at size.
+What is actually in xsmom.db?
 
-  python tools/diagnose.py [--db xsmom.db] [--capital 100] [--n 10]
+    python tools/diagnose.py [xsmom.db]
 
-Prints coverage, funding, filters, the liquid universe, and how many of
-those symbols clear MIN_NOTIONAL at several gross-leverage levels. The
-smallest-position arithmetic uses pitdata.store.MIN_WEIGHT_FRACTION -- the
-single source of truth -- rather than a local constant, so this tool cannot
-disagree with the filter it is describing (Stage 2b A2).
+Diagnostics only -- reads the DB directly rather than through PITView. That is
+fine here (no strategy decision depends on it) and would NOT be fine in
+backtest code.
 
-Dataset tooling, same class as build.py; never imported by backtest/.
+Stage 2b A2: the smallest-position arithmetic imports MIN_WEIGHT_FRACTION
+from pitdata.store -- the single source of truth -- instead of hardcoding
+0.5. Test 15 asserts this module's constant IS the store's. The bug this
+guards against: two places holding "the same" number and disagreeing
+(0.25 vs 0.5 is how "0 tradeable at 1.0x" happened).
 """
 
-from __future__ import annotations
-
-import argparse
 import sqlite3
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # run as a script
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # run from anywhere
 
 from pitdata.store import MIN_WEIGHT_FRACTION, PointInTimeStore  # noqa: E402
 
-DAY_MS = 86_400_000
+DB = sys.argv[1] if len(sys.argv) > 1 and not sys.argv[1].startswith("-") else "xsmom.db"
 
 
-def _d(ms: int | None) -> str:
+def ts(ms):
     if ms is None:
         return "n/a"
     return datetime.fromtimestamp(ms / 1000, tz=timezone.utc).strftime("%Y-%m-%d")
 
 
-def main() -> None:
-    p = argparse.ArgumentParser()
-    p.add_argument("--db", default="xsmom.db")
-    p.add_argument("--capital", type=float, default=100.0)
-    p.add_argument("--n", type=int, default=10)
-    p.add_argument("--min-volume", type=float, default=5_000_000.0)
-    a = p.parse_args()
+def main():
+    try:
+        c = sqlite3.connect(f"file:{DB}?mode=ro", uri=True)
+    except sqlite3.OperationalError as e:
+        print(f"cannot open {DB}: {e}")
+        return
 
-    if not Path(a.db).exists():
-        raise SystemExit(f"database not found: {a.db}")
-    store = PointInTimeStore(a.db, read_only=True)
+    print(f"=== {DB} ===\n")
 
-    cov = store.coverage("1d")
-    if not cov:
-        raise SystemExit("no klines ingested")
-    n_bars = sum(c[1] for c in cov)
-    first = min(c[2] for c in cov)
-    last = max(c[3] for c in cov)
-    years = (last - first) / DAY_MS / 365.0
-    print(f"KLINES   {n_bars:,} bars / {len(cov)} symbols   "
-          f"{_d(first)} -> {_d(last)} ({years:.2f}y)")
-
-    # Funding totals: aggregate read for a dataset report, read-only
-    # connection, not a PITView path (backtest code never does this).
-    ro = sqlite3.connect(f"file:{a.db}?mode=ro", uri=True)
-    n_f, n_fs = ro.execute(
-        "SELECT COUNT(*), COUNT(DISTINCT symbol) FROM funding"
+    # ---- klines ----
+    row = c.execute(
+        "SELECT COUNT(*), COUNT(DISTINCT symbol), MIN(close_time), MAX(close_time) "
+        "FROM klines WHERE interval='1d'"
     ).fetchone()
-    ro.close()
-    print(f"FUNDING  {n_f:,} settlements / {n_fs} symbols")
+    bars, syms, lo, hi = row
+    print(f"KLINES   {bars:,} bars / {syms} symbols")
+    print(f"         {ts(lo)} -> {ts(hi)}")
+    if lo and hi:
+        yrs = (hi - lo) / (365.25 * 86_400_000)
+        print(f"         span {yrs:.2f} years")
+        if yrs < 6.0:
+            print("         !! expected ~6.6y from 2020-01 (the monthly futures "
+                  "dumps start there, not 2019-09). Backfill may be partial.")
+    if syms and syms <= 25:
+        print(f"         !! only {syms} symbols -- did you run with --limit?")
+        print("            N=10 cross-sectional needs a much wider candidate pool.")
 
-    audit = store.audit_filter_coverage()
-    v = store.view_as_of(last)
-    btc_mn = v.min_notional("BTCUSDT")
-    print(f"FILTERS  {audit['symbols_with_filters']} symbols; BTCUSDT "
-          f"MIN_NOTIONAL = "
-          + (f"${btc_mn:.2f}" if btc_mn is not None else "n/a")
-          + f"; earliest snapshot {_d(audit['earliest_filter_snapshot'])}")
+    # ---- funding ----
+    row = c.execute(
+        "SELECT COUNT(*), COUNT(DISTINCT symbol), MIN(funding_time), MAX(funding_time) "
+        "FROM funding"
+    ).fetchone()
+    fn, fsyms, flo, fhi = row
+    print(f"\nFUNDING  {fn:,} settlements / {fsyms} symbols")
+    print(f"         {ts(flo)} -> {ts(fhi)}")
+    if fn == 0:
+        print("         !! NO FUNDING DATA. Backtest results would be fiction.")
+    elif syms and fsyms < syms:
+        print(f"         !! {syms - fsyms} symbols have klines but no funding.")
 
-    liquid = v.universe(a.min_volume)
-    print(f"liquid universe (>=${a.min_volume / 1e6:.0f}M median daily): "
-          f"{len(liquid)}")
+    # ---- filters: the load-bearing unknown ----
+    row = c.execute(
+        "SELECT COUNT(DISTINCT symbol), MIN(snapshot_time), MAX(snapshot_time) "
+        "FROM symbol_filters"
+    ).fetchone()
+    nf, slo, shi = row
+    print(f"\nFILTERS  {nf} symbols; snapshots {ts(slo)} -> {ts(shi)}")
+    if nf == 0:
+        print("         !! NEVER SNAPSHOTTED. Run: python build.py filters")
+        print("            MIN_NOTIONAL is unknown, so sizing is unverified.")
+    else:
+        vals = c.execute(
+            "SELECT min_notional, COUNT(*) FROM symbol_filters "
+            "WHERE min_notional IS NOT NULL GROUP BY min_notional ORDER BY min_notional"
+        ).fetchall()
+        print("         MIN_NOTIONAL distribution:")
+        for v, n in vals:
+            print(f"           ${v:>8.2f}  x{n}")
+
+        btc = c.execute(
+            "SELECT min_notional FROM symbol_filters WHERE symbol='BTCUSDT' "
+            "ORDER BY snapshot_time LIMIT 1"
+        ).fetchone()
+        print(f"\n         BTCUSDT MIN_NOTIONAL: "
+              f"{('$%.2f' % btc[0]) if btc and btc[0] else 'unknown'}")
+        if btc and btc[0] and btc[0] > 5:
+            print("         ^^ ABOVE $5. BTCUSDT is untradeable at $100.")
+            print("            It is still the beta reference (fine -- beta uses")
+            print("            its returns, not a position in it).")
+    c.close()
+
+    # ---- what is tradeable at $100 ----
+    print("\n=== TRADEABLE AT $100 ===")
+    if not lo:
+        print("no kline data")
+        return
+
+    s = PointInTimeStore(DB, read_only=True)
+    v = s.view_as_of(hi)
+    liquid = v.universe(min_quote_volume=5_000_000)
+    print(f"liquid universe (>=$5M median daily): {len(liquid)}")
+
+    capital, n = 100.0, 10
     for L in (1.0, 2.0, 3.0):
-        trad = v.tradeable_universe(
-            capital=a.capital, gross_leverage=L, n_positions=a.n,
-            min_quote_volume=a.min_volume,
+        t = v.tradeable_universe(
+            capital=capital, gross_leverage=L, n_positions=n,
+            min_quote_volume=5_000_000,
         )
-        smallest = MIN_WEIGHT_FRACTION * L * a.capital / a.n
-        flag = "   <-- BELOW N=%d" % a.n if len(trad) < a.n else ""
-        print(f"  gross {L:.1f}x  tradeable {len(trad):>4}   "
-              f"(smallest position {MIN_WEIGHT_FRACTION:.2f} x {L:.1f} x "
-              f"{a.capital:.0f}/{a.n} = ${smallest:.2f}){flag}")
-    print("smallest-position floor is L >= "
-          f"{5.0 * a.n / (MIN_WEIGHT_FRACTION * a.capital):.2f}x "
-          f"for a $5 MIN_NOTIONAL at ${a.capital:.0f}, N={a.n} "
-          "(realised leverage, not the cap)")
-    store.close()
+        smallest = MIN_WEIGHT_FRACTION * L * capital / n
+        flag = "" if len(t) >= n else "   <-- BELOW N=10"
+        print(f"  gross {L:.1f}x  smallest position ${smallest:5.2f}  "
+              f"tradeable {len(t):3d}{flag}")
+
+    print(f"\nsmallest position = {MIN_WEIGHT_FRACTION} x L x C/N; a $5 floor at "
+          f"$100, N=10 needs realised L >= {5.0 * n / (MIN_WEIGHT_FRACTION * capital):.2f}x.")
+    print("Realised leverage lands near 1.0x for a beta-neutral book at 20% vol,")
+    print("so the 1.0x row is the one that matters, not the 3.0x row.")
+    s.close()
 
 
 if __name__ == "__main__":
