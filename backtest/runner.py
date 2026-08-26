@@ -85,9 +85,32 @@ def git_state() -> tuple[str | None, bool]:
         return None, True
 
 
+def leverage_stats(result: BacktestResult) -> dict:
+    """Realised gross leverage distribution over filled rebalances."""
+    L = np.array([rb.realised_gross_leverage for rb in result.rebalances])
+    if len(L) == 0:
+        return {}
+    return {
+        "min": float(L.min()),
+        "p05": float(np.percentile(L, 5)),
+        "median": float(np.median(L)),
+        "p95": float(np.percentile(L, 95)),
+        "max": float(L.max()),
+        "frac_below_1": float((L < 1.0).mean()),
+    }
+
+
 def summarise(result: BacktestResult) -> dict:
     ts, eq = metrics.strategy_window(result)
     rets = metrics.daily_returns(eq)
+    lev = leverage_stats(result)
+    min_pos = min(
+        (rb.min_position_notional for rb in result.rebalances), default=None
+    )
+    binding = max(
+        (rb.binding_min_notional for rb in result.rebalances
+         if rb.binding_min_notional is not None), default=None,
+    )
     return {
         "sharpe": _r(metrics.sharpe(rets)),
         "ann_return": _r(metrics.ann_return(eq)),
@@ -96,8 +119,21 @@ def summarise(result: BacktestResult) -> dict:
         "turnover": _r(metrics.turnover_annualised(result.total_turnover, eq)),
         "fee_drag": _r(metrics.fee_drag(result.total_fees, result.gross_pnl)),
         "n_rebalances": len(result.rebalances),
+        "n_scheduled": result.n_scheduled,
         "n_skips": len(result.skips),
+        "skips_by_reason": result.skip_counts(),
         "n_days": len(eq),
+        "leverage_median": _r(lev.get("median", float("nan"))),
+        "leverage_frac_below_1": _r(lev.get("frac_below_1", float("nan"))),
+        "min_position_notional": _r(min_pos) if min_pos is not None else None,
+        "binding_min_notional": binding,
+        "gross_pnl": _r(result.gross_pnl),
+        "gross_pnl_long": _r(result.gross_pnl_long),
+        "gross_pnl_short": _r(result.gross_pnl_short),
+        "total_fees": _r(result.total_fees),
+        "total_funding": _r(result.total_funding),
+        "forced_liquidations": len(result.forced_liquidations),
+        "missing_funding_settlements": result.missing_funding_settlements,
     }
 
 
@@ -191,16 +227,38 @@ def report(result: BacktestResult, split: str) -> None:
           f" | funding {result.total_funding:+.2f}")
     print(f"hit rate          {fmt(metrics.hit_rate(rets), pct=True)}   "
           f"avg win {fmt(aw, pct=True, nd=3)} vs avg loss {fmt(al, pct=True, nd=3)}")
+    print(f"long-leg PnL {result.gross_pnl_long:+.2f} | "
+          f"short-leg PnL {result.gross_pnl_short:+.2f}")
+
+    lev = leverage_stats(result)
+    if lev:
+        print(f"realised gross leverage  min {lev['min']:.2f} | p05 {lev['p05']:.2f}"
+              f" | median {lev['median']:.2f} | p95 {lev['p95']:.2f}"
+              f" | max {lev['max']:.2f} | below 1.0x: {fmt(lev['frac_below_1'], pct=True)}")
     skips = result.skip_counts()
-    print(f"skipped rebalances: {len(result.skips)}"
-          + (f"  ({', '.join(f'{k}={v}' for k, v in sorted(skips.items()))})"
-             if skips else ""))
-    if result.forced_liquidations:
-        print(f"forced liquidations: {len(result.forced_liquidations)}")
-    if result.missing_funding_settlements:
-        print(f"missing funding settlements: "
-              f"{result.missing_funding_settlements} (rates absent from data; "
-              f"NOT zero-cost in reality)")
+    n_sched = max(result.n_scheduled, 1)
+    print(f"skipped rebalances: {len(result.skips)} of {result.n_scheduled} "
+          f"scheduled ({fmt(len(result.skips) / n_sched, pct=True)})")
+    for reason, n in sorted(skips.items(), key=lambda kv: -kv[1]):
+        flag = "  <-- sizing floor" if reason == "below_min_notional" else ""
+        print(f"    {reason:<26} {n:>5}  ({fmt(n / n_sched, pct=True)}){flag}")
+    if "below_min_notional" not in skips and result.rebalances:
+        print("    below_min_notional             0  (0.00%)")
+    min_pos = min(
+        (rb.min_position_notional for rb in result.rebalances), default=None
+    )
+    binding = max(
+        (rb.binding_min_notional for rb in result.rebalances
+         if rb.binding_min_notional is not None), default=None,
+    )
+    if min_pos is not None:
+        print(f"min position notional taken  ${min_pos:.2f}  vs binding "
+              f"MIN_NOTIONAL "
+              + (f"${binding:.2f}" if binding is not None else "n/a (no filter)"))
+    print(f"forced liquidations: {len(result.forced_liquidations)} | "
+          f"missing funding settlements: {result.missing_funding_settlements}"
+          + ("  (rates absent from data; NOT zero-cost in reality)"
+             if result.missing_funding_settlements else ""))
     if result.bankrupt:
         print("!! BANKRUPT: equity reached zero; run truncated")
     print(f"deflated Sharpe   {fmt(dsr)}  "

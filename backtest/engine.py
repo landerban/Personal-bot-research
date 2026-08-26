@@ -75,6 +75,11 @@ class RebalanceRecord:
     fills: dict[str, tuple[float, float]]  # sym -> (delta_units, fill_price)
     turnover_notional: float
     fees: float
+    # Measured from the executed book (a second bookkeeping path, so a
+    # sizing bug between decision and fill shows up as a mismatch):
+    realised_gross_leverage: float         # sum(|units| * fill) / equity
+    min_position_notional: float           # smallest |units| * fill taken
+    binding_min_notional: float | None     # largest MIN_NOTIONAL in the book
 
 
 @dataclass
@@ -86,10 +91,13 @@ class BacktestResult:
     rebalances: list[RebalanceRecord] = field(default_factory=list)
     skips: list[tuple[int, str, str]] = field(default_factory=list)
     forced_liquidations: list[tuple[int, str]] = field(default_factory=list)
+    n_scheduled: int = 0                   # decision opportunities
     total_fees: float = 0.0
     total_funding: float = 0.0             # signed: negative = strategy paid
     total_turnover: float = 0.0
     gross_pnl: float = 0.0
+    gross_pnl_long: float = 0.0            # price PnL attributed by side
+    gross_pnl_short: float = 0.0
     missing_funding_settlements: int = 0
     bankrupt: bool = False
 
@@ -120,6 +128,15 @@ def run_backtest(
     pending_equity: float = 0.0
     equity = cfg.initial_capital
     step = cfg.rebalance_ms
+
+    def mark(units: float, dprice: float) -> None:
+        """Accrue price PnL, attributed to the side that earned it."""
+        pnl = units * dprice
+        res.gross_pnl += pnl
+        if units > 0:
+            res.gross_pnl_long += pnl
+        else:
+            res.gross_pnl_short += pnl
 
     # Fresh run: forget any clock position from a previous run on this store.
     # Within-run monotonicity is still enforced by iter_views.
@@ -189,7 +206,7 @@ def run_backtest(
 
         # 2. Mark held positions from yesterday's close to today's open.
         for sym, units in positions.items():
-            res.gross_pnl += units * (bars[sym].open - marks[sym])
+            mark(units, bars[sym].open - marks[sym])
             marks[sym] = bars[sym].open
 
         # 3. 00:00 funding on the old book.
@@ -218,6 +235,7 @@ def run_backtest(
                     marks[sym] = price
             res.total_fees += fees
             res.total_turnover += turnover
+            exposures = [abs(u) * bars[s].open for s, u in positions.items()]
             res.rebalances.append(
                 RebalanceRecord(
                     ts_decision=pending_ts,
@@ -232,6 +250,9 @@ def run_backtest(
                     fills=fills,
                     turnover_notional=turnover,
                     fees=fees,
+                    realised_gross_leverage=sum(exposures) / pending_equity,
+                    min_position_notional=min(exposures) if exposures else 0.0,
+                    binding_min_notional=pending.binding_min_notional,
                 )
             )
             pending, pending_dollars = None, {}
@@ -241,7 +262,7 @@ def run_backtest(
 
         # 6. Mark to today's close; record the daily equity point.
         for sym, units in positions.items():
-            res.gross_pnl += units * (bars[sym].close - marks[sym])
+            mark(units, bars[sym].close - marks[sym])
             marks[sym] = bars[sym].close
         equity = (
             cfg.initial_capital + res.gross_pnl - res.total_fees
@@ -258,6 +279,7 @@ def run_backtest(
         # 7. Decide for tomorrow's open — except at the final view, whose
         # fill would land outside the split.
         if t + step <= end_view_ms:
+            res.n_scheduled += 1
             decision = compute_target_weights(view, cfg, equity, signal_fn)
             if isinstance(decision, Skip):
                 res.skips.append((t, decision.reason, decision.detail))

@@ -7,28 +7,34 @@ tests self-consistent; the user decides.
 
 ---
 
-## 1. DISAGREEMENT: exact dollar neutrality and the beta hedge are mutually exclusive
+## 1. RESOLVED — spec amended: the net-dollar tilt is the hedge, by design
 
-Spec §2.3.5 makes the book dollar-neutral (legs sum to +1/−1). §2.4 then says
-"scale the short leg so portfolio beta ≈ 0" — s = β̄_long/β̄_short. After that
-scaling, sum(weights) = 1 − s per unit long gross, which is nonzero whenever
-the legs' betas differ (they almost always do). Test 7 demands
-`abs(sum(weights)) < 1e-9` at every rebalance; test 5 demands realised beta
-within ±0.15. **Both cannot hold on the final weights with a single leg
-scale** — that is arithmetic, not implementation.
+Original finding (Stage 2): spec §2.3.5 makes the book dollar-neutral (legs
+sum to +1/−1); §2.4 then scales the short leg by s = β̄_long/β̄_short so
+portfolio beta ≈ 0. After that, sum(weights) ≠ 0 whenever the legs' betas
+differ. Test 7 (`|Σw| < 1e-9`) and test 5 (realised beta within ±0.15) cannot
+both hold on the final weights with a single leg scale.
 
-Resolution implemented (not a spec change, an interpretation):
+**Ruling (Stage 2a, `STAGE2A_REMEDIATION.md` §1):** the spec was wrong, the
+implementation is right. Independently verified: across 2000 random draws,
+zero cases satisfy both constraints under one leg scale; the null-space
+projection that would satisfy both violates the `[0.5×, 1.5×]` band in 100%
+of cases. Dollar-neutrality was only ever a proxy for market-neutrality; once
+beta-neutrality is genuine the proxy is redundant.
+
+What stays, now pinned by tests:
 
 - Test 7 asserts on the §2.3 construction output (`raw_weights`), which is
-  dollar-neutral to 1e-15 by construction. This reads test 7 as a unit test
-  of the ranking/weighting machinery.
-- The final book carries the deliberate net-dollar tilt `g·(1 − s)` — that
-  tilt **is** the hedge. Test 5 checks the outcome (realised beta ≈ 0 —
-  passes at +0.03 on synthetic factor data).
-
-If the user intended exact dollar neutrality on the *final* book, the hedge
-mechanism must change (e.g. hedge with a BTC position instead of scaling the
-short leg) — that is a strategy change and is the user's call.
+  dollar-neutral to 1e-15 by construction.
+- The final book carries the deliberate net-dollar tilt. **Notation**: with
+  `k` the vol-target scale (= long-leg gross after targeting) and `s` the
+  short-leg beta scale, `Σ final = k·(1 − s)`, equivalently
+  `gross·(1 − s)/(1 + s)` where `gross = k·(1 + s)` is total gross. The
+  earlier note wrote this as `g·(1 − s)` with `g` meaning the long-leg gross,
+  not total gross. Test 12 asserts the exact identity at every rebalance and
+  that the tilt is actually nonzero, so exact dollar-neutrality cannot be
+  silently reintroduced on the final book.
+- Realised beta on synthetic factor data: +0.03.
 
 ## 2. SURPRISE: the naive shuffled-returns null test fails on a correct harness
 

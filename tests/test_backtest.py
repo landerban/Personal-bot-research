@@ -488,6 +488,46 @@ def test_execution_timing():
     print("PASS execution_timing")
 
 
+# ----------------------------------------------------------------- test 12
+
+def test_dollar_tilt_is_the_hedge():
+    """Stage 2a ruling: the final book's net dollar exposure IS the beta
+    hedge. With k the vol-target scale (long-leg gross) and s the short-leg
+    scale, sum(final) = k(1 - s) = gross(1 - s)/(1 + s) exactly. Fails if
+    anyone reintroduces exact dollar-neutrality on the final book."""
+    res = shared_factor_run()
+    tilts = []
+    for rb in res.rebalances:
+        s, k = rb.beta_scale, rb.vol_scale
+        net = sum(rb.final_weights.values())
+        assert abs(net - k * (1 - s)) < 1e-9, (net, k, s)
+        assert abs(net - rb.gross * (1 - s) / (1 + s)) < 1e-9
+        tilts.append(abs(net))
+    assert max(tilts) > 1e-3, "tilt vanished — the hedge has been neutralised"
+    print(f"PASS dollar_tilt_is_the_hedge (max |net| {max(tilts):.3f})")
+
+
+# ----------------------------------------------------------------- test 14
+
+def test_realised_leverage_recorded():
+    """Every filled rebalance reports a finite realised gross leverage,
+    measured from the executed book, never above the cap, and matching
+    the decided gross (a sizing bug between decision and fill would show
+    up here as a mismatch)."""
+    res = shared_factor_run()
+    assert res.rebalances
+    for rb in res.rebalances:
+        L = rb.realised_gross_leverage
+        assert math.isfinite(L) and L > 0
+        assert L <= CFG.max_gross_leverage + 1e-9, L
+        assert abs(L - rb.gross) < 1e-9, (L, rb.gross)
+        assert rb.min_position_notional > 0
+        assert rb.binding_min_notional == 1.0  # synthetic filter value
+    # scheduled decisions = filled + skipped (each opportunity lands once)
+    assert res.n_scheduled == len(res.rebalances) + len(res.skips)
+    print("PASS realised_leverage_recorded")
+
+
 # ------------------------------------------------------- metrics sanity
 
 def test_deflated_sharpe_sanity():

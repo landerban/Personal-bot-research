@@ -63,6 +63,8 @@ class Decision:
     vol_scale: float
     est_vol_ann: float                # ex-ante, of the *hedged* (pre-scale) book
     gross: float                      # sum(|final_weights|)
+    min_position_notional: float      # smallest |w| * equity in the book
+    binding_min_notional: float | None  # largest MIN_NOTIONAL among positions
 
 
 @dataclass(frozen=True)
@@ -294,9 +296,14 @@ def compute_target_weights(
     # notional at fill equals |weight| * equity by construction, so this is
     # checkable at decision time. Below the floor -> skip and log, never
     # silently drop or bump the position.
+    min_pos = min(abs(w) * equity for w in final_w.values())
+    binding: float | None = None
     for sym, w in final_w.items():
         mn = view.min_notional(sym)
-        if mn is not None and abs(w) * equity < mn:
+        if mn is None:
+            continue
+        binding = mn if binding is None else max(binding, mn)
+        if abs(w) * equity < mn:
             return Skip(
                 "below_min_notional",
                 f"{sym}: {abs(w) * equity:.2f} < {mn:.2f}",
@@ -312,4 +319,6 @@ def compute_target_weights(
         vol_scale=vol_scale,
         est_vol_ann=est_vol,
         gross=float(sum(abs(w) for w in final_w.values())),
+        min_position_notional=min_pos,
+        binding_min_notional=binding,
     )

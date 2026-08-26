@@ -73,9 +73,15 @@ Binance from the build environment to confirm actual values. Run
 `python3 build.py filters` and read the output. If BTCUSDT's is $100, it is
 untradeable at $100 capital and the sizing derivation needs redoing.
 
-Sizing rule this encodes: `C >= 20N / L`, from requiring the smallest position
-(≈0.25× average after rank-weighting and vol-scaling) to clear the floor.
-At L=2, N=10 → C ≥ $100.
+Sizing rule this encodes: `C >= 10N / L`, from requiring the smallest position
+(0.5× the average, after the `[0.5×, 1.5×]` rank-weight band) to clear a $5
+floor. `L` here is **realised** gross leverage after vol-targeting, not the
+configured cap — vol scaling is already inside `L`. At L=2, N=10 → C ≥ $100;
+at realised L below 1.0 the smallest position drops under $5 at $100 capital.
+
+(An earlier version of this rule read `C >= 20N / L`; it double-counted the
+vol factor — once as a 0.5× and again inside `L` — and gave the same $100
+answer at N=10, L=2 by coincidence. Stage 2a corrected it.)
 
 ## Next
 
