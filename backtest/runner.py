@@ -38,7 +38,10 @@ from pitdata.store import PointInTimeStore
 DAY_MS = 86_400_000
 ROOT = Path(__file__).resolve().parents[1]
 TRIALS_PATH = ROOT / "trials.jsonl"
+DIAGNOSTICS_PATH = ROOT / "diagnostics.jsonl"   # attribution, never trials
 HOLDOUT_LOG = ROOT / "holdout_log.json"
+DIAGNOSTIC_NOTE = ("DIAGNOSTIC ONLY -- uses full-sample means, "
+                   "not runnable live.")
 
 # Pre-registered splits. Do not cross these.
 SPLITS = {
@@ -326,6 +329,68 @@ def execute(store: PointInTimeStore, cfg: Config, split: str,
     return result
 
 
+def drift_decomposition(
+    cfg: Config, real_db: Path, demeaned_db: Path, split: str = "train"
+) -> dict:
+    """
+    Stage 2a §2.1: run the SAME config on the real store and on the
+    per-symbol drift-demeaned copy. Sharpe_real − Sharpe_demeaned estimates
+    the part of the edge that is drift-harvesting rather than
+    trend-continuation. Attribution of an existing result, not a new
+    configuration: nothing here touches trials.jsonl.
+    """
+    start, end = split_view_range(split)
+    out: dict = {}
+    for label, db in (("real", real_db), ("demeaned", demeaned_db)):
+        store = PointInTimeStore(db, read_only=True)
+        try:
+            res = run_backtest(store, cfg, start, end)
+        finally:
+            store.close()
+        out[label] = summarise(res)
+        print(f"\n--- {label} ({db.name}) ---")
+        report(res, split)
+
+    sr_real = out["real"]["sharpe"]
+    sr_dm = out["demeaned"]["sharpe"]
+    drift = (sr_real - sr_dm) if (sr_real is not None and sr_dm is not None) else None
+    frac = (drift / sr_real) if (drift is not None and sr_real) else None
+
+    commit, dirty = git_state()
+    rec = {
+        "ts": int(time.time()),
+        "kind": "drift_decomposition",
+        "git_commit": commit,
+        "dirty": dirty,
+        "config_hash": config_hash(cfg),
+        "config": asdict(cfg),
+        "split": split,
+        "sharpe_real": sr_real,
+        "sharpe_demeaned": sr_dm,
+        "drift_component": _r(drift) if drift is not None else None,
+        "drift_fraction": _r(frac) if frac is not None else None,
+        "real": out["real"],
+        "demeaned": out["demeaned"],
+        "note": DIAGNOSTIC_NOTE,
+    }
+    with open(DIAGNOSTICS_PATH, "a", encoding="utf-8") as f:
+        f.write(json.dumps(rec) + "\n")
+
+    def f2(x):
+        return "n/a" if x is None else f"{x:.2f}"
+
+    print("\n=== drift / trend decomposition ===")
+    print(f"Sharpe (real)      : {f2(sr_real)}")
+    print(f"Sharpe (demeaned)  : {f2(sr_dm)}")
+    print(f"Drift component    : {f2(drift)}  "
+          + (f"({frac * 100:.0f}% of total)" if frac is not None else "(n/a)"))
+    print(f"NOTE: {DIAGNOSTIC_NOTE}")
+    if frac is not None and frac > 0.5:
+        print("!! Majority of the Sharpe is drift-harvesting: closer to "
+              "disguised beta than to momentum. State this plainly in results.")
+    return rec
+
+
 def main(argv: list[str] | None = None) -> None:
     p = argparse.ArgumentParser(prog="backtest.runner")
     p.add_argument("--db", default=str(ROOT / "xsmom.db"))
@@ -348,12 +413,31 @@ def main(argv: list[str] | None = None) -> None:
                    help="the grid is a train-only exercise")
     g.add_argument("--fee-mode", choices=("taker", "maker"), default="taker")
 
+    d = sub.add_parser(
+        "diagnose",
+        help="drift/trend decomposition of one config on train (diagnostics.jsonl)",
+    )
+    d.add_argument("--lookback", type=int, choices=GRID_LOOKBACKS, required=True)
+    d.add_argument("--skip", type=int, choices=GRID_SKIPS, required=True)
+    d.add_argument("--fee-mode", choices=("taker", "maker"), default="taker")
+    d.add_argument("--demeaned-db", default=str(ROOT / "xsmom_demeaned.db"))
+
     args = p.parse_args(argv)
     db = Path(args.db)
     if not db.exists():
         sys.exit(f"database not found: {db} — build it with build.py first")
-    store = PointInTimeStore(db, read_only=True)
 
+    if args.cmd == "diagnose":
+        dm = Path(args.demeaned_db)
+        if not dm.exists():
+            sys.exit(f"demeaned database not found: {dm} — build it with "
+                     f"tools/build_demeaned_db.py first")
+        cfg = Config(lookback=args.lookback, skip=args.skip,
+                     fee_mode=args.fee_mode)
+        drift_decomposition(cfg, db, dm, split="train")
+        return
+
+    store = PointInTimeStore(db, read_only=True)
     try:
         if args.cmd == "run":
             cfg = Config(lookback=args.lookback, skip=args.skip,

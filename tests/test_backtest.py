@@ -288,12 +288,25 @@ def test_funding_sign_engine():
 # One ~440-day run estimates an annualised Sharpe with SE ~ sqrt(365/440)
 # ~ 0.9, so a single-seed "|SR| < 1" assertion false-alarms ~27% of the
 # time. Each null test therefore averages N_SEEDS independent runs and
-# bounds the MEAN at ~2 standard errors, with a loose per-seed guard that
-# still catches a gross mechanical leak immediately.
+# requires the MEAN to sit within 2 standard errors of zero (Stage 2a: 30
+# seeds, bound ~0.33), with a loose per-seed guard that still catches a
+# gross mechanical leak on the first seed.
 
-N_SEEDS = 5
-MEAN_BOUND = 0.75   # ~2 x (0.9 / sqrt(5))
+N_SEEDS = 30
 SEED_BOUND = 3.0
+
+
+def _null_stats(srs: list[float]) -> tuple[float, float, float, float, float]:
+    """(mean, SE of mean, t-stat, min, max) across seeds."""
+    a = np.array(srs)
+    se = float(a.std(ddof=1) / math.sqrt(len(a)))
+    return float(a.mean()), se, float(a.mean() / se), float(a.min()), float(a.max())
+
+
+def _fmt_null(label: str, srs: list[float]) -> str:
+    m, se, t, lo, hi = _null_stats(srs)
+    return (f"{label}: mean {m:+.3f}  SE {se:.3f}  t {t:+.2f}  "
+            f"min {lo:+.2f}  max {hi:+.2f}  (n={len(srs)})")
 
 
 def test_random_signal_no_edge():
@@ -316,17 +329,16 @@ def test_random_signal_no_edge():
         assert abs(gross_sr) < SEED_BOUND, (
             f"seed {seed}: gross sharpe {gross_sr:.2f} — HARNESS BUG")
 
-    mean_gross = float(np.mean(gross_srs))
+    mean_gross, se, t, _, _ = _null_stats(gross_srs)
     mean_net = float(np.mean(net_srs))
-    assert abs(mean_gross) < MEAN_BOUND, (
+    assert abs(mean_gross) <= 2 * se, (
         f"random signal shows systematic gross edge "
-        f"(mean sharpe {mean_gross:+.2f} over {N_SEEDS} seeds) — "
-        f"HARNESS BUG, stop and investigate")
+        f"({_fmt_null('gross', gross_srs)}) — HARNESS BUG, stop and investigate")
     assert mean_net < mean_gross, "costs must hurt"
     assert mean_net < -0.5, (
         f"random signal should lose clearly after costs, got {mean_net:+.2f}")
-    print(f"PASS random_signal_no_edge (mean gross {mean_gross:+.2f}, "
-          f"mean net {mean_net:+.2f} over {N_SEEDS} seeds)")
+    print(f"PASS random_signal_no_edge | {_fmt_null('gross', gross_srs)} | "
+          f"{_fmt_null('net', net_srs)}")
 
 
 # ----------------------------------------------------------- null test 2
@@ -359,12 +371,11 @@ def test_shuffled_returns_no_edge():
         assert abs(gross_sr) < SEED_BOUND, (
             f"seed {seed}: gross sharpe {gross_sr:.2f} — lookahead")
 
-    mean_gross = float(np.mean(gross_srs))
-    assert abs(mean_gross) < MEAN_BOUND, (
-        f"edge survived time-shuffling (mean gross sharpe {mean_gross:+.2f} "
-        f"over {N_SEEDS} seeds) — lookahead in the harness")
-    print(f"PASS shuffled_returns_no_edge (mean gross {mean_gross:+.2f} "
-          f"over {N_SEEDS} seeds)")
+    mean_gross, se, t, _, _ = _null_stats(gross_srs)
+    assert abs(mean_gross) <= 2 * se, (
+        f"edge survived time-shuffling ({_fmt_null('gross', gross_srs)}) — "
+        f"lookahead in the harness")
+    print(f"PASS shuffled_returns_no_edge | {_fmt_null('gross', gross_srs)}")
 
 
 # ------------------------------------------------------------------ test 4
@@ -507,6 +518,66 @@ def test_dollar_tilt_is_the_hedge():
     print(f"PASS dollar_tilt_is_the_hedge (max |net| {max(tilts):.3f})")
 
 
+# ----------------------------------------------------------------- test 13
+
+def test_demeaned_db_is_faithful():
+    """build_demeaned_db removes each symbol's mean log return (< 1e-10)
+    and leaves volumes, funding, timestamps, filters and — the thing that
+    matters — universe membership identical. Otherwise the drift
+    decomposition would compare two different strategies."""
+    from tools.build_demeaned_db import build_demeaned_db
+
+    n_days = 300
+    closes, _ = factor_market(seed=6, n_days=n_days)
+    # inject explicit, heterogeneous drift so there is something to remove
+    for i, sym in enumerate(list(closes)):
+        closes[sym] = closes[sym] * np.exp(0.002 * (i - 7) * np.arange(n_days))
+    src_store = build_store(closes)
+    src_path = src_store.path
+    src_store.close()
+    dst_path = src_path + ".demeaned.db"
+
+    mus = build_demeaned_db(src_path, dst_path)
+    assert set(mus) == set(closes)
+    try:
+        build_demeaned_db(src_path, dst_path)
+    except FileExistsError:
+        pass
+    else:
+        raise AssertionError("must refuse to overwrite an existing output")
+
+    a = PointInTimeStore(src_path, read_only=True)
+    b = PointInTimeStore(dst_path, read_only=True)
+    end = T0 + n_days * DAY - 1
+    va, vb = a.view_as_of(end), b.view_as_of(end)
+    for sym in closes:
+        ba, bb = va.klines(sym, limit=10_000), vb.klines(sym, limit=10_000)
+        assert len(ba) == len(bb) == n_days
+        lr = np.diff(np.log([x.close for x in bb]))
+        assert abs(lr.mean()) < 1e-10, (sym, lr.mean())
+        lr_src = np.diff(np.log([x.close for x in ba]))
+        assert abs(lr_src.mean()) > 1e-4 or sym == "ALT07USDT", "source untouched?"
+        for x, y in zip(ba, bb):
+            assert (x.open_time, x.close_time, x.volume, x.quote_volume,
+                    x.trades) == (y.open_time, y.close_time, y.volume,
+                                  y.quote_volume, y.trades)
+            # intrabar structure preserved, only the drift removed
+            assert math.isclose(x.close / x.open, y.close / y.open, rel_tol=1e-12)
+        assert va.funding(sym) == vb.funding(sym)
+        assert va.min_notional(sym) == vb.min_notional(sym)
+
+    for d in (70, 120, 200, n_days - 1):
+        a.reset_clock()
+        b.reset_clock()
+        t = T0 + (d + 1) * DAY - 1
+        ua = a.view_as_of(t).tradeable_universe(100.0, 3.0, 10, 5e6)
+        ub = b.view_as_of(t).tradeable_universe(100.0, 3.0, 10, 5e6)
+        assert ua == ub and ua, f"universe differs at day {d}"
+    a.close()
+    b.close()
+    print("PASS demeaned_db_is_faithful")
+
+
 # ----------------------------------------------------------------- test 14
 
 def test_realised_leverage_recorded():
@@ -601,6 +672,38 @@ def test_runner_trial_log_and_holdout_guard():
     finally:
         runner.TRIALS_PATH, runner.HOLDOUT_LOG = orig_trials, orig_holdout
     print("PASS runner_trial_log_and_holdout_guard")
+
+
+def test_runner_diagnose_never_logs_a_trial():
+    """The drift decomposition writes diagnostics.jsonl and must never touch
+    trials.jsonl — attribution is not a trial. Also a crash guard for the
+    path that runs after the grid."""
+    from backtest import runner
+    from tools.build_demeaned_db import build_demeaned_db
+
+    closes, _ = factor_market(seed=8, n_days=200)   # T0 lies inside 'train'
+    src = build_store(closes)
+    src_path = src.path
+    src.close()
+    dst_path = src_path + ".dm.db"
+    build_demeaned_db(src_path, dst_path)
+
+    scratch = Path(tempfile.mkdtemp())
+    orig = (runner.DIAGNOSTICS_PATH, runner.TRIALS_PATH)
+    runner.DIAGNOSTICS_PATH = scratch / "diagnostics.jsonl"
+    runner.TRIALS_PATH = scratch / "trials.jsonl"
+    try:
+        rec = runner.drift_decomposition(
+            CFG, Path(src_path), Path(dst_path), split="train")
+        assert rec["kind"] == "drift_decomposition"
+        assert rec["note"] == runner.DIAGNOSTIC_NOTE
+        assert rec["real"]["n_rebalances"] > 0
+        assert rec["demeaned"]["n_rebalances"] > 0
+        assert runner.DIAGNOSTICS_PATH.exists()
+        assert not runner.TRIALS_PATH.exists(), "diagnostic logged a TRIAL"
+    finally:
+        runner.DIAGNOSTICS_PATH, runner.TRIALS_PATH = orig
+    print("PASS runner_diagnose_never_logs_a_trial")
 
 
 # ----------------------------------------------------------------- test 11

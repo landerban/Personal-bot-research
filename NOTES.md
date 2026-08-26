@@ -58,8 +58,40 @@ Related: single-run Sharpe bounds are statistically naive — one ~440-day run
 estimates annualised Sharpe with SE ≈ 0.9, so a "|SR| < 1" single-seed
 assertion false-alarms ~27% of the time (and did, on the random-signal test
 too: +1.49 on one seed, cross-seed mean +0.19, t = 0.7). Both null tests now
-average 5 seeds and bound the mean at ~2 SE, with a loose per-seed guard
-(|SR| < 3) that still catches gross mechanical leaks instantly.
+average **30 seeds** (Stage 2a; was 5) and require the mean within 2 SE of
+zero (bound ≈ 0.33), reporting mean / SE / t / min / max, with a loose
+per-seed guard (|SR| < 3) that still catches gross mechanical leaks instantly.
+
+### 2a. Consequence for the REAL data (Stage 2a §2) — drift vs trend
+
+If momentum harvests persistent drift differences in shuffled data, it does
+the same in real data. Some unknown fraction of any grid Sharpe is
+drift-estimation (each symbol's full-sample mean, a proxy for disguised beta
+in a mostly-rising sample) rather than trend-continuation (a behavioural
+story with identifiable counterparties). They have different payers and
+different decay profiles.
+
+Required decomposition, run on **train only** for the best grid config:
+
+- (a) real store → `Sharpe_real`
+- (b) `xsmom_demeaned.db` (built by `tools/build_demeaned_db.py`, the
+  unmodified engine run against it) → `Sharpe_demeaned`
+- `Sharpe_real − Sharpe_demeaned` ≈ drift component.
+
+It uses full-sample means and **could not be run live**; it is labelled so
+everywhere it appears, and logged to `diagnostics.jsonl`, never
+`trials.jsonl` (attribution of an existing result, not a new configuration —
+no trial budget consumed). Decision rule: see §12.
+
+**Detail where the tool deviates from the amendment's wording, and why**:
+§2.1 says "adjust `close` prices". The tool scales **every price column of
+the bar** (open/high/low/close) by the same `exp(−μ_s·t)`. The engine fills
+at the *open*; an unscaled open against a scaled close would inject a
+synthetic overnight jump of `+μ_s·t` every day, growing without bound, and
+put the drift straight back in through the fills. Scaling the whole bar
+leaves every intrabar ratio intact and demeans both the close-to-close and
+overnight returns consistently. Volumes, timestamps, funding and filters are
+untouched, so universe membership is byte-identical (Test 13).
 
 ## 3. Vol estimator: weighted covariance (the alternative was NOT tried)
 
@@ -123,10 +155,22 @@ would quietly change the strategy. No imputation anywhere.
   any live-trading writeup. `step_size` quantisation also not modeled.
 - `tradeable_universe` is called with `gross_leverage = max_gross_leverage`
   (3.0) — the only leverage in Config, per §2.1 "gross_leverage=<config>".
-  Note the README's C ≥ 20N/L derivation used L = 2; at L = 3 the implied
-  floor is C ≥ 67, so $100 still clears it, but the universe filter is
-  slightly more permissive than an L = 2 filter would be. Flagging, not
-  acting.
+  **Stage 2a ruling: measure before changing.** The filter admits symbols
+  assuming 3× gross, but vol-targeting sets *realised* gross, and a
+  beta-neutral crypto book at 20% vol will often land near or below 1.0×.
+  With the `[0.5×, 1.5×]` band the smallest position is `0.5·L·C/N`, so at
+  $100 and N=10 any realised L < 1.0 puts positions under the $5 floor and
+  skips the whole rebalance. Instrumented (every filled rebalance records
+  realised gross leverage, min position notional, binding MIN_NOTIONAL; the
+  report shows the leverage distribution, `below_min_notional` skips as a
+  fraction of scheduled rebalances, and min notional vs floor). Decision
+  rule: if `below_min_notional` skips are rare, leave it; if material, change
+  the filter to expected rather than maximum leverage — **with the numbers,
+  not before**. Grid numbers go in §13.
+- README sizing rule corrected (Stage 2a §4.1): `C ≥ 10N/L`, not `20N/L` —
+  the old form counted the vol factor twice (once as 0.5×, again inside L)
+  and gave the same $100 at N=10, L=2 by coincidence. `L` is realised
+  leverage, not the configured cap.
 
 ## 8. Annualisation = 365
 
@@ -161,11 +205,31 @@ crashed holdout run still spends the look. No override exists.
 
 ## 12. Who is paying? (to be answered per-run before results are trusted)
 
-For cross-sectional momentum the candidate payers are: late trend-chasers
-paying for entries after moves are established, and holders liquidated into
-weakness on the short side's continued declines. Funding asymmetry (crowded
-longs paying shorts in alt rallies) can be either a cost or a tailwind here.
-This must be argued against the *actual* run: if the grid shows Sharpe > 1.5
-net of costs, that answer is not adequate until fee drag, turnover and the
-long/short PnL split make the mechanism visible. High Sharpe with no
-identifiable counterparty = bug until proven otherwise.
+Candidate explanations, with their payers:
+
+1. **Trend-continuation** (behavioural): late trend-chasers paying for
+   entries after moves are established; holders liquidated into weakness on
+   the short side's continued declines. Funding asymmetry (crowded longs
+   paying shorts in alt rallies) can be a cost or a tailwind. Identifiable
+   payers; decays as capital arrives.
+2. **Drift-harvesting** (Stage 2a §2): the signal is a noisy estimator of
+   each symbol's *persistent* drift, so the book is long the symbols that
+   went up over the whole sample and short the ones that went down. In a
+   mostly-rising sample this is disguised beta with a cross-sectional face.
+   **No identifiable payer** — nobody is systematically on the other side of
+   "this coin drifted up" — and it will not survive a drift reversal.
+
+Every payer in (1) is a trend-continuation story; if the edge is
+substantially (2), none of them explain it.
+
+**Decision rule**: the §2a decomposition attributes the best config's train
+Sharpe between the two. If a **majority** is drift, the strategy is closer
+to disguised beta than to momentum, and the results must say so plainly —
+in the headline, not buried. Independently of that: if any run shows
+Sharpe > 1.5 net of costs, the answer is not adequate until fee drag,
+turnover and the long/short PnL split make the mechanism visible. High
+Sharpe with no identifiable counterparty = bug until proven otherwise.
+
+## 13. Stage 2a — grid instrumentation results (to fill after the re-run)
+
+Pending the train grid re-run and the §2a decomposition.
