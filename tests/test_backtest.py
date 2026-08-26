@@ -500,6 +500,69 @@ def test_deflated_sharpe_sanity():
     print("PASS deflated_sharpe_sanity")
 
 
+# ------------------------------------------------ runner: guards & logging
+
+def test_runner_trial_log_and_holdout_guard():
+    """The holdout refuses without the flag, records the look BEFORE
+    running, and refuses forever after. Every execution logs a trial with
+    the git commit. Paths are redirected so nothing real is touched."""
+    import argparse
+    import json
+
+    from backtest import runner
+
+    scratch = Path(tempfile.mkdtemp())
+    orig_trials, orig_holdout = runner.TRIALS_PATH, runner.HOLDOUT_LOG
+    runner.TRIALS_PATH = scratch / "trials.jsonl"
+    runner.HOLDOUT_LOG = scratch / "holdout_log.json"
+    try:
+        cfg = Config(lookback=7, skip=0)
+        # trial logging carries commit + hash + split + purpose
+        runner.log_trial(cfg, "train", "unit", {"sharpe": 0.1, "max_dd": 0.2})
+        rec = json.loads(runner.TRIALS_PATH.read_text().strip())
+        assert rec["config_hash"] == runner.config_hash(cfg)
+        assert rec["split"] == "train" and rec["purpose"] == "unit"
+        assert "git_commit" in rec and rec["sharpe"] == 0.1
+        assert runner.trial_srs_for_deflation("train") == [
+            0.1 / math.sqrt(metrics.ANN)]
+
+        # holdout: no flag -> refuse
+        ns = argparse.Namespace(i_understand_this_is_the_only_look=False)
+        try:
+            runner.check_holdout_guard(ns, cfg)
+        except SystemExit:
+            pass
+        else:
+            raise AssertionError("holdout ran without the flag")
+        assert not runner.HOLDOUT_LOG.exists()
+
+        # with flag -> look recorded as 'started' before any result exists
+        ns = argparse.Namespace(i_understand_this_is_the_only_look=True)
+        runner.check_holdout_guard(ns, cfg)
+        log = json.loads(runner.HOLDOUT_LOG.read_text())
+        assert log["runs"][0]["status"] == "started"
+        runner.record_holdout_result({"sharpe": 0.3})
+        assert json.loads(runner.HOLDOUT_LOG.read_text())["runs"][0][
+            "result"]["sharpe"] == 0.3
+
+        # second look, even with the flag -> abort
+        try:
+            runner.check_holdout_guard(ns, cfg)
+        except SystemExit:
+            pass
+        else:
+            raise AssertionError("holdout allowed a second look")
+
+        # report + summarise must not crash on a real result (smoke)
+        res = shared_factor_run()
+        s = runner.summarise(res)
+        assert s["n_rebalances"] == len(res.rebalances)
+        runner.report(res, "train")
+    finally:
+        runner.TRIALS_PATH, runner.HOLDOUT_LOG = orig_trials, orig_holdout
+    print("PASS runner_trial_log_and_holdout_guard")
+
+
 # ----------------------------------------------------------------- test 11
 
 def test_stage1_regression():
