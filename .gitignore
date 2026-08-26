@@ -5,3 +5,8 @@ xsmom.db-wal
 xsmom.db-shm
 files.zip
 symbols.json
+xsmom_demeaned.db*
+live/state/
+paper_log.jsonl
+paper_costs.jsonl
+.env

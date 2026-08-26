@@ -43,12 +43,47 @@ HOLDOUT_LOG = ROOT / "holdout_log.json"
 DIAGNOSTIC_NOTE = ("DIAGNOSTIC ONLY -- uses full-sample means, "
                    "not runnable live.")
 
-# Pre-registered splits. Do not cross these.
+# Pre-registered splits. Do not cross these. The holdout ends where the data
+# ends (2026-07-31, Stage 2b A5) -- not 2026-08-31 -- so an empty month is
+# never silently included; ensure_data_covers() enforces it at run time.
 SPLITS = {
     "train": ("2019-09-01", "2023-12-31"),
     "validate": ("2024-01-01", "2024-12-31"),
-    "holdout": ("2025-01-01", "2026-08-31"),
+    "holdout": ("2025-01-01", "2026-07-31"),
 }
+
+
+def split_years(split: str) -> float:
+    d0, d1 = SPLITS[split]
+    return (_date_ms(d1) - _date_ms(d0) + DAY_MS) / DAY_MS / metrics.ANN
+
+
+def data_end_ms(store: PointInTimeStore) -> int | None:
+    """close_time of the last BTCUSDT daily bar in the store (BTC has the
+    longest history, so it bounds the dataset)."""
+    view = store.view_as_of(int(time.time() * 1000))
+    bars = view.klines("BTCUSDT", limit=1)
+    store.reset_clock()  # a deliberate probe, not a backtest step
+    return bars[-1].close_time if bars else None
+
+
+def ensure_data_covers(store: PointInTimeStore, split: str) -> None:
+    """Refuse a split the data does not reach. Runs BEFORE the holdout look
+    is recorded, so a coverage mistake cannot spend the look."""
+    end = data_end_ms(store)
+    _, split_end = split_view_range(split)
+    if end is None or end < split_end - DAY_MS:
+        sys.exit(
+            f"data ends {_ms_date(end)} but split '{split}' ends "
+            f"{SPLITS[split][1]}; refusing to run over an empty tail. "
+            f"Backfill further or amend SPLITS deliberately."
+        )
+
+
+def _ms_date(ms: int | None) -> str:
+    if ms is None:
+        return "n/a"
+    return datetime.fromtimestamp(ms / 1000, tz=timezone.utc).strftime("%Y-%m-%d")
 
 GRID_LOOKBACKS = (7, 14, 28)
 GRID_SKIPS = (0, 2)
@@ -271,6 +306,14 @@ def report(result: BacktestResult, split: str) -> None:
           + ("; needs >=2 trials)" if len(trial_srs) < 2 else ")"))
     print("Who is paying, and why would they keep paying? — answer required "
           "before trusting this line (see NOTES.md).")
+    if split == "holdout":
+        yrs = split_years(split)
+        resolvable = 2.0 / math.sqrt(yrs)  # 2 SE of an annualised Sharpe
+        print(f"HOLDOUT CAVEAT: {yrs:.2f} years resolves only a true Sharpe "
+              f"above ~{resolvable:.1f} (2 SE). The realistic 0.7-1.0 range is "
+              f"BELOW what this holdout can confirm. A holdout Sharpe of 0.8 "
+              f"means 'consistent with working, not confirmed' -- and that is "
+              f"the best available outcome. Do not over-read this number.")
     if not math.isnan(sr) and sr > 1.5:
         print("!! Sharpe > 1.5: treat as a bug until a counterparty is "
               "identified. High Sharpe with no payer is the signature of "
@@ -444,10 +487,12 @@ def main(argv: list[str] | None = None) -> None:
         if args.cmd == "run":
             cfg = Config(lookback=args.lookback, skip=args.skip,
                          fee_mode=args.fee_mode)
+            ensure_data_covers(store, args.split)  # before the look is spent
             if args.split == "holdout":
                 check_holdout_guard(args, cfg)
             execute(store, cfg, args.split, args.purpose)
         elif args.cmd == "grid":
+            ensure_data_covers(store, args.split)
             for lb in GRID_LOOKBACKS:
                 for sk in GRID_SKIPS:
                     cfg = Config(lookback=lb, skip=sk,

@@ -599,6 +599,31 @@ def test_realised_leverage_recorded():
     print("PASS realised_leverage_recorded")
 
 
+# ----------------------------------------------------------------- test 15
+
+def test_min_weight_fraction_single_source():
+    """Stage 2b A2: the smallest-position fraction lives in ONE place. The
+    universe filter default, the exported constant, the rank-weight band's
+    lower bound and the diagnose tool must all be the same number."""
+    import inspect
+
+    from backtest import weights as w
+    from pitdata import store as pit_store
+    from tools import diagnose
+
+    default = inspect.signature(
+        pit_store.PITView.tradeable_universe
+    ).parameters["min_weight_fraction"].default
+    assert default == pit_store.MIN_WEIGHT_FRACTION == w.WEIGHT_BAND[0] == 0.5
+    assert diagnose.MIN_WEIGHT_FRACTION is pit_store.MIN_WEIGHT_FRACTION
+    # ...and the band the profile actually enforces is that band
+    for k in (2, 5, 8):
+        prof = w._leg_profile(k)
+        assert prof.min() >= w.WEIGHT_BAND[0] / k - 1e-12
+        assert prof.max() <= w.WEIGHT_BAND[1] / k + 1e-12
+    print("PASS min_weight_fraction_single_source")
+
+
 # ------------------------------------------------------- metrics sanity
 
 def test_deflated_sharpe_sanity():

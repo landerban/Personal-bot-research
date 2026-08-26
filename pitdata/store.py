@@ -37,6 +37,15 @@ from typing import Iterator, Sequence
 # Anything past this bound is microseconds and gets normalised on ingest.
 _MICROSECOND_THRESHOLD = 1_000_000_000_000_000  # 1e15
 
+# Smallest position as a fraction of the average position. This MUST equal
+# the lower bound of the rank-weight band in backtest/weights.py (spec
+# section 2.3.4: [0.5x, 1.5x] of leg average). Vol scaling is already inside
+# the gross leverage passed to tradeable_universe, so it must not be counted
+# here again -- an earlier 0.25 did exactly that and halved the floor.
+# Changing one without the other silently breaks MIN_NOTIONAL enforcement;
+# Stage 2 Test 15 asserts the three places that hold this number agree.
+MIN_WEIGHT_FRACTION = 0.5
+
 
 _INTERVAL_MS = {
     "1m": 60_000, "3m": 180_000, "5m": 300_000, "15m": 900_000,
@@ -342,7 +351,7 @@ class PITView:
         gross_leverage: float,
         n_positions: int,
         min_quote_volume: float,
-        min_weight_fraction: float = 0.25,
+        min_weight_fraction: float = MIN_WEIGHT_FRACTION,
         **kwargs,
     ) -> list[str]:
         """
@@ -350,8 +359,11 @@ class PITView:
         clears MIN_NOTIONAL.
 
         `min_weight_fraction` is the smallest position as a fraction of the
-        average, after rank-weighting and vol-scaling. 0.25 matches the
-        sizing derivation: ~0.5x from rank weight, ~0.5x from vol scaling.
+        average: the lower bound of the section 2.3.4 rank-weight band
+        (0.5). It must equal that band's lower bound. Vol scaling is already
+        inside `gross_leverage` and must NOT be counted here again.
+        Smallest position = min_weight_fraction * gross_leverage * capital
+        / n_positions; the relevant gross_leverage is the *realised* one.
         """
         avg_position = gross_leverage * capital / n_positions
         smallest = avg_position * min_weight_fraction

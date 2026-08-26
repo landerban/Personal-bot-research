@@ -236,7 +236,9 @@ def test_tradeable_universe_respects_min_notional():
         ],
     )
     v = s.view_as_of(T0 + 119 * DAY)
-    # $100 capital, 2x gross, 10 positions -> avg $20, smallest 0.25*20 = $5
+    # $100 capital, 2x gross, 10 positions -> avg $20, smallest 0.5*20 = $10:
+    # clears the $5 floor, not the $100 one. (Was 0.25*20 = $5 before Stage
+    # 2b corrected the double-counted vol factor; intent unchanged.)
     u = v.tradeable_universe(
         capital=100.0, gross_leverage=2.0, n_positions=10,
         min_quote_volume=1.0, lookback_days=30, min_history_days=60,

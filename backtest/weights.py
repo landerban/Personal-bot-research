@@ -36,8 +36,17 @@ if TYPE_CHECKING:  # avoid a runtime import cycle with engine.py
     from backtest.engine import Config
     from pitdata.store import PITView
 
+# Beta REFERENCE only: its returns define the market factor. It need not be a
+# position, and at small capital it is not tradeable at all (live MIN_NOTIONAL
+# is $50 vs $5 for most alts) -- that is intentional and handled.
 BTC = "BTCUSDT"
 ANNUALISATION = 365.0  # perps trade every calendar day; 252 would understate
+
+# Section 2.3.4 rank-weight band, as multiples of the leg average. The lower
+# bound is also the smallest-position fraction the MIN_NOTIONAL universe
+# filter assumes (pitdata.store.MIN_WEIGHT_FRACTION); Test 15 asserts the
+# two agree. Vol scaling is applied separately and must not be folded in.
+WEIGHT_BAND = (0.5, 1.5)
 
 # A leg-average beta below this is treated as exactly zero. Numerical guard
 # against 0/0 on degenerate (e.g. flat-price) data, not a tunable parameter.
@@ -98,7 +107,7 @@ def _leg_profile(k: int) -> np.ndarray:
     raw = np.arange(k, 0, -1, dtype=float)  # k, k-1, ..., 1
     w = raw / raw.sum()
     avg = 1.0 / k
-    lo, hi = 0.5 * avg, 1.5 * avg
+    lo, hi = WEIGHT_BAND[0] * avg, WEIGHT_BAND[1] * avg
     # Clip-and-renormalise to a fixed point: renormalising after a clip can
     # push interior weights back outside the band, so iterate. The band
     # contains the average, so a fixed point exists; the ramp converges in a
