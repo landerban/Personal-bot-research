@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+xsmom.db
+xsmom.db-wal
+xsmom.db-shm
+files.zip
+symbols.json
