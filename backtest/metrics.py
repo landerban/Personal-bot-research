@@ -91,10 +91,22 @@ def expected_max_dd(vol_ann: float, sharpe_ann: float) -> float:
     return vol_ann / (2.0 * sharpe_ann)
 
 
+def active_days(returns: np.ndarray) -> int:
+    """Days with a nonzero return, i.e. days a position was actually held."""
+    return int((returns != 0).sum())
+
+
 def hit_rate(returns: np.ndarray) -> float:
-    if len(returns) == 0:
+    """
+    Fraction of ACTIVE days that were positive. Flat days (no position —
+    warmup, universe gaps) are excluded: counting them as losses made a
+    thinly-traded window read as a 7% hit rate. Sharpe is deliberately not
+    given the same treatment — flat days understate it, the safe direction.
+    """
+    nz = returns[returns != 0]
+    if len(nz) == 0:
         return float("nan")
-    return float((returns > 0).mean())
+    return float((nz > 0).mean())
 
 
 def avg_win_loss(returns: np.ndarray) -> tuple[float, float]:

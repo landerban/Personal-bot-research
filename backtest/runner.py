@@ -228,8 +228,10 @@ def report(result: BacktestResult, split: str) -> None:
           f"{fmt(metrics.fee_drag(result.total_fees, result.gross_pnl), pct=True)}")
     print(f"  gross PnL {result.gross_pnl:+.2f} | fees {result.total_fees:.2f}"
           f" | funding {result.total_funding:+.2f}")
+    n_active = metrics.active_days(rets)
     print(f"hit rate          {fmt(metrics.hit_rate(rets), pct=True)}   "
-          f"avg win {fmt(aw, pct=True, nd=3)} vs avg loss {fmt(al, pct=True, nd=3)}")
+          f"avg win {fmt(aw, pct=True, nd=3)} vs avg loss {fmt(al, pct=True, nd=3)}"
+          f"   (over {n_active} active of {len(rets)} window days)")
     print(f"long-leg PnL {result.gross_pnl_long:+.2f} | "
           f"short-leg PnL {result.gross_pnl_short:+.2f}")
 
