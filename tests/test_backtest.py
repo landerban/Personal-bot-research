@@ -624,6 +624,18 @@ def test_min_weight_fraction_single_source():
     print("PASS min_weight_fraction_single_source")
 
 
+def test_grid_table_prints_from_summary():
+    """The grid's closing comparison table must render from a real summary
+    (it runs after six logged trials; a crash there is expensive to notice)."""
+    from backtest import runner
+    res = shared_factor_run()
+    rows = [(CFG, runner.summarise(res)),
+            (Config(lookback=14, skip=2, initial_capital=CFG.initial_capital,
+                    min_quote_volume=CFG.min_quote_volume), runner.summarise(res))]
+    runner.print_grid_table(rows, "train")
+    print("PASS grid_table_prints_from_summary")
+
+
 # ------------------------------------------------------- metrics sanity
 
 def test_deflated_sharpe_sanity():

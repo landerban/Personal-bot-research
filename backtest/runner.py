@@ -436,6 +436,31 @@ def drift_decomposition(
     return rec
 
 
+def print_grid_table(rows: list[tuple[Config, dict]], split: str) -> None:
+    """Compact cross-config comparison printed after the grid. Every number
+    is also in trials.jsonl; this is for reading, not for deciding."""
+    def f(x, nd=2, pct=False):
+        if x is None or (isinstance(x, float) and math.isnan(x)):
+            return "n/a"
+        return f"{x * 100:.{nd}f}%" if pct else f"{x:.{nd}f}"
+
+    print(f"\n=== grid summary | {split} | {len(rows)} configs ===")
+    print(f"{'lb':>3} {'skip':>4} {'sharpe':>7} {'ann_ret':>8} {'ann_vol':>8} "
+          f"{'max_dd':>7} {'turn':>6} {'fee_drag':>9} {'lev_med':>7} {'<1.0x':>7} "
+          f"{'bmn_skip':>9} {'n_rb':>5}")
+    for cfg, s in rows:
+        n_sched = max(s.get("n_scheduled", 0), 1)
+        bmn = s.get("skips_by_reason", {}).get("below_min_notional", 0) / n_sched
+        print(f"{cfg.lookback:>3} {cfg.skip:>4} {f(s['sharpe']):>7} "
+              f"{f(s['ann_return'], pct=True):>8} {f(s['ann_vol'], pct=True):>8} "
+              f"{f(s['max_dd'], pct=True):>7} {f(s['turnover'], 1):>6} "
+              f"{f(s['fee_drag'], pct=True):>9} {f(s['leverage_median']):>7} "
+              f"{f(s['leverage_frac_below_1'], 0, pct=True):>7} "
+              f"{f(bmn, 1, pct=True):>9} {s['n_rebalances']:>5}")
+    print("bmn_skip = below_min_notional skips as a share of scheduled rebalances; "
+          "<1.0x = share of filled rebalances with realised gross leverage under 1.0")
+
+
 def main(argv: list[str] | None = None) -> None:
     p = argparse.ArgumentParser(prog="backtest.runner")
     p.add_argument("--db", default=str(ROOT / "xsmom.db"))
@@ -493,13 +518,16 @@ def main(argv: list[str] | None = None) -> None:
             execute(store, cfg, args.split, args.purpose)
         elif args.cmd == "grid":
             ensure_data_covers(store, args.split)
+            rows: list[tuple[Config, dict]] = []
             for lb in GRID_LOOKBACKS:
                 for sk in GRID_SKIPS:
                     cfg = Config(lookback=lb, skip=sk,
                                  fee_mode=args.fee_mode)
                     print(f"\n##### grid: lookback={lb} skip={sk} "
                           f"fee={args.fee_mode} #####")
-                    execute(store, cfg, args.split, "grid")
+                    res = execute(store, cfg, args.split, "grid")
+                    rows.append((cfg, summarise(res)))
+            print_grid_table(rows, args.split)
     finally:
         store.close()
 
