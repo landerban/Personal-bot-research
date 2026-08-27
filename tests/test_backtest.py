@@ -25,6 +25,7 @@ from backtest.weights import (  # noqa: E402
     Skip,
     _leg_profile,
     beta_hedge,
+    momentum_signal,
     rank_weights,
 )
 from pitdata.store import PointInTimeStore  # noqa: E402
@@ -654,6 +655,33 @@ def test_pnl_trace_reconciles():
         traced |= set(d)
     assert traced <= held, traced - held
     print("PASS pnl_trace_reconciles")
+
+
+def test_flatten_on_skip():
+    """Ruling 2026-08-27 (NOTES 13.1): a skipped rebalance closes the book at
+    the next open. A held book would otherwise drift through the 3x cap as
+    equity moves. Exactly one flatten per run of consecutive skips, fees on
+    the closing turnover, then cash: no trace, flat equity."""
+    closes, _ = factor_market(seed=11)
+    cutoff = T0 + 300 * DAY - 1
+
+    def sig(view, symbol, cfg):
+        if view.as_of >= cutoff:
+            return None                # every candidate dropped -> skip
+        return momentum_signal(view, symbol, cfg)
+
+    res = run(build_store(closes), signal_fn=sig)
+    first_skip = min(ts for ts, r, _ in res.skips if r == "insufficient_candidates")
+    assert len(res.flattens) == 1, res.flattens
+    ts_flat, reason, turnover, fees = res.flattens[0]
+    assert ts_flat == first_skip + DAY and reason == "insufficient_candidates"
+    assert turnover > 0 and abs(fees - turnover * TAKER) < 1e-9
+    idx = res.timestamps.index(ts_flat)
+    assert all(not d for d in res.pnl_by_symbol_day[idx + 1:]), "positions survived a skip"
+    assert all(abs(e - res.equity[idx]) < 1e-9 for e in res.equity[idx + 1:])
+    assert abs(sum(rb.fees for rb in res.rebalances) + fees - res.total_fees) < 1e-9
+    assert res.rebalances[-1].ts_fill < ts_flat
+    print("PASS flatten_on_skip")
 
 
 # ------------------------------------------------------- metrics sanity

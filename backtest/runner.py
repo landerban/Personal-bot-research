@@ -171,6 +171,8 @@ def summarise(result: BacktestResult) -> dict:
         "total_fees": _r(result.total_fees),
         "total_funding": _r(result.total_funding),
         "forced_liquidations": len(result.forced_liquidations),
+        "n_flattens": len(result.flattens),
+        "flatten_fees": _r(sum(f[3] for f in result.flattens)),
         "missing_funding_settlements": result.missing_funding_settlements,
     }
 
@@ -295,6 +297,10 @@ def report(result: BacktestResult, split: str) -> None:
         print(f"min position notional taken  ${min_pos:.2f}  vs binding "
               f"MIN_NOTIONAL "
               + (f"${binding:.2f}" if binding is not None else "n/a (no filter)"))
+    fl_fees = sum(f[3] for f in result.flattens)
+    fl_turn = sum(f[2] for f in result.flattens)
+    print(f"flatten-on-skip events: {len(result.flattens)} | turnover "
+          f"${fl_turn:.2f} | fees ${fl_fees:.2f}")
     print(f"forced liquidations: {len(result.forced_liquidations)} | "
           f"missing funding settlements: {result.missing_funding_settlements}"
           + ("  (rates absent from data; NOT zero-cost in reality)"

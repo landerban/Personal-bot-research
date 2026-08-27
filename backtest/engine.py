@@ -102,6 +102,9 @@ class BacktestResult:
     bankrupt: bool = False
     # Attribution trace: per-day {symbol: price PnL}, aligned with timestamps.
     pnl_by_symbol_day: list[dict[str, float]] = field(default_factory=list)
+    # Flatten-on-skip events: (ts_fill, reason, turnover_notional, fees).
+    # Ruling 2026-08-27: a skipped rebalance goes to cash at the next open.
+    flattens: list[tuple[int, str, float, float]] = field(default_factory=list)
 
     def skip_counts(self) -> dict[str, int]:
         out: dict[str, int] = {}
@@ -128,6 +131,7 @@ def run_backtest(
     pending_dollars: dict[str, float] = {}
     pending_ts: int = 0
     pending_equity: float = 0.0
+    pending_flatten: Optional[str] = None   # skip reason awaiting execution
     equity = cfg.initial_capital
     step = cfg.rebalance_ms
 
@@ -184,6 +188,7 @@ def run_backtest(
             missing = [s for s in pending_dollars if bars.get(s) is None]
             res.skips.append((t, "missing_fill_bar", ",".join(missing)))
             pending, pending_dollars = None, {}
+            pending_flatten = "missing_fill_bar"   # no valid book -> cash
 
         # Funding settlements in (yesterday's close, today's close]:
         # 00:00 belongs to the book held across midnight (pre-fill);
@@ -261,6 +266,25 @@ def run_backtest(
                 )
             )
             pending, pending_dollars = None, {}
+        elif pending_flatten is not None:
+            # A skip means no valid book exists for today. Holding the old
+            # one would let its leverage drift without bound as equity moves
+            # (it went past 20x on real data, through the 3x cap), so the
+            # book is closed at the open, with fees on the turnover, and the
+            # strategy is in cash until a rebalance succeeds.
+            fl_turnover = 0.0
+            fl_fees = 0.0
+            for sym, units in positions.items():
+                price = bars[sym].open
+                fl_fees += costs.trade_fee(-units, price, cfg.fee_mode)
+                fl_turnover += abs(units) * price
+            if positions:
+                res.total_fees += fl_fees
+                res.total_turnover += fl_turnover
+                res.flattens.append((t, pending_flatten, fl_turnover, fl_fees))
+                positions.clear()
+                marks.clear()
+            pending_flatten = None
 
         # 5. 08:00 / 16:00 funding on the new book.
         apply_funding(positions, lambda st: st > day_open_time)
@@ -290,6 +314,7 @@ def run_backtest(
             decision = compute_target_weights(view, cfg, equity, signal_fn)
             if isinstance(decision, Skip):
                 res.skips.append((t, decision.reason, decision.detail))
+                pending_flatten = decision.reason   # executed at tomorrow's open
             else:
                 pending = decision
                 pending_ts = t

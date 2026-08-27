@@ -132,8 +132,12 @@ would quietly change the strategy. No imputation anywhere.
 
 - Any skip (`universe_too_small`, `insufficient_candidates`,
   `btc_insufficient_history`, `btc_zero_variance`, `unhedgeable_beta`,
-  `below_min_notional`, `missing_fill_bar`) → **hold the existing book**, log
-  reason + timestamp. Never a smaller or partial book.
+  `below_min_notional`, `missing_fill_bar`) → log reason + timestamp and
+  **flatten to cash at the next open** (fees on the closing turnover,
+  recorded in `flattens`). Never a smaller or partial book. *Originally
+  "hold the existing book"; changed by user ruling 2026-08-27 after §13.1
+  showed a held book drifting past 20× leverage on real data.* Repeated
+  skips while already flat cost nothing.
 - `unhedgeable_beta`: if the short leg's weighted beta is ≤ 0 no positive
   scale can neutralise — skip. If both leg betas are ~0 the book is already
   neutral → s = 1, proceed.
