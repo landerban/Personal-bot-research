@@ -199,6 +199,9 @@ def summarise(result: BacktestResult) -> dict:
             [rb.beta_shrink_median for rb in result.rebalances]))
         ) if result.rebalances else None,
         "missing_funding_settlements": result.missing_funding_settlements,
+        "missing_funding_exposure_ratio": _r(
+            result.funding_notional_missing / result.funding_notional_expected
+            if result.funding_notional_expected > 0 else float("nan")),
     }
 
 
@@ -383,6 +386,9 @@ def report(result: BacktestResult, split: str) -> None:
           + f" (tolerance {result.config.max_data_gap_days}d)")
     print(f"forced liquidations: {len(result.forced_liquidations)} | "
           f"missing funding settlements: {result.missing_funding_settlements}"
+          + (f" (exposure-weighted "
+             f"{result.funding_notional_missing / result.funding_notional_expected:.2%})"
+             if result.funding_notional_expected > 0 else "")
           + ("  (rates absent from data; NOT zero-cost in reality)"
              if result.missing_funding_settlements else ""))
     if result.bankrupt:

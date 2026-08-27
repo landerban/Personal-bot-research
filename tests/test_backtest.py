@@ -1584,6 +1584,58 @@ def _store_missing_minutes(closes, holes: dict, drift: float):
     return store
 
 
+def test_funding_settlements_tolerate_millisecond_offsets():
+    """Stage 3 1.1: Binance stamps a settlement a few ms PAST its boundary
+    (45.7% of real rows are off by 1-6ms). Bucketing on the raw stamp both
+    counted the 00:00 settlement as missing and applied it to the post-fill
+    book instead of the book held across midnight. Settlements must snap to
+    the boundary they belong to."""
+    n_days = 120
+    # BTC must move or every beta is 0/0 (btc_zero_variance); it is kept
+    # out of the universe by volume, as in the other flat fixtures.
+    closes = {BTC: 20_000 * (1 + 0.01 * (-1.0) ** np.arange(n_days))}
+    for i in range(14):
+        closes[f"ALT{i:02d}USDT"] = np.full(n_days, 100.0)
+
+    def build(offset_ms: int):
+        tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
+        tmp.close()
+        st = PointInTimeStore(tmp.name)
+        filters = []
+        for sym, cl in closes.items():
+            i = int(sym[3:5]) if sym.startswith("ALT") else -1
+            rate = 1e-3 if 0 <= i <= 4 else (-1e-3 if i >= 9 else 0.0)
+            rows, frows = [], []
+            for d in range(n_days):
+                ot = T0 + d * DAY
+                qv = 1.0 if sym == BTC else 2e7
+                rows.append((ot, ot + DAY - 1, cl[d], cl[d] * 1.001,
+                             cl[d] * 0.999, cl[d], 10.0, qv, 100))
+                for h in range(3):
+                    # asymmetric by leg so the total is clearly nonzero:
+                    # equal rates would cancel and make the check vacuous
+                    frows.append((ot + h * H8 + offset_ms, rate))
+            st.insert_klines(sym, "1d", rows)
+            st.insert_klines(sym, "1m", _minute_rows(rows))
+            st.insert_funding(sym, frows)
+            filters.append({"symbol": sym, "status": "TRADING", "min_notional": 1.0})
+        st.insert_filters(T0, filters)
+        return st
+
+    exact = run_backtest(build(0), CFG, T0 + DAY - 1, T0 + n_days * DAY - 1)
+    offset = run_backtest(build(6), CFG, T0 + DAY - 1, T0 + n_days * DAY - 1)
+    assert exact.rebalances and offset.rebalances, "vacuous"
+    # a few ms of stamp jitter must change nothing that matters
+    assert offset.missing_funding_settlements == exact.missing_funding_settlements == 0, (
+        offset.missing_funding_settlements, exact.missing_funding_settlements)
+    assert math.isclose(offset.total_funding, exact.total_funding, rel_tol=1e-9), (
+        offset.total_funding, exact.total_funding)
+    assert exact.total_funding < -1.0, "fixture must produce real funding flow"
+    assert offset.funding_notional_missing == 0.0
+    print(f"PASS funding_settlements_tolerate_millisecond_offsets "
+          f"(funding {exact.total_funding:+.4f} either way, 0 missing)")
+
+
 # ------------------------------------------------------- metrics sanity
 
 def test_deflated_sharpe_sanity():

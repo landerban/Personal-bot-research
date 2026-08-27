@@ -192,6 +192,13 @@ class BacktestResult:
     gross_pnl_long: float = 0.0            # price PnL attributed by side
     gross_pnl_short: float = 0.0
     missing_funding_settlements: int = 0
+    # Stage 3 1.1: a raw count cannot tell 7,300 negligible exposures from
+    # 200 large ones on big shorts. Funding drives most of the PnL, so the
+    # gap has to be weighted by the notional actually exposed to it.
+    funding_notional_expected: float = 0.0   # sum |notional| over expected settlements
+    funding_notional_missing: float = 0.0    # ...over the ones with no rate
+    missing_funding_rows: list[tuple[int, str, float, float, int]] = field(
+        default_factory=list)                # (ts, symbol, units, notional, n_missing)
     bankrupt: bool = False
     # Attribution trace: per-day {symbol: price PnL}, aligned with timestamps.
     pnl_by_symbol_day: list[dict[str, float]] = field(default_factory=list)
@@ -392,13 +399,27 @@ def run_backtest(
                 if bar is None:      # inside a data gap: no mark, no funding
                     continue
 
+                # Binance stamps a settlement a few ms PAST its boundary
+                # (45.7% of rows are off-boundary by 1-6ms; BTCUSDT's 00:00
+                # settlement is at 00:00:00.006). Comparing the raw stamp to
+                # the boundary therefore both (a) counted the 00:00
+                # settlement as missing and (b) applied it to the post-fill
+                # book instead of the book held across midnight, violating
+                # the convention in NOTES 4. Snap each settlement to the
+                # boundary it belongs to before bucketing it.
                 settles = [
                     x
                     for x in costs.settlements_between(view, sym, prev_as_of, t)
-                    if selector(x[0])
+                    if selector((x[0] // iv) * iv)
                 ]
+                notional = abs(units) * bar.open
+                res.funding_notional_expected += notional * n_expected
                 if len(settles) < n_expected:
-                    res.missing_funding_settlements += n_expected - len(settles)
+                    n_miss = n_expected - len(settles)
+                    res.missing_funding_settlements += n_miss
+                    res.funding_notional_missing += notional * n_miss
+                    res.missing_funding_rows.append(
+                        (t, sym, units, notional, n_miss))
                 for _, rate in settles:
                     res.total_funding += costs.funding_cashflow(
                         units, bar.open, rate
