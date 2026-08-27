@@ -1195,7 +1195,44 @@ thing rather than two independent effects. The 2022 percentage is an
 artifact of dividing by a near-zero Sharpe and should not be quoted as
 "1263% drift"; the level (+0.69) is the meaningful figure.
 
-### 19.5 (4) CONFIGURATION FROZEN, 2026-08-27
+### 19.5 (3) Cost curve -- c* = 16.4 bps/side
+
+Frozen config, train, same strategy at seven execution-cost assumptions.
+Cost sensitivity on an unchanged configuration: no trial consumed.
+
+```
+ bps/side  sharpe   ann_ret      net$    fees$    slip$   feedrag   maxDD
+      0.0    0.89    20.41%   +407.69   130.03     0.00    40.95%   25.1%   (bound, not a headline)
+      2.5    0.81    18.05%   +349.35   124.59    62.28    46.80%   26.1%
+      5.0    0.80    17.83%   +344.13   127.87   127.84    47.95%   27.9%   <- BASELINE
+      7.5    0.71    15.42%   +288.17   124.13   186.14    57.29%   28.7%
+     10.0    0.52    10.13%   +176.22   113.83   227.60    94.20%   31.3%
+     15.0    0.21     2.28%    +35.69    99.54   298.54       n/a   40.1%
+     20.0   -0.16    -5.74%    -80.15    81.05   324.09       n/a   48.2%
+```
+
+- **c* = 16.4 bps/side** (annualised net return crosses zero)
+- **Sharpe falls below the 0.3 stop threshold beyond 13.6 bps/side**
+
+Against the interpretation fixed in advance (3): `c* > 15 bps` →
+**robust to execution quality; live cost uncertainty is not a threat.** The
+5bps assumption -- which rests on a single synthetic testnet fill -- has
+roughly 3x of headroom before the strategy stops making money, so the
+weakness of that assumption is not what decides this project.
+
+Two caveats worth keeping attached to that verdict:
+
+1. The measured 00:00→00:01 move (17.10) has mean |move| 19.12 bps, which
+   is *above* c*. That is the unconditional distribution, not the cost the
+   book actually pays, and the +1min fill is already in every number above
+   -- but it means real execution cost is not obviously small relative to
+   c*, and the paper harness's cost data is still the thing that settles it.
+2. Drawdown degrades faster than return: 25% → 48% across the curve, so the
+   30% kill threshold is breached beyond ~10bps even while net return is
+   still positive. **The binding constraint at high cost is drawdown, not
+   c*.**
+
+### 19.6 (4) CONFIGURATION FROZEN, 2026-08-27
 
 **`lookback=14, skip=0`, capital $400, N=10, 20% vol target, 3x cap, taker,
 fills at the +1min open, 5bps baseline slippage.**
