@@ -131,6 +131,37 @@ def shared_factor_run():
     return _SHARED["res"]
 
 
+def index_signal_until(cutoff_view_ms: int):
+    """Deterministic ranking (ALT00 best ... ALT13 worst) until `cutoff`,
+    then None for everyone -> every later decision is a skip."""
+    def sig(view, symbol, cfg):
+        if view.as_of >= cutoff_view_ms or not symbol.startswith("ALT"):
+            return None
+        return -int(symbol[3:5])
+    return sig
+
+
+def breach_market(seed: int = 5, n_days: int = 400, cutoff: int = 300):
+    """Factor market where, after `cutoff`, the deterministic longs
+    (ALT00-04) collapse 10%/day and the shorts (ALT09-13) rally 4%/day for
+    30 days. A book HELD through the skips loses most of its equity while
+    its notional does not shrink -> leverage explodes. Returns (closes,
+    cutoff_view_ms)."""
+    closes, _ = factor_market(seed=seed, n_days=n_days)
+    for sym in list(closes):
+        if not sym.startswith("ALT"):
+            continue
+        i = int(sym[3:5])
+        f = 0.90 if i <= 4 else (1.04 if i >= 9 else 1.0)
+        c = closes[sym].copy()
+        for d in range(cutoff + 1, min(cutoff + 31, n_days)):
+            c[d] = c[d - 1] * f
+        for d in range(cutoff + 31, n_days):
+            c[d] = c[d - 1]
+        closes[sym] = c
+    return closes, T0 + cutoff * DAY - 1 + DAY
+
+
 # ------------------------------------------------------- unit: weights math
 
 def test_rank_weight_profile():
@@ -682,6 +713,45 @@ def test_flatten_on_skip():
     assert abs(sum(rb.fees for rb in res.rebalances) + fees - res.total_fees) < 1e-9
     assert res.rebalances[-1].ts_fill < ts_flat
     print("PASS flatten_on_skip")
+
+
+# ----------------------------------------------------------------- test 16
+
+def check_leverage_cap_every_day(res, cap: float) -> float:
+    """The invariant, over the DAILY trace (filled, skipped or held days).
+    Returns the peak."""
+    assert len(res.daily_leverage) == len(res.timestamps)
+    peak = max(L for _, L in res.daily_leverage)
+    for ts, L in res.daily_leverage:
+        assert L <= cap + 1e-9, f"leverage {L:.2f}x on day {day_of(ts)} (cap {cap})"
+    return peak
+
+
+def test_leverage_cap_holds_every_day():
+    """Stage 2c Test 16. The first grid breached the 3x cap on days it did
+    NOT trade; the old test looked only at res.rebalances. Asserted here on
+    every day of a skip-heavy fixture and of the plain factor run."""
+    closes, cutoff = breach_market()
+    res = run(build_store(closes), n_days=400, signal_fn=index_signal_until(cutoff))
+    assert any(r == "insufficient_candidates" for _, r, _ in res.skips), "fixture must skip"
+    peak = check_leverage_cap_every_day(res, CFG.max_gross_leverage)
+    peak2 = check_leverage_cap_every_day(shared_factor_run(), CFG.max_gross_leverage)
+    print(f"PASS leverage_cap_holds_every_day (peak {peak:.2f}x skip-heavy, {peak2:.2f}x plain)")
+
+
+def test_below_min_notional_fires():
+    """Stage 2c 1.3: the sizing-below-floor path must be exercised. Universe
+    viable (filter assumes 3x -> $15 smallest) but the vol-targeted book at
+    ~1x puts the smallest position under a $6 floor."""
+    closes, _ = factor_market(seed=12)
+    res = run(build_store(closes, min_notionals={s: 6.0 for s in closes}),
+              cfg=Config(lookback=14, skip=2, initial_capital=100.0))
+    reasons = res.skip_counts()
+    assert reasons.get("below_min_notional", 0) > 0, reasons
+    late = [ts for ts, r, _ in res.skips if r == "universe_too_small" and day_of(ts) > 70]
+    assert not late, "after warm-up the floor must bind at sizing, not in the filter"
+    print(f"PASS below_min_notional_fires ({reasons['below_min_notional']} skips, "
+          f"{len(res.rebalances)} fills)")
 
 
 # ------------------------------------------------------- metrics sanity

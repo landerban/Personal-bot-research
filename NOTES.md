@@ -479,3 +479,31 @@ the re-run; N, vol target, cap and windows unchanged. Rationale: `C ≥ 10N/L`
 at the p05 realised leverage (0.27) gives $370. Exposed as `--capital` on
 the runner (the default stays 100; every trial row carries the full
 config, so the change is visible per row). Grid v3 = trials 13–18 of 20.
+
+## 14. Stage 2c — the invariant hole, Test 16, and the audit
+
+**Root cause restated (2c §1):** the 3× cap was asserted on `res.rebalances`
+— filled days only — and the breach happened on held days. Test 16 now
+asserts `gross_notional / equity ≤ cap` on the **daily** trace
+(`BacktestResult.daily_leverage`, every day, filled or not).
+
+**Pre-fix verification (required before applying any fix):** the engine at
+`7f2ea6d` (hold-on-skip) was loaded unmodified except for the additive
+daily-leverage trace, and run on `breach_market()` — deterministic ranking,
+then skips while the held longs fall 10%/day and the shorts rise 4%/day for
+30 days. Observed: **peak leverage 35.71×, 8 days over the cap, bankrupt
+(min equity −$146)**; Test 16 fails on day 315 at 3.03×. On the current
+engine the same fixture peaks at 1.25× and the plain factor run at 1.29×.
+The test reproduces the bug it guards.
+
+**Audit of the other invariants (2c §1.2):**
+
+| Invariant | Asserted where | Hole? | Action |
+|---|---|---|---|
+| 3× cap | rebalances only | **yes** (the bug) | Test 16 on the daily trace |
+| `below_min_notional` | never fired | **yes** — the $50 fixture was excluded by the universe filter first | `test_below_min_notional_fires`: $6 floor, viable universe, 439 skips with that exact reason, 0 fills |
+| dollar neutrality (test 7) | `raw_weights` at rebalance | no — a construction property of the ranking stage; it has no meaning on a held day | none |
+| tilt identity (test 12) | final weights at rebalance | across a skip the relative weights are preserved only under a single-scalar rescale; flatten trivially, hold not at all | Test 17 asserts ratios preserved to 1e-12 through a rescale |
+| beta neutrality (test 5) | realised beta over the whole run | no — held days are in the sample | Test 17 runs the skip-heavy fixture through it as well |
+| vol target (test 6) | realised over the run | no; but the ex-ante target is restored on skips only by rescaling | Test 17 |
+| MIN_NOTIONAL (test 8) | at fill | partial — a held position can drift under the floor | rescale's drop rule + Test 17 |

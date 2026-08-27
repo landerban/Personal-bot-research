@@ -102,6 +102,9 @@ class BacktestResult:
     bankrupt: bool = False
     # Attribution trace: per-day {symbol: price PnL}, aligned with timestamps.
     pnl_by_symbol_day: list[dict[str, float]] = field(default_factory=list)
+    # Every day, filled or not: gross notional / equity at the close. The
+    # 3x cap is asserted on THIS (Test 16), not on the rebalance list.
+    daily_leverage: list[tuple[int, float]] = field(default_factory=list)
     # Flatten-on-skip events: (ts_fill, reason, turnover_notional, fees).
     # Ruling 2026-08-27: a skipped rebalance goes to cash at the next open.
     flattens: list[tuple[int, str, float, float]] = field(default_factory=list)
@@ -299,6 +302,10 @@ def run_backtest(
         )
         res.pnl_by_symbol_day.append(dict(day_pnl))
         day_pnl.clear()
+        gross_notional = sum(abs(u) * bars[s_].close for s_, u in positions.items())
+        res.daily_leverage.append(
+            (t, gross_notional / equity if equity > 0 else float("inf"))
+        )
         res.timestamps.append(t)
         res.equity.append(equity)
         res.gross_equity.append(cfg.initial_capital + res.gross_pnl)
