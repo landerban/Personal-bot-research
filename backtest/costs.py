@@ -103,7 +103,9 @@ def settlements_between(
     ]
 
 
-def settlement_times(after_ms: int, until_ms: int) -> list[int]:
+def settlement_times(
+    after_ms: int, until_ms: int, interval_ms: int = SETTLEMENT_INTERVAL_MS
+) -> list[int]:
     """
     The 8h settlement boundaries in (after_ms, until_ms]. Epoch ms 0 is
     1970-01-01T00:00 UTC, so multiples of 8h are exactly the 00/08/16 UTC
@@ -112,10 +114,39 @@ def settlement_times(after_ms: int, until_ms: int) -> list[int]:
     Used to *count* funding data gaps rather than silently treating a missing
     rate as zero. The run continues, but the gap count is reported.
     """
-    first = (after_ms // SETTLEMENT_INTERVAL_MS + 1) * SETTLEMENT_INTERVAL_MS
-    return list(range(first, until_ms + 1, SETTLEMENT_INTERVAL_MS))
+    first = (after_ms // interval_ms + 1) * interval_ms
+    return list(range(first, until_ms + 1, interval_ms))
 
 
-def expected_settlement_count(after_ms: int, until_ms: int) -> int:
-    """How many settlement boundaries fall in (after_ms, until_ms]."""
-    return len(settlement_times(after_ms, until_ms))
+def expected_settlement_count(
+    after_ms: int, until_ms: int, interval_ms: int = SETTLEMENT_INTERVAL_MS
+) -> int:
+    """How many settlement boundaries fall in (after_ms, until_ms] for a
+    symbol settling every `interval_ms`."""
+    first = (after_ms // interval_ms + 1) * interval_ms
+    return len(range(first, until_ms + 1, interval_ms))
+
+
+# Binance moved some symbols to 4-hourly funding. The interval is not stored
+# in the dataset, so it is INFERRED from each symbol's own settlement
+# timestamps up to as_of -- point-in-time safe, and more robust than a
+# current-snapshot field would be, since it reflects the cadence actually in
+# force during the window being measured.
+SUPPORTED_INTERVALS_MS = (4 * 3_600_000, SETTLEMENT_INTERVAL_MS)
+
+
+def infer_funding_interval_ms(view, symbol: str, lookback_ms: int = 7 * 86_400_000) -> int:
+    """
+    Modal gap between the symbol's recent settlements, snapped to a supported
+    interval. Falls back to the 8h default when there is too little history
+    to tell -- never to a guess that would understate the expected count.
+    """
+    rows = view.funding(symbol, since=view.as_of - lookback_ms)
+    if len(rows) < 3:
+        return SETTLEMENT_INTERVAL_MS
+    diffs = [b[0] - a[0] for a, b in zip(rows, rows[1:]) if b[0] > a[0]]
+    if not diffs:
+        return SETTLEMENT_INTERVAL_MS
+    diffs.sort()
+    median = diffs[len(diffs) // 2]
+    return min(SUPPORTED_INTERVALS_MS, key=lambda i: abs(i - median))

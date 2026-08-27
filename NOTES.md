@@ -734,3 +734,171 @@ this purpose, and Test 20 asserts the fixture's own unit-book vol is in
 [0.75, 1.05] before asserting anything about the floor — so if someone
 changes the fixture, the test says the regime no longer matches rather than
 silently proving nothing.
+
+## 17. Stage 2e — pre-grid fixes from external review (2026-08-27)
+
+The grid moved again. The 2d grid was **stopped after 7 of 12 runs** when
+this review landed; those rows are marked void (§15 accounting, reason
+recorded in `trials.jsonl`) and **their Sharpes were deliberately not read**.
+Budget back to **0 of 20**. Spending 6 trials on a harness about to change,
+then 6 more after fixing it, is twelve trials for one answer.
+
+### 17.1 Feasibility is now checked AFTER hedging (2e §1)
+
+The universe filter estimated the smallest position as
+`MIN_WEIGHT_FRACTION · L · C / N`, then `beta_hedge` scaled the whole short
+leg by `s` — so every short shrank when `s < 1` and the filter had validated
+weights that no longer existed. Since skips cluster in high-vol regimes,
+this biased *which days the strategy traded*, the same defect that made grid
+v2's headline meaningless.
+
+Now: the check runs on post-hedge, post-vol-target weights; an infeasible
+position is **dropped**, the remainder renormalised and re-hedged, up to
+`MAX_FEASIBILITY_PASSES = 3`; below `MIN_LEG_NAMES = 3` on either leg the
+rebalance skips as `below_min_notional_post_hedge`.
+
+**No substitution**, per §1's explicit rejection: substituting the
+next-ranked candidate would select on position size, which correlates with
+volatility and liquidity, and that tilt could never be separated from the
+momentum signal afterwards. Test 21 asserts the final book is always a
+subset of the originally ranked names.
+
+The universe filter no longer passes `max_gross_leverage`. It passes the
+**last realised gross** — known at the decision close, the same class of
+path dependence as `capital=equity`. A two-pass "measure then re-filter"
+scheme was rejected: re-ranking on a feasibility-filtered pool *is*
+substitution. At C=$400 the old call admitted anything under
+`0.5 × 3.0 × 400/10 = $60`, i.e. every symbol, while the book actually runs
+near 0.45x where the threshold is $9.
+
+Demonstrated failing pre-fix: same fixture, the old path skipped the whole
+rebalance (`below_min_notional`, ALT13 at $7.12 < $8.00).
+
+### 17.2 Fills at the 00:01 open (2e §2)
+
+Filling at 00:00:00 is operationally impossible, and against a momentum
+signal the delay is **one-signed** — not covered by symmetric slippage.
+
+`tools/backfill_minutes.py` ingests the first five 1-minute bars of each UTC
+day. **No change to `pitdata/` was needed**: the `klines` table already
+carries an `interval` column, so the minute bars live under `interval='1m'`
+and inherit exactly the `close_time <= as_of` gating that
+`test_lookahead.py` already verifies. A 00:01 bar has `close_time`
+00:01:59.999 and cannot be seen by the decision at the previous close —
+Test 22 asserts this directly.
+
+`execution_delay_minutes = 1` is pre-registered; `0` stays runnable and
+reproduces the old convention exactly, and the two are never selected
+between on results. A missing 00:01 falls **forward** to 00:02/00:03; if
+none exists the rebalance skips. It never falls back to 00:00.
+
+**A vacuity trap this exposed, worth recording.** Switching the default to
+minute fills made every synthetic fixture unfillable — and the suite went on
+passing: 439 rebalance records with **zero fills and zero fees**, because the
+assertions iterated over fills that no longer existed. This is the Stage 2c
+§1 lesson again (an invariant asserted at the wrong moment). Two fixes: a
+missing execution bar now aborts the rebalance loudly as `missing_fill_bar`
+rather than quietly not trading, and every fixture builder writes its minute
+bars. Tests now assert `total_fees > 0` before drawing conclusions.
+
+### 17.3 Delisting is not a data gap (2e §3)
+
+Cross-sectional momentum shorts collapsing coins, and collapsing coins
+delist — so merging the two events landed squarely on the leg the profits
+should come from. Now separate:
+
+- **Delisting** (metadata timestamp passed): settled at the exchange
+  settlement price; without one, at last mark, flagged
+  `delist_settlement_estimated`. A delisted symbol is never tradeable again.
+- **Data gap**: the position is *held* and marked at its last close (no PnL,
+  no fee, no funding on those days). Only past `max_data_gap_days = 3` is it
+  force-settled as `data_gap_exits`.
+
+Counted and reported separately, never merged. Test 23 puts both in one
+fixture and asserts different paths, reasons and PnL (−50.74 vs −23.08).
+
+**Honest limitation**: the dataset has no historical listing/delisting
+metadata — `symbol_filters` holds a single snapshot dated 2026-08-26, and
+using a future-dated status inside a backtest would be lookahead. The
+delisting path is therefore driven by an explicit `delistings` argument, and
+on the real store it is empty: every disappearance is handled by the
+point-in-time-safe data-gap rule. That is the conservative direction and it
+is reported as such rather than papered over.
+
+### 17.4 Taker-only for research (2e §4)
+
+`assert_reportable_fee_mode` raises on maker mode unless the purpose starts
+with `exploratory-nonreportable`. The backtester treats a maker fee as a
+guaranteed fill; the live harness correctly knows a post-only order may not
+fill at all, and maker fills are not a random subset — you fill when the
+market comes to you, which for a momentum entry means filling on the entries
+about to work least well. That adverse selection has no representation here.
+
+### 17.5 Beta shrinkage (2e §5)
+
+`s > 3` on 1% of rebalances was estimation noise executed as a hedge
+instruction. Now each 60-day OLS beta carries its standard error;
+`beta_shrunk = w·β̂ + (1−w)·1.0` with `w = 1/(1 + (SE/β̂)²)`, and a leg whose
+weighted beta SE exceeds its estimate skips as `unhedgeable_beta`. Beta SE
+median/p95 and median shrink are logged per run.
+
+Effect (Test 24): a clean beta 1.499 → 1.499; a noisy one −0.449 → 0.850;
+and on the fixture that previously produced **s = 17.7**, shrinkage gives
+**s = 1.20**. A risk control, not an alpha choice — costs no trial, but it
+changes results, so it is pre-registered here.
+
+### 17.6 Funding cadence (2e §6)
+
+The missing-settlement checker assumed a fixed 8h schedule, so 4-hourly
+symbols reported spurious gaps. **The dataset has no
+`funding_interval_hours` column** (the parser only names it in a comment),
+so the cadence is *inferred* from each symbol's own settlement timestamps up
+to `as_of` — point-in-time safe, and more robust than a current-snapshot
+field, since it reflects the cadence actually in force in the window being
+measured. Diagnostic only; no PnL effect.
+
+### 17.7 Liquidation stress and bootstrap CIs (2e §7, §9)
+
+The full intraday liquidation model was rejected as specified; the cheap
+version is in. Every day records the equity implied by marking each position
+at the adverse side of its own bar (low for a long, high for a short) — the
+worst path the daily data can support. Reported as min implied equity, with
+a flag below 25% of starting capital.
+
+Stationary-bootstrap (Politis–Romano) 90% CIs now accompany every Sharpe.
+Resampling an existing result is not a new backtest and costs no trial;
+crypto returns are neither Gaussian nor IID, so the parametric SE
+understates uncertainty.
+
+### 17.8 §8 deferred table — nothing added
+
+No new idea was promoted to blocking during this round. The deferred list
+stands as written (rank buffer, L1 turnover penalty, residual momentum,
+EWMA/shrinkage covariance, full mark-price funding, walk-forward). Two
+things that came up and were deliberately **not** acted on:
+
+| Came up | Why not now |
+|---|---|
+| The `s`-shrinkage formula sends a genuinely zero-beta asset to 1.0 | It is the specified formula and the conservative direction (assume market exposure when the estimate says nothing). Changing it is an alpha-side judgement, not a fix |
+| Minute bars exist for five minutes a day, so a smarter execution model (VWAP over 00:01–00:04) is now cheap | A strategy change. Belongs in §8, after a baseline exists |
+
+### 17.9 One test had to be rewritten, not just re-run
+
+`test_below_min_notional_fires` (the Stage 2c 1.3 fixture) failed after 2e
+1 and the failure was correct. Its premise -- "the filter assumes 3x, so
+hopeless symbols reach the sizing check" -- is precisely what 2e 1 removed.
+With the filter using the gross actually in use, that fixture's symbols are
+now rejected up front (493 `universe_too_small`) instead of being admitted
+and caught later, so the old assertion was asserting obsolete behaviour.
+
+Rewritten to assert what still matters and is still true: the post-hedge
+floor path is reachable (it fires), the pre-filter rejects at the realised
+gross rather than at 3x, and -- the invariant that actually protects the
+results -- every executed position clears its floor (36 of 36 at $6).
+
+### 17.10 Status
+
+Stage 2e §1–§7 and §9 implemented; §10 (live fixes) is explicitly
+*before Phase 2, not before the grid* and is not done. Minute ingest of
+20,550 symbol-months runs at ~7/s. **The grid has not been run.** Budget 0
+of 20. Validate and holdout untouched.

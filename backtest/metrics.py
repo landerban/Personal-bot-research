@@ -184,3 +184,49 @@ def moments(returns: np.ndarray) -> tuple[float, float]:
     skew = float((r**3).mean() / sd**3)
     kurt = float((r**4).mean() / sd**4)
     return skew, kurt
+
+
+def sharpe_bootstrap_ci(
+    returns: np.ndarray,
+    confidence: float = 0.90,
+    n_boot: int = 2000,
+    seed: int = 0,
+    mean_block: float | None = None,
+) -> tuple[float, float]:
+    """
+    Stationary-bootstrap confidence interval for the annualised Sharpe ratio
+    (Politis-Romano 1994): resample geometric-length blocks with wraparound,
+    so serial dependence survives resampling.
+
+    Stage 2e 9: crypto returns are neither Gaussian nor IID, so the
+    parametric SE understates uncertainty. Resampling an existing result is
+    not a new backtest and costs no trial.
+
+    Default mean block length is n**(1/3), the usual rule of thumb.
+    """
+    r = np.asarray(returns, dtype=float)
+    r = r[np.isfinite(r)]
+    n = len(r)
+    if n < 30:
+        return (float("nan"), float("nan"))
+    if mean_block is None:
+        mean_block = max(2.0, n ** (1.0 / 3.0))
+    p = 1.0 / mean_block
+    rng = np.random.default_rng(seed)
+    # index walk: with prob p start a new block at a random point, else step on
+    starts = rng.integers(0, n, size=(n_boot, n))
+    jumps = rng.random((n_boot, n)) < p
+    idx = np.empty((n_boot, n), dtype=np.int64)
+    idx[:, 0] = starts[:, 0]
+    for j in range(1, n):
+        idx[:, j] = np.where(jumps[:, j], starts[:, j], (idx[:, j - 1] + 1) % n)
+    samples = r[idx]
+    mu = samples.mean(axis=1)
+    sd = samples.std(axis=1, ddof=1)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        sr = np.where(sd > 0, mu / sd * math.sqrt(ANN), np.nan)
+    sr = sr[np.isfinite(sr)]
+    if len(sr) < n_boot // 10:
+        return (float("nan"), float("nan"))
+    lo = (1.0 - confidence) / 2.0 * 100.0
+    return (float(np.percentile(sr, lo)), float(np.percentile(sr, 100.0 - lo)))

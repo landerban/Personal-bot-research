@@ -59,6 +59,19 @@ WEIGHT_BAND = (0.5, 1.5)
 # Data policy, not strategy.
 FUNDING_PRESENCE_WINDOW_MS = 3 * 86_400_000
 
+# Stage 2e 1: feasibility is checked on post-hedge, post-vol-target weights.
+# The universe filter estimates the smallest position as
+# MIN_WEIGHT_FRACTION * L * C / N, but beta_hedge then scales the whole short
+# leg by s (median 1.02, p95 1.73, max 4.03 on real data), so every short
+# shrinks when s < 1 and the filter validated weights that no longer exist.
+# An infeasible position is DROPPED and the remainder renormalised and
+# re-hedged, at most this many times, then the rebalance is skipped.
+MAX_FEASIBILITY_PASSES = 3
+
+# Below this many names on either leg the book is a different strategy, so
+# skip instead of trading it.
+MIN_LEG_NAMES = 3
+
 # Stage 2c 2.2: rescale-on-skip fires only when the held book's gross has
 # drifted more than this from its target -- roughly half the drift needed
 # to breach the floor. NOT a tunable parameter; do not grid it.
@@ -90,6 +103,9 @@ class Decision:
     gross: float                      # sum(|final_weights|)
     min_position_notional: float      # smallest |w| * equity in the book
     binding_min_notional: float | None  # largest MIN_NOTIONAL among positions
+    beta_se_median: float             # 2e 5: beta estimation uncertainty
+    beta_se_max: float
+    beta_shrink_median: float         # |shrunk - raw|, median over the book
 
 
 @dataclass(frozen=True)
@@ -158,6 +174,58 @@ def compute_betas(returns: np.ndarray, btc_returns: np.ndarray) -> np.ndarray:
         raise ValueError("BTC return variance is zero; beta undefined")
     demeaned = returns - returns.mean(axis=0)
     return (b @ demeaned) / var
+
+
+def compute_beta_ses(
+    returns: np.ndarray, btc_returns: np.ndarray, betas: np.ndarray
+) -> np.ndarray:
+    """
+    Standard error of each OLS beta: SE = sigma_resid / sqrt(Sxx), with
+    sigma_resid^2 = RSS / (T - 2). Same slices as compute_betas.
+    """
+    b = btc_returns - btc_returns.mean()
+    sxx = float(b @ b)
+    if sxx <= 0:
+        raise ValueError("BTC return variance is zero; beta SE undefined")
+    t = returns.shape[0]
+    if t <= 2:
+        raise ValueError("need more than 2 observations for a beta SE")
+    demeaned = returns - returns.mean(axis=0)
+    resid = demeaned - np.outer(b, betas)
+    rss = (resid ** 2).sum(axis=0)
+    return np.sqrt(rss / (t - 2) / sxx)
+
+
+def shrink_betas(betas: np.ndarray, ses: np.ndarray) -> np.ndarray:
+    """
+    Stage 2e 5: shrink each beta toward the market beta of 1.0 in proportion
+    to its relative standard error, w = 1 / (1 + (SE/beta)^2), so
+    beta_shrunk = w*beta + (1-w)*1.0.
+
+    This is a RISK CONTROL, not an alpha choice: s > 3 on 1% of rebalances
+    was estimation noise being executed as a hedge instruction. A beta
+    estimated at ~0 has an infinite relative SE and shrinks all the way to
+    1.0 -- that is the intended behaviour of the specified formula, and it
+    is the conservative direction (assume market exposure when the estimate
+    says nothing).
+    """
+    with np.errstate(divide="ignore", invalid="ignore"):
+        rel = np.where(betas != 0.0, ses / np.abs(betas), np.inf)
+    w = 1.0 / (1.0 + rel ** 2)
+    w = np.where(np.isfinite(w), w, 0.0)
+    return w * betas + (1.0 - w) * 1.0
+
+
+def leg_beta_se(weights: dict[str, float], ses: dict[str, float],
+                positive: bool) -> tuple[float, float]:
+    """(|weighted leg beta contribution|, SE of it) for one leg. The SE
+    combines independently: sqrt(sum (w_i * SE_i)^2)."""
+    items = [(w, ses[s]) for s, w in weights.items()
+             if (w > 0) == positive and w != 0]
+    if not items:
+        return 0.0, 0.0
+    se = float(np.sqrt(sum((abs(w) * se_) ** 2 for w, se_ in items)))
+    return se, se
 
 
 def beta_hedge(
@@ -235,6 +303,7 @@ def compute_target_weights(
     cfg: "Config",
     equity: float,
     signal_fn: SignalFn | None = None,
+    gross_hint: float | None = None,
 ) -> Decision | Skip:
     """
     The full section-2 pipeline at one `as_of`. Returns a Decision to be
@@ -249,9 +318,20 @@ def compute_target_weights(
     # 2.1 Universe at *current equity*: as the account compounds or draws
     # down, the set of symbols clearing MIN_NOTIONAL changes. Initial capital
     # here would be a subtle lookahead when equity has fallen.
+    #
+    # Stage 2e 1: the leverage passed here is the gross ACTUALLY in use --
+    # the last realised gross, which is known at this close (same class of
+    # path dependence as `capital=equity`). max_gross_leverage made the
+    # filter a no-op: at C=$400, N=10 it admits anything under
+    # 0.5 * 3.0 * 400/10 = $60, i.e. every symbol, while the book actually
+    # runs near 0.45x where the threshold is $9. Re-ranking on a
+    # feasibility-filtered pool would be substitution (2e 13), so this
+    # stays a PRE-ranking eligibility rule, like the funding filter; the
+    # exact post-hedge check below is the backstop.
     universe = view.tradeable_universe(
         capital=equity,
-        gross_leverage=cfg.max_gross_leverage,
+        gross_leverage=(gross_hint if gross_hint is not None
+                        else cfg.max_gross_leverage),
         n_positions=n,
         min_quote_volume=cfg.min_quote_volume,
     )
@@ -300,54 +380,108 @@ def compute_target_weights(
     # signals) cannot make the book depend on dict ordering.
     candidates.sort(key=lambda c: (-c[1], c[0]))
     k = n // 2
+    rets_by_sym = {c[0]: c[2] for c in candidates}
     longs = [c[0] for c in candidates[:k]]
     shorts = [c[0] for c in candidates[-k:]][::-1]  # worst first
-    raw = rank_weights(longs, shorts)
 
-    selected = longs + shorts
-    rets_by_sym = {c[0]: c[2] for c in candidates}
-    ret_matrix = np.column_stack([rets_by_sym[s] for s in selected])
-
-    # 2.4 Beta-neutralise (60d window; the fetch window may be longer).
-    # A zero-variance BTC makes every beta 0/0 — undefined, not zero. Skip
-    # rather than default it; defaulting is imputation.
     if not btc_var_ok:
+        # 2.4 A zero-variance BTC makes every beta 0/0 - undefined, not zero.
+        # Skip rather than default it; defaulting is imputation.
         return Skip("btc_zero_variance")
-    beta_arr = compute_betas(
-        ret_matrix[-cfg.beta_window:], btc_rets[-cfg.beta_window:]
-    )
-    betas = dict(zip(selected, beta_arr.tolist()))
-    hedged = beta_hedge(raw, betas)
-    if isinstance(hedged, Skip):
-        return hedged
-    hedged_w, beta_scale = hedged
 
-    # 2.5 Vol-target, hard-capped at max gross leverage.
-    final_w, vol_scale, est_vol = vol_target_scale(
-        hedged_w,
-        selected,
-        ret_matrix[-cfg.vol_window:],
-        cfg.vol_target,
-        cfg.max_gross_leverage,
-        cfg.min_gross_leverage,
-    )
+    def build(long_names: list[str], short_names: list[str]):
+        """Sections 2.3-2.5 on a given selection: rank-weight, beta-hedge,
+        vol-target. Returns (raw, hedged, final, beta_scale, vol_scale,
+        est_vol, betas) or a Skip."""
+        selected = long_names + short_names
+        raw = rank_weights(long_names, short_names)
+        ret_matrix = np.column_stack([rets_by_sym[s_] for s_ in selected])
+        R = ret_matrix[-cfg.beta_window:]
+        B = btc_rets[-cfg.beta_window:]
+        raw_beta_arr = compute_betas(R, B)
+        se_arr = compute_beta_ses(R, B, raw_beta_arr)
+        # Stage 2e 5: execute a shrunk beta, not a noisy point estimate.
+        beta_arr = shrink_betas(raw_beta_arr, se_arr)
+        betas = dict(zip(selected, beta_arr.tolist()))
+        ses = dict(zip(selected, se_arr.tolist()))
 
-    # Every executed position must clear its symbol's MIN_NOTIONAL. Position
-    # notional at fill equals |weight| * equity by construction, so this is
-    # checkable at decision time. Below the floor -> skip and log, never
-    # silently drop or bump the position.
+        # If a leg's weighted beta is smaller than its own standard error the
+        # hedge ratio is not identified; hedging on it executes noise.
+        for is_long in (True, False):
+            contrib = sum(
+                abs(w) * betas[s_] for s_, w in raw.items()
+                if (w > 0) == is_long
+            )
+            se_leg = float(np.sqrt(sum(
+                (abs(w) * ses[s_]) ** 2 for s_, w in raw.items()
+                if (w > 0) == is_long
+            )))
+            if se_leg > abs(contrib):
+                return Skip(
+                    "unhedgeable_beta",
+                    f"{'long' if is_long else 'short'} leg beta "
+                    f"{contrib:.3f} +/- {se_leg:.3f} (SE exceeds estimate)",
+                )
+
+        hedged = beta_hedge(raw, betas)
+        if isinstance(hedged, Skip):
+            return hedged
+        hedged_w, beta_scale = hedged
+        final_w, vol_scale, est_vol = vol_target_scale(
+            hedged_w,
+            selected,
+            ret_matrix[-cfg.vol_window:],
+            cfg.vol_target,
+            cfg.max_gross_leverage,
+            cfg.min_gross_leverage,
+        )
+        return (raw, hedged_w, final_w, beta_scale, vol_scale, est_vol,
+                betas, ses, raw_beta_arr)
+
+    # Stage 2e 1: check feasibility on the weights that will actually be
+    # traded - after the hedge and the vol scale, not on the filter's
+    # leg-average estimate. An infeasible position is dropped (never
+    # substituted: substituting on feasibility selects for position size,
+    # which correlates with vol and liquidity, and that tilt could not be
+    # separated from the momentum signal afterwards), the remainder is
+    # renormalised and re-hedged, and the check repeats.
+    built = None
+    for _ in range(MAX_FEASIBILITY_PASSES):
+        out = build(longs, shorts)
+        if isinstance(out, Skip):
+            return out
+        (raw, hedged_w, final_w, beta_scale, vol_scale, est_vol,
+         betas, ses, raw_betas) = out
+        infeasible = [
+            sym for sym, w in final_w.items()
+            if (mn := view.min_notional(sym)) is not None
+            and abs(w) * equity < mn
+        ]
+        if not infeasible:
+            built = out
+            break
+        longs = [x for x in longs if x not in infeasible]
+        shorts = [x for x in shorts if x not in infeasible]
+        if len(longs) < MIN_LEG_NAMES or len(shorts) < MIN_LEG_NAMES:
+            return Skip(
+                "below_min_notional_post_hedge",
+                f"leg reduced to {len(longs)}L/{len(shorts)}S by "
+                f"{','.join(sorted(infeasible))}",
+            )
+    if built is None:
+        return Skip(
+            "below_min_notional_post_hedge",
+            f"still infeasible after {MAX_FEASIBILITY_PASSES} passes",
+        )
+    (raw, hedged_w, final_w, beta_scale, vol_scale, est_vol,
+     betas, ses, raw_betas) = built
+
     min_pos = min(abs(w) * equity for w in final_w.values())
     binding: float | None = None
-    for sym, w in final_w.items():
+    for sym in final_w:
         mn = view.min_notional(sym)
-        if mn is None:
-            continue
-        binding = mn if binding is None else max(binding, mn)
-        if abs(w) * equity < mn:
-            return Skip(
-                "below_min_notional",
-                f"{sym}: {abs(w) * equity:.2f} < {mn:.2f}",
-            )
+        if mn is not None:
+            binding = mn if binding is None else max(binding, mn)
 
     return Decision(
         longs=tuple(longs),
@@ -361,6 +495,11 @@ def compute_target_weights(
         gross=float(sum(abs(w) for w in final_w.values())),
         min_position_notional=min_pos,
         binding_min_notional=binding,
+        beta_se_median=float(np.median(list(ses.values()))),
+        beta_se_max=float(max(ses.values())),
+        beta_shrink_median=float(np.median(
+            np.abs(np.array([betas[s_] for s_ in betas]) - raw_betas)
+        )),
     )
 
 

@@ -4,7 +4,21 @@ Event loop and portfolio accounting.
 EXECUTION TIMING — THE INVARIANT THIS FILE EXISTS TO PROTECT
 ------------------------------------------------------------
 Signal and target weights are computed at as_of = close of day T. Orders
-fill at the OPEN of day T+1, a price not visible at decision time. The loop
+fill at the open of day T+1 PLUS `execution_delay_minutes` (Stage 2e 2:
+the 00:01 open, not 00:00), a price not visible at decision time.
+
+Filling at 00:00:00 is operationally impossible -- at that instant the
+universe still has to be built, hundreds of assets ranked, betas and
+covariance computed, quantities quantised and orders transmitted. Against
+a MOMENTUM signal that delay is one-signed (if the move continues you buy
+higher and sell lower), so it is not covered by the symmetric slippage
+parameter. The 1-minute bars live in the same PIT-gated `klines` table
+under interval='1m', so a 00:01 bar (close_time 00:01:59.999) still
+cannot be seen by the decision taken at the previous close.
+
+A missing 00:01 bar falls forward to 00:02, then 00:03... within
+`execution_delay_minutes + 2`; if none exists the rebalance is skipped.
+It NEVER falls back to 00:00, which would restore the optimistic fill. The loop
 therefore carries the decision as `pending` and only converts it to fills
 one view later, when day T+1's completed bar (and hence its open) is
 legitimately readable. Filling at day T's close would mean seeing the close
@@ -14,8 +28,23 @@ Position sizes are fixed in DOLLARS at decision time (weight x equity at
 close of T) and converted to units at the T+1 open fill price, so no T+1
 information affects how much is bought.
 
+DELISTING IS NOT A DATA GAP (Stage 2e 3)
+----------------------------------------
+A held symbol with no bar today is one of two different events and they
+must not share a code path: cross-sectional momentum shorts collapsing
+coins, and collapsing coins are what delist, so this lands squarely on
+the leg the strategy's profits should come from.
+  * DELISTING, known from metadata whose timestamp has passed: settle at
+    the exchange settlement price; if none is recorded, settle at last
+    mark and log `delist_settlement_estimated`.
+  * DATA GAP: hold the position and mark at the last close. Only if the
+    gap exceeds `max_data_gap_days` force-settle, logging
+    `data_gap_forced_exit`. Waiting is point-in-time safe -- each day
+    only ever inspects that day's bar.
+The two are counted separately and never merged into one event again.
+
 INTRA-STEP ORDER at the view for day D (as_of = close of D):
-  1. force-settle held symbols with no bar today (delisting/data hole)
+  1. settle delistings; hold or force-exit symbols with no bar today
   2. mark held positions from yesterday's close to today's open
   3. 00:00 funding on the OLD book (the book that was held across midnight)
   4. fill pending targets at today's open; fees on turnover
@@ -78,6 +107,13 @@ class Config:
     # 5bps came from n=1 synthetic testnet fill: a plausible magnitude,
     # not a measurement.
     slippage_bps_per_side: float = 0.0
+    # Stage 2e 3: consecutive missing daily bars tolerated before a held
+    # position is force-settled as an unrecoverable data gap.
+    max_data_gap_days: int = 3
+    # Stage 2e 2: minutes after the daily open at which orders fill.
+    # 1 is the PRE-REGISTERED setting; 0 stays runnable so the effect is
+    # measurable, but the two are never selected between on results.
+    execution_delay_minutes: int = 1
 
     def __post_init__(self):
         if self.n_positions < 2 or self.n_positions % 2:
@@ -90,6 +126,8 @@ class Config:
             raise ValueError("min_gross_leverage must be in [0, max_gross_leverage]")
         if self.slippage_bps_per_side < 0:
             raise ValueError("slippage_bps_per_side must be >= 0")
+        if self.execution_delay_minutes < 0:
+            raise ValueError("execution_delay_minutes must be >= 0")
 
 
 @dataclass
@@ -111,6 +149,8 @@ class RebalanceRecord:
     realised_gross_leverage: float         # sum(|units| * fill) / equity
     min_position_notional: float           # smallest |units| * fill taken
     binding_min_notional: float | None     # largest MIN_NOTIONAL in the book
+    beta_se_median: float                  # 2e 5: beta estimation noise
+    beta_shrink_median: float
 
 
 @dataclass
@@ -140,6 +180,9 @@ class BacktestResult:
     gross_equity: list[float] = field(default_factory=list)  # price PnL only
     rebalances: list[RebalanceRecord] = field(default_factory=list)
     skips: list[tuple[int, str, str]] = field(default_factory=list)
+    # Stage 2e 3: kept separate, never merged.
+    delistings: list[tuple[int, str, float, bool]] = field(default_factory=list)
+    data_gap_exits: list[tuple[int, str, int]] = field(default_factory=list)
     forced_liquidations: list[tuple[int, str]] = field(default_factory=list)
     n_scheduled: int = 0                   # decision opportunities
     total_fees: float = 0.0
@@ -155,10 +198,17 @@ class BacktestResult:
     # Every day, filled or not: gross notional / equity at the close. The
     # 3x cap is asserted on THIS (Test 16), not on the rebalance list.
     daily_leverage: list[tuple[int, float]] = field(default_factory=list)
+    # Stage 2e 7: cheap liquidation stress. Equity implied by marking every
+    # held position at the ADVERSE side of its own daily bar (low for a
+    # long, high for a short) - the worst intraday path the daily data can
+    # support. Not a liquidation model; a flag for configs whose
+    # close-to-close results may describe a path that never happened.
+    daily_worst_equity: list[tuple[int, float]] = field(default_factory=list)
     # Rescale-on-skip events (Stage 2c 2, superseding flatten-on-skip).
     rescales: list[RescaleRecord] = field(default_factory=list)
     rescale_drops: list[tuple[int, str]] = field(default_factory=list)
     total_slippage: float = 0.0            # adverse fill cost, equity terms
+    minute_fill_fallbacks: int = 0         # 2e 2: 00:01 missing, used a later minute
 
     def skip_counts(self) -> dict[str, int]:
         out: dict[str, int] = {}
@@ -173,6 +223,7 @@ def run_backtest(
     start_view_ms: int,
     end_view_ms: int,
     signal_fn: SignalFn | None = None,
+    delistings: dict[str, tuple[int, float | None]] | None = None,
 ) -> BacktestResult:
     """
     Walk the clock over [start_view_ms, end_view_ms] in rebalance_ms steps.
@@ -188,6 +239,12 @@ def run_backtest(
     pending_rescale: Optional[RescalePlan] = None   # from a skip, fills next open
     pending_rescale_ts: int = 0
     pending_rescale_equity: float = 0.0
+    last_gross: Optional[float] = None   # 2e 1: universe filter hint
+    delist_meta = delistings or {}
+    missing_days: dict[str, int] = {}    # consecutive bars missing per symbol
+    delisted_syms: set[str] = set()      # settled and never tradeable again
+    funding_interval: dict[str, int] = {}   # 2e 6: per-symbol cadence
+    MINUTE_MS = 60_000
     bps = cfg.slippage_bps_per_side
     equity = cfg.initial_capital
     step = cfg.rebalance_ms
@@ -224,25 +281,87 @@ def run_backtest(
                 got[-1] if got and got[-1].open_time == day_open_time else None
             )
 
-        # 1. A held symbol with no bar today cannot be marked or traded —
-        # delisting or a data hole. Settle it at its last mark, loudly.
-        # No funding accrues for it today (approximation, logged).
-        for sym in [s for s in positions if bars.get(s) is None]:
-            notional = abs(positions[sym]) * marks[sym]
-            fee = notional * costs.fee_rate(cfg.fee_mode)
-            res.total_fees += fee
+        # 1. Settle delistings, then hold-or-exit missing bars (Stage 2e 3).
+        def settle(sym: str, price: float) -> float:
+            """Close a position at `price`, charging the taker fee. Returns
+            the notional traded."""
+            units = positions[sym]
+            pnl = units * (price - marks[sym])
+            res.gross_pnl += pnl
+            if units > 0:
+                res.gross_pnl_long += pnl
+            else:
+                res.gross_pnl_short += pnl
+            day_pnl[sym] = day_pnl.get(sym, 0.0) + pnl
+            notional = abs(units) * price
+            res.total_fees += notional * costs.fee_rate(cfg.fee_mode)
             res.total_turnover += notional
-            res.forced_liquidations.append((t, sym))
             del positions[sym]
             del marks[sym]
+            missing_days.pop(sym, None)
+            return notional
+
+        # 1a. Known delistings whose settlement timestamp has passed. Settled
+        # at the exchange settlement price when the metadata carries one;
+        # otherwise at last mark, flagged as estimated.
+        for sym in [s for s in positions if s in delist_meta]:
+            settle_ts, settle_px = delist_meta[sym]
+            if settle_ts > t:
+                continue
+            estimated = settle_px is None
+            price = marks[sym] if estimated else float(settle_px)
+            settle(sym, price)
+            delisted_syms.add(sym)
+            res.delistings.append((t, sym, price, estimated))
+            res.forced_liquidations.append((t, sym))
+
+        # 1b. No bar today and no known delisting: a data gap. Hold the
+        # position, mark at the last close (settle() is not called, so no PnL
+        # and no fee), and only force-exit once the gap is unrecoverable.
+        for sym in [s for s in positions if bars.get(s) is None]:
+            missing_days[sym] = missing_days.get(sym, 0) + 1
+            if missing_days[sym] > cfg.max_data_gap_days:
+                n_missing = missing_days[sym]
+                settle(sym, marks[sym])
+                res.data_gap_exits.append((t, sym, n_missing))
+                res.forced_liquidations.append((t, sym))
+        for sym in [s for s in positions if bars.get(s) is not None]:
+            missing_days.pop(sym, None)
 
         # A pending target we cannot price means the fill cannot happen as
         # decided. Abort the whole rebalance (hold the book) rather than
         # partially fill a neutral construction.
+        def fill_price_for(sym: str) -> float | None:
+            """Stage 2e 2: the open of the bar `execution_delay_minutes`
+            after the daily open. Falls FORWARD on a missing minute bar,
+            never back to 00:00. None if no acceptable minute exists."""
+            if cfg.execution_delay_minutes == 0:
+                return bars[sym].open
+            mins = view.klines(sym, "1m", limit=cfg.execution_delay_minutes + 3)
+            by_open = {b.open_time: b for b in mins}
+            for d in range(cfg.execution_delay_minutes,
+                           cfg.execution_delay_minutes + 3):
+                bar = by_open.get(day_open_time + d * MINUTE_MS)
+                if bar is not None:
+                    if d != cfg.execution_delay_minutes:
+                        res.minute_fill_fallbacks += 1
+                    return bar.open
+            return None
+
+        # A pending name that has delisted since the decision, has no daily
+        # bar, or has no execution bar at the required minute is
+        # untradeable. Aborting the whole rebalance is the same rule as
+        # for a missing daily bar -- and it must be LOUD: silently
+        # skipping the fill would leave a rebalance record with no fills
+        # and no fees, which is how a vacuous backtest looks.
         if pending is not None and any(
-            bars.get(s) is None for s in pending_dollars
+            bars.get(s) is None or s in delisted_syms
+            or fill_price_for(s) is None
+            for s in pending_dollars
         ):
-            missing = [s for s in pending_dollars if bars.get(s) is None]
+            missing = [s for s in pending_dollars
+                       if bars.get(s) is None or s in delisted_syms
+                       or fill_price_for(s) is None]
             res.skips.append((t, "missing_fill_bar", ",".join(missing)))
             pending, pending_dollars = None, {}
             # The book is held today; step 7 decides again at this close
@@ -254,12 +373,25 @@ def run_backtest(
         # for 00:00, the best no-lookahead approximation for the others.
         # A settlement absent from the data is counted as missing, never
         # silently zero-filled.
-        boundaries = costs.settlement_times(prev_as_of, t)
 
         def apply_funding(book: dict[str, float], selector) -> None:
-            n_expected = sum(1 for b in boundaries if selector(b))
             for sym, units in book.items():
-                bar = bars[sym]
+                # Stage 2e 6: expect settlements on THIS symbol's cadence.
+                # A 4-hourly symbol settles six times a day, so scoring it
+                # against a fixed 8h schedule reported spurious gaps.
+                if sym not in funding_interval:
+                    funding_interval[sym] = costs.infer_funding_interval_ms(
+                        view, sym
+                    )
+                iv = funding_interval[sym]
+                n_expected = sum(
+                    1 for b in costs.settlement_times(prev_as_of, t, iv)
+                    if selector(b)
+                )
+                bar = bars.get(sym)
+                if bar is None:      # inside a data gap: no mark, no funding
+                    continue
+
                 settles = [
                     x
                     for x in costs.settlements_between(view, sym, prev_as_of, t)
@@ -273,7 +405,11 @@ def run_backtest(
                     )
 
         # 2. Mark held positions from yesterday's close to today's open.
+        # A symbol inside a data gap has no bar: it keeps its last mark
+        # and contributes no PnL today.
         for sym, units in positions.items():
+            if bars.get(sym) is None:
+                continue
             mark(sym, units, bars[sym].open - marks[sym])
             marks[sym] = bars[sym].open
 
@@ -288,7 +424,14 @@ def run_backtest(
             turnover = 0.0
             fees = 0.0
             for sym in set(positions) | set(pending_dollars):
-                open_px = bars[sym].open
+                if bars.get(sym) is None:
+                    # Inside a data gap: there is no market today, so this
+                    # position cannot be traded. It stays held and the gap
+                    # logic exits it if the gap becomes unrecoverable.
+                    continue
+                open_px = fill_price_for(sym)
+                if open_px is None:
+                    continue     # no acceptable execution bar today
                 held = positions.get(sym, 0.0)
                 delta_ref = pending_dollars.get(sym, 0.0) / open_px - held
                 if delta_ref == 0.0:
@@ -310,7 +453,10 @@ def run_backtest(
                     marks[sym] = open_px
             res.total_fees += fees
             res.total_turnover += turnover
-            exposures = [abs(u) * bars[s].open for s, u in positions.items()]
+            exposures = [
+                abs(u) * (bars[s].open if bars.get(s) is not None else marks[s])
+                for s, u in positions.items()
+            ]
             res.rebalances.append(
                 RebalanceRecord(
                     ts_decision=pending_ts,
@@ -328,6 +474,8 @@ def run_backtest(
                     realised_gross_leverage=sum(exposures) / pending_equity,
                     min_position_notional=min(exposures) if exposures else 0.0,
                     binding_min_notional=pending.binding_min_notional,
+                    beta_se_median=pending.beta_se_median,
+                    beta_shrink_median=pending.beta_shrink_median,
                 )
             )
             pending, pending_dollars = None, {}
@@ -347,9 +495,11 @@ def run_backtest(
                 units = positions[sym]
                 target = 0.0 if sym in plan.dropped else plan.alpha * units
                 delta = target - units
-                if delta == 0.0:
+                if delta == 0.0 or bars.get(sym) is None:
+                    continue     # cannot trade a symbol with no bar today
+                open_px = fill_price_for(sym)
+                if open_px is None:
                     continue
-                open_px = bars[sym].open
                 price = costs.slip_price(open_px, delta, bps)
                 rs_fees += costs.trade_fee(delta, price, cfg.fee_mode)
                 rs_turnover += abs(delta) * price
@@ -363,7 +513,10 @@ def run_backtest(
                     marks[sym] = open_px
             res.total_fees += rs_fees
             res.total_turnover += rs_turnover
-            post = sum(abs(u) * bars[s].open for s, u in positions.items())
+            post = sum(
+                abs(u) * (bars[s].open if bars.get(s) is not None else marks[s])
+                for s, u in positions.items()
+            )
             res.rescales.append(
                 RescaleRecord(
                     ts_decision=pending_rescale_ts,
@@ -391,6 +544,8 @@ def run_backtest(
 
         # 6. Mark to today's close; record the daily equity point.
         for sym, units in positions.items():
+            if bars.get(sym) is None:
+                continue
             mark(sym, units, bars[sym].close - marks[sym])
             marks[sym] = bars[sym].close
         equity = (
@@ -399,7 +554,19 @@ def run_backtest(
         )
         res.pnl_by_symbol_day.append(dict(day_pnl))
         day_pnl.clear()
-        gross_notional = sum(abs(u) * bars[s_].close for s_, u in positions.items())
+        gross_notional = sum(
+            abs(u) * (bars[s_].close if bars.get(s_) is not None else marks[s_])
+            for s_, u in positions.items()
+        )
+        adverse = 0.0
+        for s_, u in positions.items():
+            bar = bars.get(s_)
+            if bar is None:
+                continue
+            # marks[] is today's close at this point in the step
+            worst_px = bar.low if u > 0 else bar.high
+            adverse += u * (worst_px - marks[s_])
+        res.daily_worst_equity.append((t, equity + adverse))
         res.daily_leverage.append(
             (t, gross_notional / equity if equity > 0 else float("inf"))
         )
@@ -418,7 +585,9 @@ def run_backtest(
         # the strategy does not trade.
         if t + step <= end_view_ms:
             res.n_scheduled += 1
-            decision = compute_target_weights(view, cfg, equity, signal_fn)
+            decision = compute_target_weights(
+                view, cfg, equity, signal_fn, gross_hint=last_gross
+            )
             if isinstance(decision, Skip):
                 res.skips.append((t, decision.reason, decision.detail))
                 plan = plan_rescale(
@@ -436,6 +605,7 @@ def run_backtest(
                     sym: w * equity
                     for sym, w in decision.final_weights.items()
                 }
+                last_gross = decision.gross
 
         prev_as_of = t
 

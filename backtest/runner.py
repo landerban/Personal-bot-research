@@ -174,12 +174,30 @@ def summarise(result: BacktestResult) -> dict:
         "total_fees": _r(result.total_fees),
         "total_funding": _r(result.total_funding),
         "forced_liquidations": len(result.forced_liquidations),
+        "n_delistings": len(result.delistings),
+        "n_delist_estimated": sum(1 for *_, e in result.delistings if e),
+        "n_data_gap_exits": len(result.data_gap_exits),
+        "sharpe_ci90": [_r(x) for x in metrics.sharpe_bootstrap_ci(
+            metrics.daily_returns(metrics.strategy_window(result)[1]))],
+        "min_intraday_equity": _r(min(
+            (e for _, e in result.daily_worst_equity), default=float("nan"))),
         "n_rescales": len(result.rescales),
         "rescale_fees": _r(sum(r.fees for r in result.rescales)),
         "n_rescale_drops": len(result.rescale_drops),
         "slippage_bps": result.config.slippage_bps_per_side,
+        "execution_delay_minutes": result.config.execution_delay_minutes,
+        "minute_fill_fallbacks": result.minute_fill_fallbacks,
         "total_slippage": _r(result.total_slippage),
         "min_gross_leverage": result.config.min_gross_leverage,
+        "beta_se_median": _r(float(np.median(
+            [rb.beta_se_median for rb in result.rebalances]))
+        ) if result.rebalances else None,
+        "beta_se_p95": _r(float(np.percentile(
+            [rb.beta_se_median for rb in result.rebalances], 95))
+        ) if result.rebalances else None,
+        "beta_shrink_median": _r(float(np.median(
+            [rb.beta_shrink_median for rb in result.rebalances]))
+        ) if result.rebalances else None,
         "missing_funding_settlements": result.missing_funding_settlements,
     }
 
@@ -285,7 +303,10 @@ def report(result: BacktestResult, split: str) -> None:
           f"{len(result.rebalances)} rebalances | capital ${result.config.initial_capital:.0f} ===")
     print(f"ann return        {fmt(aret, pct=True)}")
     print(f"ann vol           {fmt(vol, pct=True)}")
-    print(f"sharpe            {fmt(sr)}")
+    lo, hi = metrics.sharpe_bootstrap_ci(rets)
+    print(f"sharpe            {fmt(sr)}"
+          + ("" if math.isnan(lo) else
+             f"   90% CI [{lo:+.2f}, {hi:+.2f}] (stationary bootstrap)"))
     print(f"max drawdown      {fmt(mdd, pct=True)}   "
           f"(expected ~ sigma/2S = {fmt(metrics.expected_max_dd(vol, sr), pct=True)})")
     print(f"turnover (ann, x capital)  "
@@ -298,6 +319,12 @@ def report(result: BacktestResult, split: str) -> None:
     print(f"hit rate          {fmt(metrics.hit_rate(rets), pct=True)}   "
           f"avg win {fmt(aw, pct=True, nd=3)} vs avg loss {fmt(al, pct=True, nd=3)}"
           f"   (over {n_active} active of {len(rets)} window days)")
+    if result.rebalances:
+        bse = np.array([rb.beta_se_median for rb in result.rebalances])
+        bsh = np.array([rb.beta_shrink_median for rb in result.rebalances])
+        print(f"beta SE (median per book): median {np.median(bse):.3f} | "
+              f"p95 {np.percentile(bse, 95):.3f} | max {bse.max():.3f}   "
+              f"shrink |post-pre|: median {np.median(bsh):.3f}")
     print(f"long-leg PnL {result.gross_pnl_long:+.2f} | "
           f"short-leg PnL {result.gross_pnl_short:+.2f}")
 
@@ -331,11 +358,29 @@ def report(result: BacktestResult, split: str) -> None:
     print(f"rescale-on-skip events: {len(result.rescales)} | turnover "
           f"${rs_turn:.2f} | fees ${rs_fees:.2f} | positions dropped under "
           f"floor: {len(result.rescale_drops)}")
+    print(f"execution: fills at the +{result.config.execution_delay_minutes}min "
+          f"open"
+          + (f" ({result.minute_fill_fallbacks} fell forward to a later minute)"
+             if result.minute_fill_fallbacks else "")
+          + ("   <-- 0 = the operationally impossible 00:00 fill"
+             if result.config.execution_delay_minutes == 0 else ""))
     print(f"slippage assumed {result.config.slippage_bps_per_side:.1f} bps/side "
           f"-> cost ${result.total_slippage:.2f}"
           + ("   (5bps = plausible magnitude from n=1 synthetic testnet "
              "fill, NOT a measurement)"
              if result.config.slippage_bps_per_side else ""))
+    n_est = sum(1 for *_, est in result.delistings if est)
+    if result.daily_worst_equity:
+        wmin_ts, wmin = min(result.daily_worst_equity, key=lambda x: x[1])
+        frac = wmin / result.config.initial_capital
+        print(f"intraday stress (H/L): min implied equity ${wmin:.2f} "
+              f"({frac:.0%} of start) on {_ms_date(wmin_ts)}"
+              + ("   <-- BELOW 25%: close-to-close results may describe a "
+                 "path that never happened" if frac < 0.25 else ""))
+    print(f"delistings: {len(result.delistings)}"
+          + (f" ({n_est} settled at last mark, price estimated)" if n_est else "")
+          + f" | data-gap forced exits: {len(result.data_gap_exits)}"
+          + f" (tolerance {result.config.max_data_gap_days}d)")
     print(f"forced liquidations: {len(result.forced_liquidations)} | "
           f"missing funding settlements: {result.missing_funding_settlements}"
           + ("  (rates absent from data; NOT zero-cost in reality)"
@@ -398,8 +443,30 @@ def record_holdout_result(summary: dict) -> None:
     HOLDOUT_LOG.write_text(json.dumps(log, indent=2), encoding="utf-8")
 
 
+def assert_reportable_fee_mode(cfg: Config, purpose: str) -> None:
+    """
+    Stage 2e 4: no maker-mode research result may be reported until a
+    fill-probability model exists.
+
+    The backtester treats a maker fee as a guaranteed fill. The live harness
+    correctly knows a post-only order may not fill at all -- and maker fills
+    are not a random subset of intended orders: you fill when the market
+    comes to you, which for a momentum entry means filling on the entries
+    about to work least well. That adverse selection has no representation
+    here, so a maker-mode number would be optimistic by an unknown amount.
+    """
+    if cfg.fee_mode == "maker" and not purpose.startswith("exploratory-nonreportable"):
+        raise ValueError(
+            "maker mode is not reportable (Stage 2e 4): the backtester assumes "
+            "a guaranteed fill and has no fill-probability model. Re-run with "
+            "--fee-mode taker, or pass --purpose exploratory-nonreportable-<why> "
+            "to log an explicitly non-reportable exploratory run."
+        )
+
+
 def execute(store: PointInTimeStore, cfg: Config, split: str,
             purpose: str) -> BacktestResult:
+    assert_reportable_fee_mode(cfg, purpose)
     start, end = split_view_range(split)
     try:
         result = run_backtest(store, cfg, start, end)

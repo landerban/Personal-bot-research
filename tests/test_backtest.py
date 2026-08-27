@@ -10,6 +10,7 @@ PointInTimeStore/PITView machinery as production — no mocking of Stage 1.
 from __future__ import annotations
 
 import math
+import os
 import subprocess
 import sys
 import tempfile
@@ -43,8 +44,32 @@ TAKER = 0.0005
 
 CFG = Config(lookback=14, skip=2, initial_capital=10_000.0)
 
+# Where the pre-fix module copies live for the "demonstrate the bug" tests.
+SCRATCH = os.environ.get(
+    "XSMOM_SCRATCH",
+    r"C:\Users\ASUSTU~1\AppData\Local\Temp\claude\c--Stock"
+    r"\be609a9b-c823-4528-87ff-52096ba7681a\scratchpad",
+)
+
 
 # ---------------------------------------------------------------- fixtures
+
+def _minute_rows(daily_rows, drift: float = 0.0, n: int = 5):
+    """The first `n` one-minute bars of each daily bar. Stage 2e 2: the
+    engine fills at the +1min open, so a fixture without these has no
+    tradeable execution bar and the whole fill path goes silently vacuous.
+    With drift=0 every minute opens at the daily open; a nonzero drift makes
+    minute m open at open*(1 + m*drift), which is how Test 22 proves the
+    fill uses 00:01 rather than 00:00."""
+    out = []
+    for r in daily_rows:
+        ot, op_ = r[0], r[2]
+        for m in range(n):
+            px = op_ * (1.0 + m * drift)
+            out.append((ot + m * 60_000, ot + (m + 1) * 60_000 - 1,
+                        px, px * 1.0005, px * 0.9995, px, 1.0, 2e5, 10))
+    return out
+
 
 def build_store(
     closes: dict[str, np.ndarray],
@@ -52,8 +77,13 @@ def build_store(
     quote_volumes: dict[str, float] | None = None,
     funding_rates: dict[str, float] | None = None,
     min_notionals: dict[str, float] | None = None,
+    minute_drift: float = 0.0,
 ) -> PointInTimeStore:
-    """Synthetic market. Default open_d = close_{d-1} (continuous prints)."""
+    """Synthetic market. Default open_d = close_{d-1} (continuous prints).
+
+    Also writes the first 5 one-minute bars of each day, which is what
+    the engine actually fills against (Stage 2e 2).
+    """
     tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
     tmp.close()
     store = PointInTimeStore(tmp.name)
@@ -75,6 +105,7 @@ def build_store(
             for h in range(3):
                 frows.append((ot + h * H8, rate))
         store.insert_klines(sym, "1d", rows)
+        store.insert_klines(sym, "1m", _minute_rows(rows, minute_drift))
         store.insert_funding(sym, frows)
         mn = (min_notionals or {}).get(sym, 1.0)
         filters.append({"symbol": sym, "status": "TRADING", "min_notional": mn})
@@ -719,18 +750,38 @@ def test_leverage_cap_holds_every_day():
 
 
 def test_below_min_notional_fires():
-    """Stage 2c 1.3: the sizing-below-floor path must actually be exercised.
-    Universe viable (the filter assumes 3x -> $15 smallest) but the
-    vol-targeted book puts the smallest position under a $6 floor."""
+    """Stage 2c 1.3, updated by Stage 2e 1: the sizing-below-floor path must
+    be live, not dead code, and no executed position may ever sit under its
+    floor.
+
+    The original premise (the filter assumes 3x, so hopeless symbols reach
+    the sizing check) is exactly what 2e 1 removed: the universe filter now
+    uses the gross ACTUALLY in use, so it honestly rejects symbols up front
+    and most of these days never get as far as sizing. What remains
+    reachable -- and what Test 21 exercises in depth -- is the post-hedge
+    check, which catches positions the hedge and vol scale move under the
+    floor after the filter has passed them."""
+    floor = 6.0
     closes, _ = factor_market(seed=12)
-    res = run(build_store(closes, min_notionals={s: 6.0 for s in closes}),
+    res = run(build_store(closes, min_notionals={s_: floor for s_ in closes}),
               cfg=Config(lookback=14, skip=2, initial_capital=100.0))
     reasons = res.skip_counts()
-    assert reasons.get("below_min_notional", 0) > 0, reasons
-    late = [ts for ts, r, _ in res.skips if r == "universe_too_small" and day_of(ts) > 70]
-    assert not late, "after warm-up the floor must bind at sizing, not in the filter"
-    print(f"PASS below_min_notional_fires ({reasons['below_min_notional']} skips, "
-          f"{len(res.rebalances)} fills)")
+
+    # the floor path is reachable at all
+    assert reasons.get("below_min_notional_post_hedge", 0) > 0, reasons
+    # the pre-filter is doing its job at the realised gross, not at 3x
+    assert reasons.get("universe_too_small", 0) > 0, reasons
+    # ...and the invariant that actually matters: nothing traded under the floor
+    n_pos = 0
+    for rb in res.rebalances:
+        for sym, w in rb.final_weights.items():
+            assert abs(w) * rb.equity_at_decision >= floor - 1e-9, (sym, w)
+            n_pos += 1
+        assert rb.min_position_notional >= floor - 1e-9, rb.min_position_notional
+    print(f"PASS below_min_notional_fires "
+          f"({reasons['below_min_notional_post_hedge']} post-hedge skips, "
+          f"{reasons['universe_too_small']} rejected up front, "
+          f"{n_pos} executed positions all clearing ${floor:.0f})")
 
 
 def test_rescale_on_skip():
@@ -967,6 +1018,7 @@ def _store_with_late_funding(closes, late_symbol: str, start_day: int):
                 for h in range(3):
                     frows.append((ot + h * H8, 1e-4))
         store.insert_klines(sym, "1d", rows)
+        store.insert_klines(sym, "1m", _minute_rows(rows, 0.0))
         if frows:
             store.insert_funding(sym, frows)
         filters.append({"symbol": sym, "status": "TRADING", "min_notional": 1.0})
@@ -1006,6 +1058,530 @@ def test_slippage_is_adverse_and_priced():
     assert costs.slippage_bps("ANY", None, slipped) == 5.0
     print(f"PASS slippage_is_adverse_and_priced (cost ${res5.total_slippage:.2f} "
           f"at 5bps vs ${res0.total_slippage:.2f} at 0)")
+
+
+# ----------------------------------------------------------------- test 21
+
+def hedge_skewed_market(seed: int = 41, n_days: int = 300):
+    """Factor market where the SHORT leg (by the deterministic signal below)
+    carries much higher beta than the long leg, so beta_hedge's
+    s = beta_long / beta_short comes out far below 1 and every short shrinks
+    after hedging. That is the case the universe filter's leg-average
+    estimate cannot see: it validates 0.5 * L * C / N and the hedge then
+    moves the actual positions somewhere else entirely."""
+    rng = np.random.default_rng(seed)
+    r_btc = rng.normal(0, 0.02, n_days)
+    closes = {BTC: 20_000 * np.cumprod(1 + r_btc)}
+    for i in range(14):
+        beta = 0.3 if i <= 4 else (3.0 if i >= 9 else 1.0)
+        closes[f"ALT{i:02d}USDT"] = 100 * np.cumprod(
+            1 + beta * r_btc + rng.normal(0, 0.03, n_days)
+        )
+    return closes
+
+
+def index_signal(view, symbol, cfg):
+    """ALT00 best ... ALT13 worst, independent of prices, so the legs (and
+    therefore the leg betas) are fixed by construction."""
+    return None if not symbol.startswith("ALT") else -float(symbol[3:5])
+
+
+def test_post_hedge_feasibility():
+    """Stage 2e Test 21. Feasibility must be judged on the weights actually
+    traded -- after the hedge and the vol scale. An infeasible position is
+    DROPPED and the remainder renormalised and re-hedged; never substituted."""
+    from backtest.weights import MIN_LEG_NAMES
+
+    closes = hedge_skewed_market()
+    cfg = Config(lookback=14, skip=2, initial_capital=400.0)
+    eq = 400.0
+
+    def decide(floor):
+        store = build_store(closes, min_notionals={s_: floor for s_ in closes})
+        store.reset_clock()
+        view = store.view_as_of(T0 + 200 * DAY - 1)
+        pool = view.tradeable_universe(eq, 3.0, 10, 5e6)
+        out = compute_target_weights(view, cfg, eq, signal_fn=index_signal)
+        store.close()
+        return out, pool
+
+    # Unconstrained: the fixture really does shrink the shorts ~13x, well
+    # below the filter's 0.5 * 3.0 * 400/10 = $60 estimate.
+    free, _ = decide(1.0)
+    assert not isinstance(free, Skip), free
+    assert free.beta_scale < 0.3, f"fixture must shrink shorts (s={free.beta_scale})"
+    smallest = min(abs(w) * eq for w in free.final_weights.values())
+    assert smallest < 8.0, smallest
+
+    # An $8 floor cuts the two smallest shorts. Drop-and-renormalise must
+    # rescue the rebalance rather than skipping it wholesale.
+    dec, pool = decide(8.0)
+    assert not isinstance(dec, Skip), f"drop-and-renormalise did not rescue: {dec}"
+    for sym, w in dec.final_weights.items():
+        assert abs(w) * eq >= 8.0 - 1e-9, (sym, abs(w) * eq)
+    assert len(dec.longs) >= MIN_LEG_NAMES and len(dec.shorts) >= MIN_LEG_NAMES
+    assert len(dec.final_weights) < len(free.final_weights), "nothing was dropped"
+    # NO SUBSTITUTION: the book is a subset of the originally ranked names.
+    assert set(dec.final_weights) <= set(free.final_weights), (
+        set(dec.final_weights) - set(free.final_weights))
+    assert set(dec.final_weights) <= set(pool)
+    # neutrality preserved on the surviving book
+    assert abs(sum(dec.raw_weights.values())) < 1e-9
+    assert len(dec.raw_weights) == len(dec.longs) + len(dec.shorts)
+    # An impossible floor: skip with the new reason, never a 2-name leg.
+    dec2, _ = decide(500.0)
+    assert isinstance(dec2, Skip), dec2
+    assert dec2.reason in ("below_min_notional_post_hedge", "universe_too_small"), dec2
+
+    # A floor that would leave a 2-name short leg: skip, never trade a
+    # 2-name leg (that is a different strategy).
+    dec3, _ = decide(10.0)
+    assert isinstance(dec3, Skip), dec3
+    assert dec3.reason == "below_min_notional_post_hedge", dec3
+    assert "2S" in dec3.detail, dec3.detail
+    print(f"PASS post_hedge_feasibility (s={free.beta_scale:.3f}; smallest "
+          f"${smallest:.2f} at no floor -> {len(dec.longs)}L/{len(dec.shorts)}S "
+          f"all clearing $8; a $10 floor would leave 2S so it skips)")
+
+
+def test_post_hedge_feasibility_fails_pre_fix():
+    """Stage 2e 12: Test 21 must fail against the pre-fix path. The old code
+    checked the floor on final weights and skipped the WHOLE rebalance
+    rather than dropping the offending position."""
+    import importlib.util
+
+    pre_path = Path(SCRATCH) / "weights_pre2e.py"
+    if not pre_path.exists():
+        print("SKIP post_hedge_feasibility_fails_pre_fix (pre-fix copy absent)")
+        return
+    spec = importlib.util.spec_from_file_location("weights_pre2e", pre_path)
+    W = importlib.util.module_from_spec(spec)
+    sys.modules["weights_pre2e"] = W
+    spec.loader.exec_module(W)
+
+    closes = hedge_skewed_market()
+    cfg = Config(lookback=14, skip=2, initial_capital=400.0)
+    store = build_store(closes, min_notionals={s_: 8.0 for s_ in closes})
+    store.reset_clock()
+    pre = W.compute_target_weights(store.view_as_of(T0 + 200 * DAY - 1), cfg,
+                                   400.0, signal_fn=index_signal)
+    store.close()
+    assert isinstance(pre, W.Skip), (
+        "pre-fix path did not skip; the test cannot demonstrate the bug")
+    assert pre.reason == "below_min_notional", pre
+    print(f"PASS post_hedge_feasibility_fails_pre_fix "
+          f"(pre-fix skipped the whole rebalance: {pre.detail})")
+
+
+# ----------------------------------------------------------------- test 24
+
+def test_beta_shrinkage():
+    """Stage 2e Test 24. A noisy beta shrinks toward 1.0; a cleanly measured
+    one barely moves; and the hedge ratio s stays bounded under the noise
+    that previously produced s > 3."""
+    from backtest.weights import (
+        compute_beta_ses, compute_betas, shrink_betas, beta_hedge,
+    )
+
+    rng = np.random.default_rng(77)
+    T = 60
+    btc = rng.normal(0, 0.02, T)
+
+    # clean: beta 1.5, almost no residual -> tiny SE -> barely shrunk
+    clean = np.column_stack([1.5 * btc + rng.normal(0, 0.0005, T)])
+    b_clean = compute_betas(clean, btc)
+    se_clean = compute_beta_ses(clean, btc, b_clean)
+    sh_clean = shrink_betas(b_clean, se_clean)
+    assert se_clean[0] / abs(b_clean[0]) < 0.05, se_clean
+    assert abs(sh_clean[0] - b_clean[0]) < 0.02 * abs(b_clean[0]), (sh_clean, b_clean)
+
+    # noisy: beta 0.2 buried in residual -> big relative SE -> pulled to 1.0
+    noisy = np.column_stack([0.2 * btc + rng.normal(0, 0.20, T)])
+    b_noisy = compute_betas(noisy, btc)
+    se_noisy = compute_beta_ses(noisy, btc, b_noisy)
+    sh_noisy = shrink_betas(b_noisy, se_noisy)
+    assert se_noisy[0] > abs(b_noisy[0]), "fixture is not actually noisy"
+    assert abs(sh_noisy[0] - 1.0) < abs(b_noisy[0] - 1.0), (sh_noisy, b_noisy)
+    assert 0.5 < sh_noisy[0] < 1.5, sh_noisy
+
+    # a beta estimated at ~0 has infinite relative SE -> goes to 1.0 exactly
+    assert math.isclose(shrink_betas(np.array([0.0]), np.array([0.1]))[0], 1.0)
+
+    # s is bounded under noise that previously produced s > 3: a tiny, noisy
+    # short-leg beta is what made s explode.
+    raw_w = {"L1": 0.5, "L2": 0.5, "S1": -0.5, "S2": -0.5}
+    betas_hat = np.array([1.2, 1.1, 0.05, 0.08])       # shorts near zero
+    ses = np.array([0.02, 0.02, 0.30, 0.30])           # and badly measured
+    unshrunk = dict(zip(raw_w, betas_hat.tolist()))
+    hedged_raw = beta_hedge(raw_w, unshrunk)
+    assert not isinstance(hedged_raw, Skip)
+    s_raw = hedged_raw[1]
+    assert s_raw > 3.0, f"fixture must reproduce the old blow-up (s={s_raw})"
+    shrunk = dict(zip(raw_w, shrink_betas(betas_hat, ses).tolist()))
+    hedged_sh = beta_hedge(raw_w, shrunk)
+    assert not isinstance(hedged_sh, Skip)
+    s_shrunk = hedged_sh[1]
+    assert s_shrunk < 2.0, f"shrinkage did not bound s (s={s_shrunk})"
+    print(f"PASS beta_shrinkage (clean {b_clean[0]:.3f}->{sh_clean[0]:.3f}, "
+          f"noisy {b_noisy[0]:.3f}->{sh_noisy[0]:.3f}, s {s_raw:.1f}->{s_shrunk:.2f})")
+
+
+def test_unhedgeable_when_se_exceeds_estimate():
+    """Stage 2e 5: skip when a leg's weighted beta SE exceeds its estimate --
+    the hedge ratio is not identified and hedging on it executes noise."""
+    n_days = 300
+    rng = np.random.default_rng(9)
+    r_btc = rng.normal(0, 0.02, n_days)
+    closes = {BTC: 20_000 * np.cumprod(1 + r_btc)}
+    for i in range(14):
+        # essentially zero beta, huge idiosyncratic noise: SE >> |beta|
+        closes[f"ALT{i:02d}USDT"] = 100 * np.cumprod(
+            1 + 0.0 * r_btc + rng.normal(0, 0.25, n_days))
+    store = build_store(closes)
+    store.reset_clock()
+    dec = compute_target_weights(store.view_as_of(T0 + 200 * DAY - 1),
+                                 Config(lookback=14, skip=2), 400.0,
+                                 signal_fn=index_signal)
+    store.close()
+    assert isinstance(dec, Skip), dec
+    assert dec.reason == "unhedgeable_beta", dec
+    assert "SE exceeds estimate" in dec.detail, dec.detail
+    print(f"PASS unhedgeable_when_se_exceeds_estimate ({dec.detail})")
+
+
+# ----------------------------------------------------------------- test 23
+
+def test_delisting_is_not_a_data_gap():
+    """Stage 2e Test 23. One fixture, two events: a symbol that delists with
+    a known settlement price, and a symbol whose bars simply stop for a
+    while. Different code paths, different log reasons, different PnL."""
+    n_days = 260
+    closes, _ = factor_market(seed=51, n_days=n_days)
+    delisted, gapped = "ALT02USDT", "ALT11USDT"
+    gap_start, gap_len = 180, 2            # short gap: recoverable
+    delist_day = 200
+
+    # holes: the delisted symbol stops for good; the gapped one resumes
+    holes = {delisted: range(delist_day, n_days),
+             gapped: range(gap_start, gap_start + gap_len)}
+    store = _store_with_holes(closes, holes)
+    cfg = Config(lookback=14, skip=2, initial_capital=400.0)
+
+    settle_px = float(closes[delisted][delist_day - 1]) * 0.40   # 60% haircut
+    meta = {delisted: (T0 + delist_day * DAY - 1, settle_px)}
+    res = run_backtest(store, cfg, T0 + DAY - 1, T0 + n_days * DAY - 1,
+                       signal_fn=index_signal, delistings=meta)
+
+    # delisting: recorded as a delisting, at the settlement price, not estimated
+    assert len(res.delistings) == 1, res.delistings
+    ts, sym, price, estimated = res.delistings[0]
+    assert sym == delisted and not estimated
+    assert math.isclose(price, settle_px, rel_tol=1e-12)
+    assert not any(s_ == delisted for _, s_, _ in res.data_gap_exits)
+
+    # data gap: held through, never exited (2 days < 3-day tolerance)
+    assert not any(s_ == gapped for _, s_, _ in res.data_gap_exits), res.data_gap_exits
+    # ...and it contributed no PnL on the missing days
+    idx = {t_: i for i, t_ in enumerate(res.timestamps)}
+    for d in range(gap_start, gap_start + gap_len):
+        t_ = T0 + (d + 1) * DAY - 1
+        if t_ in idx:
+            assert gapped not in res.pnl_by_symbol_day[idx[t_]]
+
+    # the settlement price actually moved PnL: same fixture, no metadata, so
+    # the delisted symbol becomes a data-gap exit at last mark instead
+    store2 = _store_with_holes(closes, holes)
+    res2 = run_backtest(store2, cfg, T0 + DAY - 1, T0 + n_days * DAY - 1,
+                        signal_fn=index_signal)
+    assert len(res2.delistings) == 0
+    assert any(s_ == delisted for _, s_, _ in res2.data_gap_exits), res2.data_gap_exits
+    assert res.gross_pnl != res2.gross_pnl, "the two paths must price differently"
+
+    # a delisting with no recorded settlement price is flagged estimated
+    store3 = _store_with_holes(closes, holes)
+    res3 = run_backtest(store3, cfg, T0 + DAY - 1, T0 + n_days * DAY - 1,
+                        signal_fn=index_signal,
+                        delistings={delisted: (T0 + delist_day * DAY - 1, None)})
+    assert len(res3.delistings) == 1 and res3.delistings[0][3] is True
+
+    # a gap longer than the tolerance does force an exit, logged as such
+    long_holes = {gapped: range(gap_start, gap_start + 10)}
+    store4 = _store_with_holes(closes, long_holes)
+    res4 = run_backtest(store4, cfg, T0 + DAY - 1, T0 + n_days * DAY - 1,
+                        signal_fn=index_signal)
+    exits = [(s_, n) for _, s_, n in res4.data_gap_exits if s_ == gapped]
+    assert exits, res4.data_gap_exits
+    assert exits[0][1] == cfg.max_data_gap_days + 1, exits
+    assert len(res4.delistings) == 0
+    print(f"PASS delisting_is_not_a_data_gap (delist @ ${settle_px:.2f} vs "
+          f"gap held {gap_len}d; long gap exits after "
+          f"{cfg.max_data_gap_days + 1}d; PnL {res.gross_pnl:.2f} vs "
+          f"{res2.gross_pnl:.2f})")
+
+
+def _store_with_holes(closes, holes: dict):
+    """build_store, but each symbol in `holes` is missing those day indices."""
+    import tempfile
+    tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
+    tmp.close()
+    store = PointInTimeStore(tmp.name)
+    filters = []
+    for sym, cl in closes.items():
+        cl = np.asarray(cl, dtype=float)
+        op = np.concatenate([[cl[0]], cl[:-1]])
+        skip_days = set(holes.get(sym, ()))
+        rows, frows = [], []
+        for d in range(len(cl)):
+            if d in skip_days:
+                continue
+            ot = T0 + d * DAY
+            rows.append((ot, ot + DAY - 1, op[d], max(op[d], cl[d]) * 1.001,
+                         min(op[d], cl[d]) * 0.999, cl[d], 10.0, 2e7, 100))
+            for h in range(3):
+                frows.append((ot + h * H8, 1e-4))
+        store.insert_klines(sym, "1d", rows)
+        store.insert_klines(sym, "1m", _minute_rows(rows, 0.0))
+        store.insert_funding(sym, frows)
+        filters.append({"symbol": sym, "status": "TRADING", "min_notional": 1.0})
+    store.insert_filters(T0, filters)
+    return store
+
+
+def test_maker_mode_is_not_reportable():
+    """Stage 2e 4: the backtester treats a maker fee as a guaranteed fill and
+    has no fill-probability model, so a maker-mode result must not be
+    reportable. Taker is unaffected; an explicitly non-reportable
+    exploratory purpose is the only way through."""
+    from backtest.runner import assert_reportable_fee_mode
+
+    taker = Config(lookback=14, skip=2)
+    maker = Config(lookback=14, skip=2, fee_mode="maker")
+    assert_reportable_fee_mode(taker, "grid")            # fine
+    try:
+        assert_reportable_fee_mode(maker, "grid")
+    except ValueError as e:
+        assert "fill-probability" in str(e)
+    else:
+        raise AssertionError("maker mode must not be reportable")
+    # the escape hatch exists but names itself
+    assert_reportable_fee_mode(maker, "exploratory-nonreportable-maker-check")
+    print("PASS maker_mode_is_not_reportable")
+
+
+def test_funding_interval_inferred_per_symbol():
+    """Stage 2e 6: a 4-hourly symbol must be scored against six settlements a
+    day, not three. The cadence is inferred from the symbol's own timestamps
+    (the dataset has no interval column), so a 4-hourly symbol stops
+    reporting spurious missing settlements."""
+    from backtest import costs
+
+    n_days = 120
+    closes = {BTC: np.full(n_days, 20_000.0)}
+    for i in range(14):
+        closes[f"ALT{i:02d}USDT"] = np.full(n_days, 100.0)
+
+    tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
+    tmp.close()
+    store = PointInTimeStore(tmp.name)
+    four_h = 4 * 3_600_000
+    filters = []
+    for sym, cl in closes.items():
+        rows, frows = [], []
+        for d in range(n_days):
+            ot = T0 + d * DAY
+            rows.append((ot, ot + DAY - 1, cl[d], cl[d] * 1.001, cl[d] * 0.999,
+                         cl[d], 10.0, 2e7, 100))
+            step = four_h if sym == "ALT00USDT" else H8
+            for h in range(DAY // step):
+                frows.append((ot + h * step, 1e-4))
+        store.insert_klines(sym, "1d", rows)
+        store.insert_klines(sym, "1m", _minute_rows(rows, 0.0))
+        store.insert_funding(sym, frows)
+        filters.append({"symbol": sym, "status": "TRADING", "min_notional": 1.0})
+    store.insert_filters(T0, filters)
+
+    store.reset_clock()
+    v = store.view_as_of(T0 + 100 * DAY - 1)
+    assert costs.infer_funding_interval_ms(v, "ALT00USDT") == four_h
+    assert costs.infer_funding_interval_ms(v, "ALT01USDT") == H8
+    # a symbol with no funding at all falls back to the 8h default
+    assert costs.infer_funding_interval_ms(v, "NOSUCHUSDT") == H8
+    store.close()
+
+    # counting respects the interval
+    assert costs.expected_settlement_count(T0 - 1, T0 + DAY - 1) == 3
+    assert costs.expected_settlement_count(T0 - 1, T0 + DAY - 1, four_h) == 6
+    assert costs.settlement_times(T0 - 1, T0 + DAY - 1, four_h)[:2] == [T0, T0 + four_h]
+    print("PASS funding_interval_inferred_per_symbol")
+
+
+def test_intraday_stress_and_bootstrap_ci():
+    """Stage 2e 7 and 9. The H/L stress path must be no better than the
+    close-to-close equity and must react to a violent intraday wick; the
+    bootstrap CI must bracket the point estimate and widen with noise."""
+    res = shared_factor_run()
+    assert len(res.daily_worst_equity) == len(res.timestamps)
+    eq_by_ts = dict(zip(res.timestamps, res.equity))
+    for ts, worst in res.daily_worst_equity:
+        assert worst <= eq_by_ts[ts] + 1e-9, (ts, worst, eq_by_ts[ts])
+
+    # a fixture with huge intraday wicks must show a materially worse path
+    closes, _ = factor_market(seed=61, n_days=300)
+    tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
+    tmp.close()
+    store = PointInTimeStore(tmp.name)
+    filters = []
+    for sym, cl in closes.items():
+        cl = np.asarray(cl, dtype=float)
+        op = np.concatenate([[cl[0]], cl[:-1]])
+        rows, frows = [], []
+        for d in range(len(cl)):
+            ot = T0 + d * DAY
+            rows.append((ot, ot + DAY - 1, op[d], max(op[d], cl[d]) * 1.5,
+                         min(op[d], cl[d]) * 0.5, cl[d], 10.0, 2e7, 100))
+            for h in range(3):
+                frows.append((ot + h * H8, 1e-4))
+        store.insert_klines(sym, "1d", rows)
+        store.insert_klines(sym, "1m", _minute_rows(rows, 0.0))
+        store.insert_funding(sym, frows)
+        filters.append({"symbol": sym, "status": "TRADING", "min_notional": 1.0})
+    store.insert_filters(T0, filters)
+    wild = run_backtest(store, CFG, T0 + DAY - 1, T0 + 300 * DAY - 1)
+    store.close()
+    wmin = min(e for _, e in wild.daily_worst_equity)
+    wclose = min(wild.equity)
+    assert wmin < wclose, (wmin, wclose)
+
+    # bootstrap CI brackets the point estimate on a real return series
+    _, eq = metrics.strategy_window(res)
+    rets = metrics.daily_returns(eq)
+    sr = metrics.sharpe(rets)
+    lo, hi = metrics.sharpe_bootstrap_ci(rets, seed=1)
+    assert lo < sr < hi, (lo, sr, hi)
+    assert hi - lo > 0.1
+    # deterministic for a given seed, and wider than the naive parametric SE
+    assert metrics.sharpe_bootstrap_ci(rets, seed=1) == (lo, hi)
+    # too little data -> NaN rather than a fabricated interval
+    assert all(math.isnan(x) for x in metrics.sharpe_bootstrap_ci(rets[:10]))
+    print(f"PASS intraday_stress_and_bootstrap_ci (worst path {wmin:.0f} vs "
+          f"close-only {wclose:.0f}; sharpe {sr:.2f} CI [{lo:.2f}, {hi:.2f}])")
+
+
+# ----------------------------------------------------------------- test 22
+
+def test_fills_at_the_delayed_minute_open():
+    """Stage 2e Test 22. The fill price is the 00:01 open -- never the 00:00
+    open, never the signal bar's close. The minute bars are PIT-gated like
+    every other bar, and a missing 00:01 falls FORWARD, never back."""
+    n_days = 200
+    closes, _ = factor_market(seed=71, n_days=n_days)
+    drift = 0.01                      # minute m opens 1% above minute m-1
+    store = build_store(closes, minute_drift=drift)
+    cfg = Config(lookback=14, skip=2, initial_capital=400.0)
+    res = run_backtest(store, cfg, T0 + DAY - 1, T0 + n_days * DAY - 1)
+    assert res.rebalances and res.total_fees > 0, "vacuous: nothing filled"
+
+    daily_open, minute_open, sig_close = {}, {}, {}
+    for rb in res.rebalances[:40]:
+        d = day_of(rb.ts_fill)
+        store.reset_clock()
+        v = store.view_as_of(rb.ts_fill)
+        for sym, (delta, price) in rb.fills.items():
+            bar = [b for b in v.klines(sym, "1d", limit=2) if day_of(b.close_time) == d][0]
+            mins = {b.open_time: b for b in v.klines(sym, "1m", limit=5)}
+            m1 = mins[T0 + d * DAY + 60_000]
+            # slippage is off here, so the fill IS the 00:01 open
+            assert math.isclose(price, m1.open, rel_tol=1e-12), (price, m1.open)
+            assert not math.isclose(price, bar.open, rel_tol=1e-9), "filled at 00:00"
+            daily_open[sym] = bar.open
+            minute_open[sym] = m1.open
+            prev = v.klines(sym, "1d", limit=2)[0]
+            sig_close[sym] = prev.close
+            assert not math.isclose(price, prev.close, rel_tol=1e-9), "filled at signal close"
+    assert minute_open and all(
+        minute_open[k] > daily_open[k] for k in minute_open), "fixture drift not applied"
+
+    # PIT gating: the 00:01 bar of day D is invisible at the close of D-1.
+    store.reset_clock()
+    v_prev = store.view_as_of(T0 + 100 * DAY - 1)          # close of day 99
+    sym = "ALT00USDT"
+    seen = {b.open_time for b in v_prev.klines(sym, "1m", limit=50)}
+    assert (T0 + 100 * DAY + 60_000) not in seen, "day-100 00:01 visible at day-99 close"
+    assert max(seen) < T0 + 100 * DAY, "minute bars leaked past as_of"
+    store.close()
+
+    # execution_delay_minutes = 0 reproduces the old 00:00 convention exactly
+    store0 = build_store(closes, minute_drift=drift)
+    res0 = run_backtest(store0, Config(lookback=14, skip=2, initial_capital=400.0,
+                                       execution_delay_minutes=0),
+                        T0 + DAY - 1, T0 + n_days * DAY - 1)
+    store0.close()
+    rb0 = res0.rebalances[0]
+    store0b = build_store(closes, minute_drift=drift)
+    store0b.reset_clock()
+    v0 = store0b.view_as_of(rb0.ts_fill)
+    for sym_, (_, price) in rb0.fills.items():
+        bar = [b for b in v0.klines(sym_, "1d", limit=2)
+               if day_of(b.close_time) == day_of(rb0.ts_fill)][0]
+        assert math.isclose(price, bar.open, rel_tol=1e-12)
+    store0b.close()
+    assert res0.gross_pnl != res.gross_pnl, "the delay must change results"
+
+    # A missing 00:01 falls forward to 00:02 -- never back to 00:00.
+    holes = {"ALT00USDT": {1}}          # minute index 1 absent every day
+    store2 = _store_missing_minutes(closes, holes, drift)
+    res2 = run_backtest(store2, cfg, T0 + DAY - 1, T0 + n_days * DAY - 1)
+    assert res2.minute_fill_fallbacks > 0, "fallback never exercised"
+    rb2 = next(r for r in res2.rebalances if "ALT00USDT" in r.fills)
+    store2.reset_clock()
+    v2 = store2.view_as_of(rb2.ts_fill)
+    d2 = day_of(rb2.ts_fill)
+    mins2 = {b.open_time: b for b in v2.klines("ALT00USDT", "1m", limit=5)}
+    price2 = rb2.fills["ALT00USDT"][1]
+    assert math.isclose(price2, mins2[T0 + d2 * DAY + 2 * 60_000].open, rel_tol=1e-12)
+    assert not math.isclose(price2, mins2[T0 + d2 * DAY].open, rel_tol=1e-9), \
+        "fell BACK to 00:00"
+    store2.close()
+
+    # No acceptable minute at all -> the rebalance is skipped, never filled
+    # at 00:00. (missing_fill_bar is the same rule as a missing daily bar.)
+    store3 = _store_missing_minutes(closes, {s_: {1, 2, 3} for s_ in closes}, drift)
+    res3 = run_backtest(store3, cfg, T0 + DAY - 1, T0 + n_days * DAY - 1)
+    store3.close()
+    assert not res3.rebalances, "filled without an execution bar"
+    assert any(r == "missing_fill_bar" for _, r, _ in res3.skips), res3.skip_counts()
+    print(f"PASS fills_at_the_delayed_minute_open ({len(res.rebalances)} fills at "
+          f"+1min; {res2.minute_fill_fallbacks} fell forward to +2min; "
+          f"no-minute run skipped {len(res3.skips)}x)")
+
+
+def _store_missing_minutes(closes, holes: dict, drift: float):
+    """build_store, but the given minute indices are absent per symbol."""
+    import tempfile
+    tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
+    tmp.close()
+    store = PointInTimeStore(tmp.name)
+    filters = []
+    for sym, cl in closes.items():
+        cl = np.asarray(cl, dtype=float)
+        op = np.concatenate([[cl[0]], cl[:-1]])
+        rows, frows = [], []
+        for d in range(len(cl)):
+            ot = T0 + d * DAY
+            rows.append((ot, ot + DAY - 1, op[d], max(op[d], cl[d]) * 1.001,
+                         min(op[d], cl[d]) * 0.999, cl[d], 10.0, 2e7, 100))
+            for h in range(3):
+                frows.append((ot + h * H8, 1e-4))
+        store.insert_klines(sym, "1d", rows)
+        drop = holes.get(sym, set())
+        store.insert_klines(sym, "1m", [
+            r for r in _minute_rows(rows, drift)
+            if ((r[0] % DAY) // 60_000) not in drop
+        ])
+        store.insert_funding(sym, frows)
+        filters.append({"symbol": sym, "status": "TRADING", "min_notional": 1.0})
+    store.insert_filters(T0, filters)
+    return store
 
 
 # ------------------------------------------------------- metrics sanity
