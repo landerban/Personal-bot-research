@@ -896,7 +896,42 @@ floor path is reachable (it fires), the pre-filter rejects at the realised
 gross rather than at 3x, and -- the invariant that actually protects the
 results -- every executed position clears its floor (36 of 36 at $6).
 
-### 17.10 Status
+### 17.10 Minute ingest complete, and what the data says
+
+`tools/backfill_minutes.py`: **20,550/20,550 symbol-months, 3,057,900 minute
+bars, 0 failures, 34.4 min**, minutes 0-4 only, 2020-01-01 -> 2026-07-31,
+831 symbols (GRVTUSDT has daily bars but no 1m dumps; a 2024+ listing,
+irrelevant to train).
+
+Verified before any grid run:
+
+- **Execution-bar coverage on train: 181,352 / 181,617 daily bars (99.85%)
+  have a 00:01 bar.** The 265 that do not also lack a 00:02, so the
+  fall-forward cannot rescue them and those symbol-days will skip. 0.15% is
+  immaterial and is reported rather than assumed away.
+- **PIT gating holds on real data**: at the close of 2023-06-14 the newest
+  visible minute bar is 2023-06-14 00:04, and the 2023-06-15 00:01 bar is
+  invisible. Same `close_time <= as_of` gate as every other bar.
+
+**The size of the thing 2e 2 was worried about.** Unconditional 00:00 ->
+00:01 open move across the train window, 181,605 symbol-days:
+
+```
+mean +2.73 bps | median +0.00 | mean |move| 19.12 bps | sd 39.03
+p05 -37.62     | p95 +45.85
+```
+
+Mean absolute move is **3.8x the entire 5 bps slippage assumption**. That
+is the unconditional distribution -- it does not say what the *momentum
+book* pays, because the relevant quantity is the move conditional on being
+long the winners and short the losers, which is one-signed if the move
+continues. That number falls out of the grid itself, from the
+`execution_delay_minutes` 0-vs-1 pair, and is deliberately not estimated
+here: pre-empting it with a hand calculation would be exactly the kind of
+result-shaped guess 0 warns about. What the distribution does establish is
+that the delay is not second-order next to slippage.
+
+### 17.11 Status
 
 Stage 2e §1–§7 and §9 implemented; §10 (live fixes) is explicitly
 *before Phase 2, not before the grid* and is not done. Minute ingest of
