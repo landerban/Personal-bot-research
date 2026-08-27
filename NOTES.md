@@ -338,11 +338,70 @@ the 7,599 count. Missing settlements are logged, never zero-filled, but the
 run continues; whether those symbols should be excluded while funding is
 unknown is a data-policy call (Stage 1 territory), flagged here, not acted on.
 
-### 13.5 Status
+### 13.5 Ruling and fix
 
-Grid: run, logged, **not a result**. Decomposition (§2a): deferred — there
-is no best config to attribute until the harness is fixed and re-run.
-Validate and holdout: untouched. Budget: 6 of 20 used.
+User ruling 2026-08-27: **flatten on skip**. Implemented in the engine (a
+skip of any reason, including an unfillable decision, closes the book at
+the next open with fees on the turnover; `BacktestResult.flattens`),
+pinned by `test_flatten_on_skip`, §6 updated. Suite 24/24, Stage 1 13/13.
+
+### 13.6 Grid v2 — flatten on skip (commit `fa99ffa`); 12 of 20 trials used
+
+```
+ lb skip  sharpe  ann_ret  ann_vol  max_dd   turn  fee_drag lev_med   <1.0x  bmn_skip  n_rb  active_days
+  7    0   -0.11   -0.49%    3.76%   5.43%   11.3       n/a    1.21      6%     82.6%    34    44/1332
+  7    2    0.50    1.82%    3.72%   3.44%   11.3    25.83%    1.19      8%     82.4%    36    46/1330
+ 14    0    0.72    3.22%    4.58%   4.23%    8.7    13.65%    1.17     15%     82.6%    34    43/1342
+ 14    2    1.01    5.40%    5.37%   4.58%   11.0    10.76%    1.05     39%     80.8%    61    70/1342
+ 28    0    0.96    5.58%    5.81%   7.68%    9.7     9.36%    1.05     34%     81.1%    59    72/1342
+ 28    2    1.65    8.36%    4.94%   1.86%    8.5     5.87%    1.05     34%     81.0%    61    72/1342
+```
+
+The artifact is gone: no bankruptcies, realised vol 3.7–5.8%, max DD ≤
+7.7%, 9–13 flatten events per run costing $0.5–0.7 in fees. What is left
+is the finding of 13.2 in its final form:
+
+**At $100 / N = 10 / 20% vol target / $5 floor, the strategy is infeasible.**
+81–83% of scheduled rebalances fail `below_min_notional`; 15% have no
+universe (2020 warm-up); each config is invested on **43–72 of ~1,340
+days**. The full-window Sharpes are statistics of a regime-selected
+sliver: the book clears the floor only when k ≥ ~0.43, i.e. when the
+60-day ex-ante vol of the hedged unit book is ≤ ~46% — calm regimes only.
+Postmortem of `lb28/skip2` (`diagnostics.jsonl`): 61 rebalances, s ∈
+[0.84, 1.28], k median 0.49 *on the days it traded* (selection-biased
+upward; on all decision days the v1 replay put the unit-book vol median at
+89% → k ≈ 0.23); all six worst days fall in Apr–Jun 2020; equity 100 → ~125
+in those two months, then cash for most of 3.5 years. The runner's own
+"> 1.5" flag fired, correctly: no counterparty can be argued from 72
+days, and the deflated Sharpe (0.99) is overstated because it uses the
+1,343-day window as the sample size.
+
+Decomposition (2a §2.1, required, run on `lb28/skip2`, `diagnostics.jsonl`,
+no budget): Sharpe real 1.65, demeaned 1.61, drift 0.04 (3%).
+**DIAGNOSTIC ONLY — full-sample means, not runnable live.** Recorded, not
+interpreted: 72 active days, and the synthetic zero-drift floor was ~18%.
+
+What v2 does establish about the harness: the null canaries pass on the
+same code, flatten-on-skip holds the cap, fee drag 6–26% of gross at taker,
+funding is small (+$0.5–1.0 over four years — the v1 "+$120" was the
+stale-book artifact).
+
+### 13.7 Decision required — constraints, not mine to move (§0)
+
+The 2a §4 question ("change the universe filter's leverage?") is moot:
+`below_min_notional` skips are caused by vol-targeting, not by which
+symbols the filter admits. The lever is one of:
+
+1. **Capital.** `C ≥ 10N/L` with realised L: **$217** at L = 0.46 (median
+   on decision days), **$370** at L = 0.27 (p05). ~$400 trades on most days.
+2. **N.** N = 4 at $100 clears the floor at the same L (a different
+   strategy: 2 long / 2 short, far less breadth — against A4's argument).
+3. **Vol target.** 20% → higher raises k proportionally (a constraint).
+
+Whichever is chosen, a grid re-run costs 6 of the remaining 8 trials, and
+must be run once — the sizing arithmetic above is not a trial and needs no
+further backtest to check. Nothing runs until the user chooses. Validate
+and holdout untouched.
 
 
 ## 14. Stage 2b — corrections (Part A)

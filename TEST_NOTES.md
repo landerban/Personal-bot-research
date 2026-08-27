@@ -148,3 +148,25 @@ seeds are fixed, so the outcome is deterministic run to run.
 - Slippage is 0 by specification; maker mode assumes passive fills at the open.
 - The 2 SE null bound has a ~5 % false-alarm rate per test in the abstract,
   but seeds are fixed so the current outcome is stable, not a coin flip.
+
+
+---
+
+## Addendum — 2026-08-27, Stage 2b (commit `fa99ffa`)
+
+| Suite | Result | New since the run above |
+|---|---|---|
+| `tests/test_lookahead.py` | **13/13** | unchanged after the authorised `MIN_WEIGHT_FRACTION` change (fixture intent verified, comment updated) |
+| `tests/test_backtest.py` | **24/24** | Test 15 `min_weight_fraction_single_source`; `grid_table_prints_from_summary`; `pnl_trace_reconciles` (per-symbol daily PnL trace sums to `gross_pnl` exactly); `flatten_on_skip` (one flatten per skip run, fees reconcile, no positions or PnL afterwards) |
+| `tests/test_live.py` | **19/19** | paper-harness suite vs a fake exchange with Binance's real rejection codes; HMAC vector verified against the official docs |
+
+Null canaries after flatten-on-skip (30 seeds): random signal gross mean
++0.140 (SE 0.173, t +0.81), net −1.271 (t −7.39) — unchanged; demeaned
+shuffle gross mean **+0.037** (SE 0.183, t +0.20), moved from −0.060
+because the few synthetic runs that skip now flatten. Both within 2 SE.
+
+Real-data note (not a test): the first train grid exposed a harness
+behaviour the synthetic suite cannot see — a skipped rebalance held the
+stale book while equity moved, driving leverage past 20× (four wipeouts).
+Diagnosed by deterministic replay (`tools/postmortem.py`, no budget), ruled
+"flatten on skip", pinned by test. Details: `NOTES.md` §13.
