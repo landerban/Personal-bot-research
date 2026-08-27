@@ -253,7 +253,7 @@ def report(result: BacktestResult, split: str) -> None:
         return f"{x * 100:.{nd}f}%" if pct else f"{x:.{nd}f}"
 
     print(f"\n=== {split} | {len(eq)} days | "
-          f"{len(result.rebalances)} rebalances ===")
+          f"{len(result.rebalances)} rebalances | capital ${result.config.initial_capital:.0f} ===")
     print(f"ann return        {fmt(aret, pct=True)}")
     print(f"ann vol           {fmt(vol, pct=True)}")
     print(f"sharpe            {fmt(sr)}")
@@ -480,6 +480,8 @@ def main(argv: list[str] | None = None) -> None:
                    required=True)
     r.add_argument("--skip", type=int, choices=GRID_SKIPS, required=True)
     r.add_argument("--fee-mode", choices=("taker", "maker"), default="taker")
+    r.add_argument("--capital", type=float, default=100.0,
+                   help="initial capital in USDT (user ruling 2026-08-27: 400)")
     r.add_argument("--purpose", default="manual")
     r.add_argument("--i-understand-this-is-the-only-look",
                    action="store_true")
@@ -488,6 +490,8 @@ def main(argv: list[str] | None = None) -> None:
     g.add_argument("--split", choices=("train",), default="train",
                    help="the grid is a train-only exercise")
     g.add_argument("--fee-mode", choices=("taker", "maker"), default="taker")
+    g.add_argument("--capital", type=float, default=100.0,
+                   help="initial capital in USDT (user ruling 2026-08-27: 400)")
 
     d = sub.add_parser(
         "diagnose",
@@ -496,6 +500,8 @@ def main(argv: list[str] | None = None) -> None:
     d.add_argument("--lookback", type=int, choices=GRID_LOOKBACKS, required=True)
     d.add_argument("--skip", type=int, choices=GRID_SKIPS, required=True)
     d.add_argument("--fee-mode", choices=("taker", "maker"), default="taker")
+    d.add_argument("--capital", type=float, default=100.0,
+                   help="initial capital in USDT (user ruling 2026-08-27: 400)")
     d.add_argument("--demeaned-db", default=str(ROOT / "xsmom_demeaned.db"))
 
     args = p.parse_args(argv)
@@ -509,7 +515,8 @@ def main(argv: list[str] | None = None) -> None:
             sys.exit(f"demeaned database not found: {dm} — build it with "
                      f"tools/build_demeaned_db.py first")
         cfg = Config(lookback=args.lookback, skip=args.skip,
-                     fee_mode=args.fee_mode)
+                     fee_mode=args.fee_mode,
+                         initial_capital=args.capital)
         drift_decomposition(cfg, db, dm, split="train")
         return
 
@@ -517,7 +524,8 @@ def main(argv: list[str] | None = None) -> None:
     try:
         if args.cmd == "run":
             cfg = Config(lookback=args.lookback, skip=args.skip,
-                         fee_mode=args.fee_mode)
+                         fee_mode=args.fee_mode,
+                         initial_capital=args.capital)
             ensure_data_covers(store, args.split)  # before the look is spent
             if args.split == "holdout":
                 check_holdout_guard(args, cfg)
@@ -528,7 +536,8 @@ def main(argv: list[str] | None = None) -> None:
             for lb in GRID_LOOKBACKS:
                 for sk in GRID_SKIPS:
                     cfg = Config(lookback=lb, skip=sk,
-                                 fee_mode=args.fee_mode)
+                                 fee_mode=args.fee_mode,
+                         initial_capital=args.capital)
                     print(f"\n##### grid: lookback={lb} skip={sk} "
                           f"fee={args.fee_mode} #####")
                     res = execute(store, cfg, args.split, "grid")

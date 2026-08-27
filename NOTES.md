@@ -471,3 +471,11 @@ rejection codes. Design choices and their reasons:
   the exchange does with them feeds back into `costs.py`.
 - **Not verified**: the testnet WebSocket host name (`WS_BASE`) — flagged in
   the runbook; a wrong host only costs telemetry.
+
+### 13.8 Ruling — capital $400 (user, 2026-08-27)
+
+Constraint change chosen by the user: `initial_capital` 100 → **400** for
+the re-run; N, vol target, cap and windows unchanged. Rationale: `C ≥ 10N/L`
+at the p05 realised leverage (0.27) gives $370. Exposed as `--capital` on
+the runner (the default stays 100; every trial row carries the full
+config, so the change is visible per row). Grid v3 = trials 13–18 of 20.
