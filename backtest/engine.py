@@ -55,13 +55,24 @@ class Config:
     beta_window: int = 60
     vol_window: int = 60
     min_quote_volume: float = 5_000_000
-    initial_capital: float = 100.0
+    # Stage 2d 2: capital is an input constraint set by the user, and it
+    # is the solution that PRESERVES the 20% vol target -- it lowers the
+    # leverage needed to clear MIN_NOTIONAL instead of raising exposure.
+    # C >= 10N/L at N=10 needs L >= 0.25, against a real distribution of
+    # min 0.21 / p05 0.27 / median 0.46.
+    initial_capital: float = 400.0
     fee_mode: str = "taker"    # "taker" | "maker"
     rebalance_ms: int = 86_400_000
-    # Stage 2c 3 (pre-registered): floor on gross leverage so the smallest
-    # position clears MIN_NOTIONAL at C=$100, N=10. Costs ~1 point of vol
-    # (21% vs 20%). Derived from the floor arithmetic, not tunable.
-    min_gross_leverage: float = 1.05
+    # WITHDRAWN (Stage 2d 1). Was 1.05 under Stage 2c 3, calibrated from a
+    # synthetic fixture whose unit-book vol (21%) is ~4x below the real
+    # median (89%). At the real regime the floor binds constantly, pushing
+    # realised vol to ~47% and expected maxDD to ~33% against a 30% kill
+    # switch -- it breaks the risk budget instead of solving MIN_NOTIONAL,
+    # and it amplifies every exposure failure (the pre-fix peak went 35.7x
+    # -> 156.4x once it existed). Field kept, not deleted, so the
+    # withdrawal is visible in every logged trial row. Test 20 pins the
+    # failure mode at realistic vol.
+    min_gross_leverage: float = 0.0
     # Stage 2c 4: adverse slippage per side on every fill, on top of fees.
     # Run at 0.0 and 5.0 as a sensitivity PAIR, never selected between.
     # 5bps came from n=1 synthetic testnet fill: a plausible magnitude,
@@ -75,8 +86,8 @@ class Config:
             raise ValueError(f"fee_mode must be taker|maker, got {self.fee_mode!r}")
         if self.initial_capital <= 0:
             raise ValueError("initial_capital must be positive")
-        if not 0 < self.min_gross_leverage <= self.max_gross_leverage:
-            raise ValueError("min_gross_leverage must be in (0, max_gross_leverage]")
+        if not 0 <= self.min_gross_leverage <= self.max_gross_leverage:
+            raise ValueError("min_gross_leverage must be in [0, max_gross_leverage]")
         if self.slippage_bps_per_side < 0:
             raise ValueError("slippage_bps_per_side must be >= 0")
 

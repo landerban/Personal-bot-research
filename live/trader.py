@@ -65,7 +65,7 @@ class PaperConfig:
     fee_mode: str = "taker"            # "taker" -> MARKET; "maker" -> post-only LIMIT at touch
     vol_target: float = 0.20
     max_gross: float = 3.0
-    min_gross: float = 1.05           # Stage 2c 3 floor, same as the backtester
+    min_gross: float = 0.0            # Stage 2c 3 floor WITHDRAWN (Stage 2d 1)
     window: int = 60
     stop_pct: float = 0.20             # exchange-side reduce-only stop distance (safety, not strategy)
     maker_wait_s: float = 30.0

@@ -25,6 +25,7 @@ from backtest.weights import (  # noqa: E402
     Skip,
     _leg_profile,
     beta_hedge,
+    compute_target_weights,
     momentum_signal,
     rank_weights,
 )
@@ -828,25 +829,149 @@ def test_rescale_on_skip():
 
 # ----------------------------------------------------------------- test 18
 
-def test_leverage_floor_holds():
-    """Stage 2c Test 18: realised gross never below min_gross_leverage on a
-    filled or rescaled day (a fully-dropped book is the one exception)."""
-    floor = CFG.min_gross_leverage
-    assert floor == 1.05, "the pre-registered floor"
-    runs = [shared_factor_run()]
-    closes, cutoff = breach_market()
-    runs.append(run(build_store(closes), n_days=400,
-                    signal_fn=index_signal_until(cutoff)))
+def test_leverage_floor_is_withdrawn_and_honoured_when_set():
+    """Stage 2c Test 18, retargeted by Stage 2d 1.
+
+    The default floor is 0.0 (WITHDRAWN) -- assert that, so it cannot creep
+    back as a default. The mechanism still has to work when a floor IS set,
+    since the field is kept, so the same assertion runs on an explicit floor."""
+    assert CFG.min_gross_leverage == 0.0, "the floor is withdrawn (Stage 2d 1)"
+    default_res = shared_factor_run()
+    assert any(rb.realised_gross_leverage < 1.0 for rb in default_res.rebalances), (
+        "with the floor withdrawn the book must be free to sit below 1.0x")
+
+    floor = 1.05
+    closes, _ = factor_market(seed=3)
+    res = run(build_store(closes), cfg=Config(lookback=14, skip=2,
+                                              min_gross_leverage=floor))
     n_bind = 0
-    for res in runs:
-        for rb in res.rebalances:
-            assert rb.realised_gross_leverage >= floor - 1e-9
-            n_bind += abs(rb.realised_gross_leverage - floor) < 1e-9
-        for rc in res.rescales:
-            if rc.units_after:
-                assert rc.post_gross >= floor - 1e-9
+    for rb in res.rebalances:
+        assert rb.realised_gross_leverage >= floor - 1e-9
+        n_bind += abs(rb.realised_gross_leverage - floor) < 1e-9
+    for rc in res.rescales:
+        if rc.units_after:
+            assert rc.post_gross >= floor - 1e-9
     assert n_bind > 0, "fixture never reaches the floor; the test would be vacuous"
-    print(f"PASS leverage_floor_holds (floor binds on {n_bind} rebalances)")
+    print(f"PASS leverage_floor_is_withdrawn_and_honoured_when_set "
+          f"(default 0.0; explicit floor binds on {n_bind} rebalances)")
+
+
+# ----------------------------------------------------------------- test 20
+
+def realistic_vol_market(seed: int = 21, n_days: int = 500):
+    """A market whose HEDGED UNIT BOOK runs ~89% annualised vol -- the real
+    median from the v1 replay (NOTES 13.1), not the ~21% of the plain
+    synthetic fixture. Stage 2d 8: a fixture used to justify a risk
+    parameter must match the volatility regime it will meet."""
+    return factor_market(seed=seed, n_days=n_days, idio_vol=0.070, btc_vol=0.02)
+
+
+def test_leverage_floor_fails_at_realistic_vol():
+    """Stage 2d Test 20. The 1.05x floor was calibrated on a fixture whose
+    unit-book vol is ~4x too low, where it never binds. At the REAL regime
+    it binds on every rebalance and blows the risk budget. Pinning that as a
+    reproducible failure, not an argument in a markdown file."""
+    closes, _ = realistic_vol_market()
+    measured = {}
+    for floor in (0.0, 1.05):
+        res = run(build_store(closes), n_days=500,
+                  cfg=Config(lookback=14, skip=2, min_gross_leverage=floor))
+        _, eq = metrics.strategy_window(res)
+        L = np.array([rb.realised_gross_leverage for rb in res.rebalances])
+        measured[floor] = {
+            "vol": metrics.ann_vol(metrics.daily_returns(eq)),
+            "dd": metrics.max_drawdown(eq),
+            "gross_median": float(np.median(L)),
+            "est": float(np.median([rb.est_vol_ann for rb in res.rebalances])),
+            "peak": max(x for _, x in res.daily_leverage),
+            "n": len(res.rebalances),
+        }
+
+    # The fixture itself must match the real regime, or the test proves nothing.
+    est = measured[0.0]["est"]
+    assert 0.75 <= est <= 1.05, f"fixture unit-book vol {est:.2f} is not the real regime"
+    assert measured[0.0]["n"] > 200 and measured[1.05]["n"] > 200
+
+    # 1. Floor withdrawn: the vol target is actually hit, gross sits near 0.45,
+    #    and exposure does not grow without bound.
+    off = measured[0.0]
+    assert 0.14 <= off["vol"] <= 0.26, off["vol"]          # Test 6's band
+    assert 0.30 <= off["gross_median"] <= 0.60, off["gross_median"]
+    assert off["peak"] <= CFG.max_gross_leverage + 1e-9
+
+    # 2. Floor at the withdrawn 1.05: realised vol blows past 40% and the
+    #    drawdown passes the 30% kill switch. This is the failure mode.
+    on = measured[1.05]
+    assert on["vol"] > 0.40, f"floor failure not reproduced: vol {on['vol']:.3f}"
+    assert on["dd"] > 0.30, on["dd"]
+    assert abs(on["gross_median"] - 1.05) < 1e-9, "floor should bind on every rebalance"
+    assert on["vol"] > 2.0 * off["vol"], (on["vol"], off["vol"])
+    print(f"PASS leverage_floor_fails_at_realistic_vol "
+          f"(unit-book vol {est:.2f}; floor off: vol {off['vol']:.3f} gross "
+          f"{off['gross_median']:.2f} maxDD {off['dd']:.1%} | floor 1.05: vol "
+          f"{on['vol']:.3f} gross {on['gross_median']:.2f} maxDD {on['dd']:.1%})")
+
+
+def test_funding_start_exclusion():
+    """Stage 2d 5: a symbol is not a candidate until its funding history has
+    begun. Trading it earlier runs one leg cost-free and understates costs."""
+    from backtest.weights import FUNDING_PRESENCE_WINDOW_MS
+
+    n_days = 200
+    closes, _ = factor_market(seed=31, n_days=n_days)
+    late = "ALT03USDT"
+    start_day = 150
+    # Make the late symbol the strongest momentum name in the market, so it
+    # MUST be picked whenever it is eligible. Then presence in the book is a
+    # clean read on the funding filter alone.
+    closes[late] = 100 * np.cumprod(np.full(n_days, 1.02))
+    store = _store_with_late_funding(closes, late, start_day)
+    cfg = Config(lookback=14, skip=2)
+
+    store.reset_clock()
+    v = store.view_as_of(T0 + 120 * DAY - 1)
+    assert late in v.tradeable_universe(400.0, 3.0, 10, 5e6), "must be in the universe"
+    assert not v.funding(late, since=v.as_of - FUNDING_PRESENCE_WINDOW_MS)
+    dec = compute_target_weights(v, cfg, 400.0)
+    assert not isinstance(dec, Skip), dec
+    assert late not in dec.final_weights, "traded a symbol with no funding history"
+
+    store.reset_clock()
+    v2 = store.view_as_of(T0 + (start_day + 5) * DAY - 1)
+    assert v2.funding(late, since=v2.as_of - FUNDING_PRESENCE_WINDOW_MS)
+    dec2 = compute_target_weights(v2, cfg, 400.0)
+    assert not isinstance(dec2, Skip), dec2
+    assert late in dec2.final_weights, "still excluded after funding began"
+    assert dec2.final_weights[late] > 0, "the strongest name must be a long"
+    store.close()
+    print(f"PASS funding_start_exclusion (top-signal symbol excluded before day "
+          f"{start_day}, selected after)")
+
+
+def _store_with_late_funding(closes, late_symbol: str, start_day: int):
+    """build_store, but one symbol's funding only begins at `start_day`."""
+    import tempfile
+    tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
+    tmp.close()
+    store = PointInTimeStore(tmp.name)
+    filters = []
+    for sym, cl in closes.items():
+        cl = np.asarray(cl, dtype=float)
+        op = np.concatenate([[cl[0]], cl[:-1]])
+        rows, frows = [], []
+        for d in range(len(cl)):
+            ot = T0 + d * DAY
+            rows.append((ot, ot + DAY - 1, op[d], max(op[d], cl[d]) * 1.001,
+                         min(op[d], cl[d]) * 0.999, cl[d], 10.0, 2e7, 100))
+            if sym != late_symbol or d >= start_day:
+                for h in range(3):
+                    frows.append((ot + h * H8, 1e-4))
+        store.insert_klines(sym, "1d", rows)
+        if frows:
+            store.insert_funding(sym, frows)
+        filters.append({"symbol": sym, "status": "TRADING", "min_notional": 1.0})
+    store.insert_filters(T0, filters)
+    return store
 
 
 def test_slippage_is_adverse_and_priced():

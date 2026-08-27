@@ -85,6 +85,9 @@ def _ms_date(ms: int | None) -> str:
         return "n/a"
     return datetime.fromtimestamp(ms / 1000, tz=timezone.utc).strftime("%Y-%m-%d")
 
+# The CLI default follows Config so the two cannot drift apart.
+DEFAULT_CAPITAL = Config.__dataclass_fields__["initial_capital"].default
+
 GRID_LOOKBACKS = (7, 14, 28)
 GRID_SKIPS = (0, 2)
 
@@ -512,8 +515,8 @@ def main(argv: list[str] | None = None) -> None:
                    required=True)
     r.add_argument("--skip", type=int, choices=GRID_SKIPS, required=True)
     r.add_argument("--fee-mode", choices=("taker", "maker"), default="taker")
-    r.add_argument("--capital", type=float, default=100.0,
-                   help="initial capital in USDT (default 100)")
+    r.add_argument("--capital", type=float, default=DEFAULT_CAPITAL,
+                   help=f"initial capital in USDT (default {DEFAULT_CAPITAL:.0f})")
     r.add_argument("--slippage-bps", type=float, default=0.0,
                    help="adverse slippage per side in bps (Stage 2c 4: run 0 and 5 as a pair)")
     r.add_argument("--purpose", default="manual")
@@ -524,8 +527,8 @@ def main(argv: list[str] | None = None) -> None:
     g.add_argument("--split", choices=("train",), default="train",
                    help="the grid is a train-only exercise")
     g.add_argument("--fee-mode", choices=("taker", "maker"), default="taker")
-    g.add_argument("--capital", type=float, default=100.0,
-                   help="initial capital in USDT (default 100)")
+    g.add_argument("--capital", type=float, default=DEFAULT_CAPITAL,
+                   help=f"initial capital in USDT (default {DEFAULT_CAPITAL:.0f})")
     g.add_argument("--slippage-bps", type=float, default=0.0,
                    help="adverse slippage per side in bps (Stage 2c 4: run 0 and 5 as a pair)")
 
@@ -536,8 +539,8 @@ def main(argv: list[str] | None = None) -> None:
     d.add_argument("--lookback", type=int, choices=GRID_LOOKBACKS, required=True)
     d.add_argument("--skip", type=int, choices=GRID_SKIPS, required=True)
     d.add_argument("--fee-mode", choices=("taker", "maker"), default="taker")
-    d.add_argument("--capital", type=float, default=100.0,
-                   help="initial capital in USDT (default 100)")
+    d.add_argument("--capital", type=float, default=DEFAULT_CAPITAL,
+                   help=f"initial capital in USDT (default {DEFAULT_CAPITAL:.0f})")
     d.add_argument("--slippage-bps", type=float, default=0.0,
                    help="adverse slippage per side in bps (Stage 2c 4: run 0 and 5 as a pair)")
     d.add_argument("--demeaned-db", default=str(ROOT / "xsmom_demeaned.db"))

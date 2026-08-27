@@ -404,10 +404,10 @@ further backtest to check. Nothing runs until the user chooses. Validate
 and holdout untouched.
 
 
-## 16. Stage 2b — corrections (Part A)
+## 18. Stage 2b — corrections (Part A)
 
-*(Renumbered from §14: STAGE2C_PREGRID.md reserves §14/§15 for the invariant
-audit and the void-trial record.)*
+*(Renumbered from §14 → §16 → §18: later prompts reserve §14/§15 for the
+invariant audit and void-trial record, and §16 for the floor withdrawal.)*
 
 - **A1/A2 — `MIN_WEIGHT_FRACTION` 0.25 → 0.5.** The one authorised change to
   `pitdata/store.py`. The 0.25 double-counted the vol factor (once as 0.5×,
@@ -434,9 +434,9 @@ audit and the void-trial record.)*
   above ~1.6 (2 SE = 2/√1.58); 0.7–1.0 is below what the holdout can confirm.
 - **A6 — BTCUSDT $50**: reference only, documented in `weights.py`.
 
-## 17. Stage 2b — paper-trading harness (Part B)
+## 19. Stage 2b — paper-trading harness (Part B)
 
-*(Renumbered from §15.)*
+*(Renumbered from §15 → §17 → §19.)*
 
 Built offline while the backfill ran; 19 tests in `tests/test_live.py`
 against an in-memory fake of the USDS-M REST surface with Binance's real
@@ -612,3 +612,125 @@ the number appears.
    drifted). This follows from "rescale, not flatten", but it is a change in
    behaviour for that specific skip reason relative to Stage 2b, so it is
    written down rather than left implicit.
+
+## 16. Stage 2d — the floor withdrawn, capital restored (2026-08-27)
+
+### 16.1 The 1.05x floor is withdrawn, and why the record matters
+
+`STAGE2C_PREGRID.md` §3 pre-registered `min_gross_leverage = 1.05`. Stage 2d
+§1 withdraws it as a **specification error**. The config field is kept at
+`0.0` rather than deleted, so the withdrawal is visible in every logged trial
+row instead of vanishing from the record.
+
+The floor was calibrated from the synthetic fixture's unit-book volatility
+(~21%). The real figure is ~4x higher:
+
+| | unit-book vol | gross | floor multiplier | realised vol | expected maxDD |
+|---|---|---|---|---|---|
+| Synthetic fixture | 21% | 1.90 | 1.00x | 20.0% | 14.3% |
+| **Real, median** | **89%** | **0.45** | **2.34x** | **46.7%** | **33.4%** |
+| Real, p95 | 164% | 0.24 | 4.30x | 86.1% | 61.5% |
+
+At the real regime the floor binds on every rebalance and pushes the book to
+~47% realised vol against a 20% target, with expected max drawdown past the
+pre-registered 30% kill switch. It does not solve `MIN_NOTIONAL`; it breaks
+the risk budget instead. Crypto momentum's tail variance is undefined under
+power-law tests, so vol management improves Sharpe without bounding the tail
+— 47% vol with an unbounded tail is not a position this project can take.
+
+Consistent with the Stage 2c evidence: the pre-fix peak leverage went
+**35.71x → 156.44x** once the floor existed, because a floor starts the book
+larger, so every un-shrunk notional is larger. The floor amplifies every
+exposure failure by ~4.4x.
+
+**Test 20 pins this** (`test_leverage_floor_fails_at_realistic_vol`) on a
+fixture calibrated to the real regime (unit-book vol **0.91**):
+
+| Setting | realised vol | gross median | max DD |
+|---|---|---|---|
+| floor 0.0 (withdrawn) | **0.200** | 0.42 | 24.8% |
+| floor 1.05 (the withdrawn value) | **0.495** | 1.05 (pinned) | **50.8%** |
+
+The withdrawal is now a reproducible failing configuration, not an argument
+in a markdown file.
+
+### 16.2 Calibration honesty (Stage 2d §2.1)
+
+Stated plainly, because it is the kind of thing that is easy to lose:
+
+- The floor was withdrawn on **volatility-calibration grounds, before any
+  grid run under the current harness**. No performance number influenced it.
+- The calibration input — unit-book vol ~89% median, ~164% p95 — came from
+  **void-run replay data** (`NOTES` §13.1, the v1 postmortem). Those runs are
+  void for *performance* purposes and every Sharpe from them is struck in
+  §15.2. Their *volatility* measurements are what informed this decision.
+- That is a risk calibration, not a performance selection. But real data was
+  used, and the use is visible here either way rather than buried.
+
+### 16.3 `initial_capital` restored to 400
+
+The floor and the capital ruling are **opposite** solutions, not
+interchangeable:
+
+- **Floor**: raise exposure until positions clear $5 → sacrifices the vol target.
+- **Capital**: lower the leverage needed until real exposure clears $5 → preserves it.
+
+Only the second keeps the pre-registered 20% target intact. `C >= 10N/L` at
+N=10 → **$400 needs L >= 0.25**, against a real distribution of min 0.21 /
+p05 0.27 / median 0.46 — clearing above the 5th percentile. Residual
+`below_min_notional` skips of ~1-5% are expected and acceptable, and they now
+rescale rather than flatten.
+
+My §13.8 procedural objection (withdrawing $400 because it was not in a
+document, while the floor was) was right from where I sat but wrong in
+substance: §0 places constraints with the user, and capital is an **input
+constraint the user set**, not a strategy parameter being tuned. §13.8's
+withdrawal is itself now withdrawn; `Config.initial_capital = 400.0`, and the
+runner's `--capital` default follows the dataclass field so the two cannot
+drift apart.
+
+### 16.4 Funding-start exclusion (Stage 2d §5) — implemented, measured
+
+A symbol is no longer a candidate until its funding history has begun.
+Before this, symbols were tradeable for a year or more with funding silently
+absent: logged as missing, never zero-filled, but the position still ran
+cost-free on that leg — understating costs on exactly the long-tail names
+momentum favours.
+
+Implementation: one condition in the §5 candidate filter, checking a
+**trailing 3-day window** (`FUNDING_PRESENCE_WINDOW_MS`) rather than "any
+funding ever". That is cheap (no full-history scan per symbol per rebalance)
+and strictly *stricter*: it also excludes a symbol during a mid-history
+funding gap, which has the identical defect. Data policy, not strategy; costs
+no trial. The skip detail now reports how many symbols were dropped for this
+reason.
+
+**Measured over the train window: 1,477 of 181,617 symbol-days (0.81%),
+across 7 symbols.**
+
+| Symbol | days removed |
+|---|---|
+| TLMUSDT | 593 |
+| ICPUSDT | 478 |
+| BNXUSDT | 301 |
+| BTCSTUSDT | 65 |
+| LENDUSDT | 29 |
+| QTUMUSDT | 10 |
+| USDCUSDT | 1 |
+
+The top three match `NOTES` §13.4's figures (+592, +477, +305 days) exactly,
+which is the confirmation that the filter targets what it was meant to.
+
+### 16.5 The general lesson (Stage 2d §3, added to the record)
+
+**A fixture used to justify a risk parameter must match the volatility regime
+that parameter will meet.** The 1.05x floor passed a non-vacuous test (Test
+18 bound on 499 rebalances) and was still wrong, because the fixture's
+unit-book vol was 4x below reality and the floor's failure mode simply cannot
+appear there. Non-vacuous is not the same as representative.
+
+Applied going forward: `realistic_vol_market()` exists in the test suite for
+this purpose, and Test 20 asserts the fixture's own unit-book vol is in
+[0.75, 1.05] before asserting anything about the floor — so if someone
+changes the fixture, the test says the regime no longer matches rather than
+silently proving nothing.

@@ -20,9 +20,10 @@ single leg-scale; see NOTES.md. Test 5 checks the outcome (realised beta).
 
 NO IMPUTATION
 -------------
-A symbol with a None signal, a missing bar inside the return window, or a
-window misaligned with BTCUSDT's dates is dropped from candidacy *before*
-ranking. Dropping after selection would silently change the book.
+A symbol with a None signal, a missing bar inside the return window, a
+window misaligned with BTCUSDT's dates, or no funding history yet (Stage
+2d 5) is dropped from candidacy *before* ranking. Dropping after selection
+would silently change the book.
 """
 
 from __future__ import annotations
@@ -47,6 +48,16 @@ ANNUALISATION = 365.0  # perps trade every calendar day; 252 would understate
 # filter assumes (pitdata.store.MIN_WEIGHT_FRACTION); Test 15 asserts the
 # two agree. Vol scaling is applied separately and must not be folded in.
 WEIGHT_BAND = (0.5, 1.5)
+
+# Stage 2d 5: a symbol is not a candidate until its funding history has
+# begun. Binance's dumps start funding long after klines for some symbols
+# (ICPUSDT +477 days, TLMUSDT +592, BNXUSDT +305); trading them in that
+# window runs one leg cost-free and systematically understates costs on
+# exactly the long-tail names momentum favours. Checking a trailing window
+# rather than 'any funding ever' is cheap AND stricter: it also excludes a
+# symbol during a mid-history funding gap, which has the same defect.
+# Data policy, not strategy.
+FUNDING_PRESENCE_WINDOW_MS = 3 * 86_400_000
 
 # Stage 2c 2.2: rescale-on-skip fires only when the held book's gross has
 # drifted more than this from its target -- roughly half the drift needed
@@ -261,7 +272,12 @@ def compute_target_weights(
     # 2.2 Signal; drop None. Also require a return window aligned with BTC's
     # dates — a gapped or misaligned window would need imputation to use.
     candidates: list[tuple[str, float, np.ndarray]] = []
+    n_no_funding = 0
     for sym in universe:
+        # Stage 2d 5: funding history must have begun (and be current).
+        if not view.funding(sym, since=view.as_of - FUNDING_PRESENCE_WINDOW_MS):
+            n_no_funding += 1
+            continue
         sig = signal_fn(view, sym, cfg)
         if sig is None:
             continue
@@ -274,7 +290,11 @@ def compute_target_weights(
         candidates.append((sym, float(sig), np.diff(closes) / closes[:-1]))
 
     if len(candidates) < n:
-        return Skip("insufficient_candidates", f"{len(candidates)} < {n}")
+        return Skip(
+            "insufficient_candidates",
+            f"{len(candidates)} < {n}"
+            + (f" ({n_no_funding} excluded: no funding history)" if n_no_funding else ""),
+        )
 
     # 2.3 Rank descending; symbol name as tiebreak so ties (e.g. equal
     # signals) cannot make the book depend on dict ordering.
