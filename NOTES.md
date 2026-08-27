@@ -404,10 +404,11 @@ further backtest to check. Nothing runs until the user chooses. Validate
 and holdout untouched.
 
 
-## 18. Stage 2b — corrections (Part A)
+## 20. Stage 2b — corrections (Part A)
 
-*(Renumbered from §14 → §16 → §18: later prompts reserve §14/§15 for the
-invariant audit and void-trial record, and §16 for the floor withdrawal.)*
+*(Renumbered §14 → §16 → §18 → §20 as later prompts reserved those numbers:
+§14/§15 the invariant audit and void trials, §16 the floor withdrawal,
+§17 the 2e fixes, §18 the grid, §19 Stage 3.)*
 
 - **A1/A2 — `MIN_WEIGHT_FRACTION` 0.25 → 0.5.** The one authorised change to
   `pitdata/store.py`. The 0.25 double-counted the vol factor (once as 0.5×,
@@ -434,9 +435,9 @@ invariant audit and void-trial record, and §16 for the floor withdrawal.)*
   above ~1.6 (2 SE = 2/√1.58); 0.7–1.0 is below what the holdout can confirm.
 - **A6 — BTCUSDT $50**: reference only, documented in `weights.py`.
 
-## 19. Stage 2b — paper-trading harness (Part B)
+## 21. Stage 2b — paper-trading harness (Part B)
 
-*(Renumbered from §15 → §17 → §19.)*
+*(Renumbered §15 → §17 → §19 → §21.)*
 
 Built offline while the backfill ran; 19 tests in `tests/test_live.py`
 against an in-memory fake of the USDS-M REST surface with Binance's real
@@ -949,15 +950,18 @@ the conservative count is 12 and is available from
 
 ### 18.1 Results
 
+**The 5bps column is the headline. The 0bps column is a sensitivity bound
+and is not a headline anywhere** (Stage 3 3).
+
 ```
-                 slippage 0.0 bps                    slippage 5.0 bps
+                 slippage 5.0 bps  (BASELINE)      slippage 0.0 bps (bound)
  lb skip  sharpe  ann_ret  maxDD  feedrag | sharpe  ann_ret  maxDD  feedrag
-  7    0    0.96   23.99%  35.3%   41.5%  |   0.60   12.85%  36.6%   75.4%
-  7    2    0.48    8.11%  39.6%   84.6%  |   0.12    0.28%  48.0%  288.4%
- 14    0    0.91   20.92%  25.0%   41.1%  |   0.81   18.35%  27.7%   48.3%
- 14    2    0.42    6.77%  38.6%   99.5%  |   0.17    1.33%  46.4%  423.8%
- 28    0    0.97   20.57%  30.4%   37.2%  |   0.72   14.15%  35.9%   61.3%
- 28    2    0.90   17.08%  31.5%   40.4%  |   0.61   10.67%  36.3%   70.7%
+  7    0    0.60   12.85%  36.6%   75.4%  |   0.96   23.99%  35.3%   41.5%
+  7    2    0.12    0.28%  48.0%  288.4%  |   0.48    8.11%  39.6%   84.6%
+ 14    0    0.81   18.35%  27.7%   48.3%  |   0.91   20.92%  25.0%   41.1%   <- FROZEN
+ 14    2    0.17    1.33%  46.4%  423.8%  |   0.42    6.77%  38.6%   99.5%
+ 28    0    0.72   14.15%  35.9%   61.3%  |   0.97   20.57%  30.4%   37.2%
+ 28    2    0.61   10.67%  36.3%   70.7%  |   0.90   17.08%  31.5%   40.4%
 ```
 
 **Active days 1380-1381 of 1381 in every config.** That is the line that
@@ -1068,3 +1072,140 @@ Grid: **run once, on train, logged, 6 of 20 trials used.** Not re-run.
 Validate and holdout untouched -- per 2d 7 the walk-forward-vs-single-validate
 decision needs this output on the table first, and that decision is the
 user's. The two remaining scarce trials are unspent.
+
+## 19. Stage 3 — post-grid analysis (2026-08-27, zero trials)
+
+Every item below is a data-correctness fix or attribution of a backtest that
+had already run. **No configuration was selected and no trial was spent.**
+Budget unchanged at **6 of 20**.
+
+### 19.1 The "18% hole in the largest input" was my bug, not missing data
+
+Stage 3 1 opened on the premise that 17.6% of funding settlements on held
+positions were missing while funding generated 61% of net PnL. The
+exposure-weighted audit (1.1, `tools/funding_audit.py`) put the ratio at
+**17.34%** -- above the 10% band, i.e. "the grid result is provisional until
+fixed". It was also suspiciously diffuse: 49.7/50.3 across legs, present in
+all four years, top symbol only 3% of the total.
+
+Diffuse is the signature of a systematic error, not of absent data. It was.
+**Binance stamps a settlement a few milliseconds PAST its boundary** --
+45.7% of all funding rows are off-boundary by 1-6ms, and BTCUSDT's 00:00
+settlement on 2020-03-26 is at `00:00:00.006`. `apply_funding` bucketed rows
+by comparing the raw stamp to the boundary, so every such settlement:
+
+1. failed the `== day_open_time` test and was **counted as missing**, and
+2. passed the `> day_open_time` test, so it was applied to the **post-fill**
+   book instead of the book held across midnight -- violating the convention
+   in section 4 of these notes.
+
+Fix: snap each settlement to the boundary it belongs to (`(ts // iv) * iv`)
+before bucketing. Result:
+
+| | before | after |
+|---|---|---|
+| missing settlements | 7,352 | **11** |
+| missing notional-days | $204,812 | **$209** |
+| **exposure-weighted ratio** | **17.34%** | **0.02%** |
+
+The 11 survivors are LENDUSDT (9) and ANCUSDT (2), both genuinely delisted.
+That is the "under 2% -> immaterial" band, so **1.2 recovery is optional and
+1.3 mark-price work is not required**. Nothing was interpolated or
+zero-filled at any point. Pinned by
+`test_funding_settlements_tolerate_millisecond_offsets`.
+
+### 19.2 (1.4) Frozen config re-run on corrected data
+
+`lb14/skip0` at 5bps and +1min, logged as a **re-run of an existing trial,
+not a new one**; the prior row now carries `superseded_by` with a pointer.
+Distinct-config count is unchanged, so the Deflated Sharpe trial count stays
+at 6.
+
+| | before | after |
+|---|---|---|
+| Sharpe | 0.815 | **0.796** |
+| funding PnL | +218.68 | +205.30 |
+| gross PnL | +266.67 | +266.70 |
+
+The correction moved settlements between books rather than adding or
+removing them, so the headline barely moves. Worth stating plainly: **the
+bug inflated a diagnostic, not the PnL.** The 17.34% figure would have sent
+us re-fetching data that was never absent.
+
+### 19.3 (2) Per-year attribution -- the decisive table
+
+Frozen config, 5bps. Diagnosis only; nothing here selects anything.
+
+```
+ year  days  sharpe      net$    price$  funding$    fees$     long$    short$    vol  maxDD   lev
+ 2020   366    1.83   +164.16   +163.12    +24.28    23.23   +360.84   -191.21  19.8%  12.1%  0.62
+ 2021   365    0.91   +104.54   +110.46    +17.29    23.21   +359.20   -240.65  21.1%  13.7%  0.28
+ 2022   365    0.05    -14.69    +30.17     -6.03    38.84   -173.38   +185.80  28.1%  18.9%  0.48
+ 2023   365    0.65    +90.12    -37.05   +169.73    42.56   +162.17   -184.58  24.4%  14.2%  0.47
+```
+
+**The two components move in opposite directions, and the aggregate hides it:**
+
+```
+price   PnL:  +163  ->  +110  ->   +30  ->   -37      monotonically decaying to negative
+funding PnL:   +24  ->   +17  ->    -6  ->  +170      concentrated in the LAST year
+```
+
+Funding is **20% / 80%** between 2020-21 and 2022-23 -- the opposite of the
+decay pattern 2.1 was watching for. Under 2.1's pre-registered reading,
+funding is not "concentrated in 2020-21 and decaying", so the aggregate is
+not a 2020 artifact on that axis.
+
+But the honest reading is more uncomfortable than either branch 2.1
+anticipated:
+
+- **The momentum component is dead by 2023.** Price PnL decays +163 → +110
+  → +30 → **-37**. Whatever cross-sectional trend-continuation existed in
+  2020-21 is gone by the end of train.
+- **What replaced it is carry**, and 2023's entire +90 net is +170 funding
+  against -37 price.
+- 2022 is the tell: Sharpe 0.05, and the legs invert (long -173, short
+  +186) -- in the bear market the shorts finally earn on price, and the
+  strategy still makes nothing.
+- So the strategy is not "momentum with a carry tailwind". It is a strategy
+  whose momentum engine faded across train and whose remaining return is
+  carry, measured in the years immediately before the period where
+  documented carry went negative (2024, then 2025 -- the holdout window).
+
+This does not decide the validate question; it reframes it. Section 5's
+Option A (pure carry benchmark) is now clearly the highest-information use
+of a trial, because the per-year table implies the momentum signal may be
+contributing nothing by the end of train.
+
+### 19.4 (2.2) Drift decomposition by year
+
+```
+ year  SR real  SR demean   drift  % of total   vs ~18% synthetic floor
+ 2020     1.83       1.37   +0.46        25%   above
+ 2021     0.91       0.65   +0.26        28%   above
+ 2022     0.05      -0.63   +0.69      1263%   above (ratio meaningless at SR~0)
+ 2023     0.65       0.69   -0.04        -6%   below
+```
+
+Drift-harvesting is above the synthetic floor in 2020-2022 and **absent in
+2023** (slightly negative). It does not decay smoothly with sample length,
+which is what finite-sample noise would do -- it tracks the price-momentum
+component, which is consistent with drift and trend being the same fading
+thing rather than two independent effects. The 2022 percentage is an
+artifact of dividing by a near-zero Sharpe and should not be quoted as
+"1263% drift"; the level (+0.69) is the meaningful figure.
+
+### 19.5 (4) CONFIGURATION FROZEN, 2026-08-27
+
+**`lookback=14, skip=0`, capital $400, N=10, 20% vol target, 3x cap, taker,
+fills at the +1min open, 5bps baseline slippage.**
+
+`skip=2` is retired: dominated at every lookback at 5bps (0.60/0.12,
+0.81/0.17, 0.72/0.61), with larger drawdowns and fee drag up to 424%.
+
+No exploration of `skip=1/3/4` or lookbacks between grid points. That is how
+a six-trial project becomes a parameter mine.
+
+**Stated explicitly: choosing `lb14/skip0` out of six configs is a selection
+made on train.** It is already reflected in the Deflated Sharpe trial count
+of 6 and must stay reflected there.
