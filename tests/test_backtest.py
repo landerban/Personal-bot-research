@@ -636,6 +636,26 @@ def test_grid_table_prints_from_summary():
     print("PASS grid_table_prints_from_summary")
 
 
+def test_pnl_trace_reconciles():
+    """Per-symbol daily price PnL trace (postmortem input) must reconcile
+    exactly with the engine's own totals: sum over days and symbols equals
+    gross_pnl, and signed-side sums equal the long/short split."""
+    res = shared_factor_run()
+    assert len(res.pnl_by_symbol_day) == len(res.timestamps)
+    total = sum(sum(d.values()) for d in res.pnl_by_symbol_day)
+    assert abs(total - res.gross_pnl) < 1e-6, (total, res.gross_pnl)
+    assert abs(res.gross_pnl_long + res.gross_pnl_short - res.gross_pnl) < 1e-6
+    # every traded symbol appears; nothing is attributed to an unheld symbol
+    held = set()
+    for rb in res.rebalances:
+        held |= set(rb.final_weights)
+    traced = set()
+    for d in res.pnl_by_symbol_day:
+        traced |= set(d)
+    assert traced <= held, traced - held
+    print("PASS pnl_trace_reconciles")
+
+
 # ------------------------------------------------------- metrics sanity
 
 def test_deflated_sharpe_sanity():

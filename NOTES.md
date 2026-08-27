@@ -230,9 +230,116 @@ Sharpe > 1.5 net of costs, the answer is not adequate until fee drag,
 turnover and the long/short PnL split make the mechanism visible. High
 Sharpe with no identifiable counterparty = bug until proven otherwise.
 
-## 13. Stage 2a — grid instrumentation results (to fill after the re-run)
+## 13. Train grid — results, and why they are NOT results yet (2026-08-27)
 
-Pending the train grid re-run and the §2a decomposition.
+Data: 832 symbols, 612,421 daily bars, 2020-01-01 → 2026-07-31; 179 liquid
+/ 173 tradeable at 1.0× on the last day. Six trials logged (`trials.jsonl`,
+commit `36f191d`, taker fees). Summary:
+
+```
+ lb skip  sharpe  ann_ret  ann_vol  max_dd   turn  fee_drag lev_med   <1.0x  bmn_skip  n_rb
+  7    0    1.12   56.52%   50.46%  34.79%  120.9    22.43%    0.46     96%     32.4%   826
+  7    2   -2.05      n/a  216.25% 102.31%   52.6       n/a    1.10     14%     45.5%    44   BANKRUPT
+ 14    0   -1.58      n/a  295.21% 104.94%   37.5       n/a    1.08     31%     45.0%    49   BANKRUPT
+ 14    2   -1.47      n/a  463.81% 106.75%   45.1       n/a    1.05     40%     42.4%    63   BANKRUPT
+ 28    0    0.83   42.94%   72.84%  51.81%   62.5    15.69%    0.46     93%     40.2%   705
+ 28    2   -0.51      n/a  819.24% 118.14%   27.9       n/a    1.05     34%     43.4%    61   BANKRUPT
+```
+
+Four wipeouts and two "winners" at 2.5–3.6× the vol target. **None of
+these numbers describe the strategy.** Postmortem replays of the logged
+trials (`tools/postmortem.py`, `diagnostics.jsonl`, no budget spent) show
+one harness behaviour behind all six:
+
+### 13.1 A skipped rebalance holds the stale book — with unbounded leverage
+
+`lb7/skip2`: the book decided 2020-07-21 at $118 equity (short IOST, TRX,
+ADA, BNB, EOS; gross 1.01, s = 0.90, max weight 14%) was still on the books
+on **2021-02-10 with $5.63 of equity** — ADA alone lost $21.7 that day,
+386% of equity. Of 528 scheduled rebalances, 484 were skipped
+(`universe_too_small` 244, `below_min_notional` 240) and the engine holds
+the previous book through a skip. As equity fell, the held notional did
+not, so effective leverage went past 20× — through the §2.5 hard cap of 3×,
+which is only enforced at decision time. The hedge scale was NOT the
+problem: s stayed in [0.90, 1.23] for that run.
+
+`lb7/skip0` is the same artifact with the sign flipped. Ex-ante vol of the
+hedged unit book on real data is ~89% (median; p95 164%), so the vol
+target sets k ≈ 0.23 and gross ≈ 0.46; the smallest position is then
+0.5 × 0.46 × $100 / 10 ≈ **$2.3 < $5**, and 512 of 1582 rebalances skip on
+`below_min_notional`. The strategy spent most of 2021 holding whatever
+book last cleared the floor, long-leg PnL +$521 vs short −$143, plus
++$120 of funding from being short through a bull market. That is a
+buy-and-hold of stale books, not cross-sectional momentum, and its Sharpe
+1.12 says nothing about the signal.
+
+Why the null tests did not catch it: synthetic universes never skip, so a
+held book never diverged from a decided one.
+
+**Decision required (§0: not mine to make).** Two consistent readings of
+§2.1 "skip the rebalance and log it":
+
+- (a) **Flatten on skip**: no valid book can be formed → go to cash; the
+  §2.5 cap is honoured at all times; at $100 the strategy will then sit in
+  cash on most days (see 13.2) and pay round-trip fees to re-enter.
+- (b) **Hold on skip, but enforce the cap**: keep the book unless its
+  realised leverage exceeds 3× (or some fraction), then flatten. Fewer
+  fees, but a stale book is a different strategy from a daily-rebalanced
+  one, and "different strategy" is exactly what §2.1 forbids running
+  silently.
+
+My recommendation is (a): it is the only reading under which every held
+position was decided by the strategy on the day it is held, and it makes
+13.2 visible instead of hiding it. Either way the six trials above must be
+re-run (6 of the remaining 14).
+
+### 13.2 The $5 floor binds at $100 — this is the §4 number
+
+Realised gross leverage, filled rebalances only: `lb7/skip0` min 0.21 /
+p05 0.27 / median 0.46 / p95 0.90; 96% below 1.0×. `below_min_notional`
+skips: 32–45% of scheduled rebalances across the grid. Sizing rule with
+realised L: `C ≥ 10N/L` → at L = 0.46, **C ≥ $217**; at L = p05 0.27,
+**C ≥ $370**. At $100 the book is untradeable on most days by
+construction. This is not the universe filter's leverage assumption (§4 of
+the amendment); changing `gross_leverage` in the filter changes *which
+symbols* are admitted, not whether the vol-targeted position clears the
+floor. The lever is capital (or N, or the vol target — all constraints,
+not mine to move).
+
+### 13.3 What is NOT a bug (checked before claiming it)
+
+- **Return-matrix alignment.** 52 of 265 train symbols have internal
+  missing days (a cluster 2022-02-25 → 03-01 across ~40 symbols; 26–29-day
+  holes for TLM/BNX/ICP). `compute_target_weights` already drops any symbol
+  whose last-61-bar `open_time`s differ from BTCUSDT's (§5), so gapped
+  windows never enter betas or the covariance. Effect: those symbols leave
+  candidacy for 61 days after each hole — coverage, not corruption.
+- **Beta-hedge scale.** My first hypothesis for the wipeouts (a small
+  β̄_short blowing up s) is refuted by the replays: s ∈ [0.90, 1.23] on the
+  fastest wipeout, median 1.02 / p95 1.73 / max 4.03 on `lb7/skip0`, with
+  s > 3 on 1% of rebalances. Worth watching, not the cause.
+- **Prices.** Largest overnight gap in train is ×1.05; no non-positive
+  prices; fills at the open are on continuous prints.
+
+### 13.4 Funding coverage (data, Stage 1 scope)
+
+`settlements_between` applies every funding row in the window, so symbols
+Binance moved to 4-hourly funding (the 14,400,000 ms residue cluster, ~0.5M
+rows) settle six times a day correctly, and +1–3 ms stamps are harmless.
+"Missing" means a held symbol had a bar but no funding row: 1,480 of
+181,617 train symbol-days (0.8%), but concentrated — funding data starts
+**477 days after klines for ICPUSDT, 592 for TLMUSDT, 305 for BNXUSDT**.
+A stale book shorting a collapsed coin like ICP for months (13.1) explains
+the 7,599 count. Missing settlements are logged, never zero-filled, but the
+run continues; whether those symbols should be excluded while funding is
+unknown is a data-policy call (Stage 1 territory), flagged here, not acted on.
+
+### 13.5 Status
+
+Grid: run, logged, **not a result**. Decomposition (§2a): deferred — there
+is no best config to attribute until the harness is fixed and re-run.
+Validate and holdout: untouched. Budget: 6 of 20 used.
+
 
 ## 14. Stage 2b — corrections (Part A)
 

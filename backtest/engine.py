@@ -100,6 +100,8 @@ class BacktestResult:
     gross_pnl_short: float = 0.0
     missing_funding_settlements: int = 0
     bankrupt: bool = False
+    # Attribution trace: per-day {symbol: price PnL}, aligned with timestamps.
+    pnl_by_symbol_day: list[dict[str, float]] = field(default_factory=list)
 
     def skip_counts(self) -> dict[str, int]:
         out: dict[str, int] = {}
@@ -129,9 +131,12 @@ def run_backtest(
     equity = cfg.initial_capital
     step = cfg.rebalance_ms
 
-    def mark(units: float, dprice: float) -> None:
-        """Accrue price PnL, attributed to the side that earned it."""
+    day_pnl: dict[str, float] = {}
+
+    def mark(sym: str, units: float, dprice: float) -> None:
+        """Accrue price PnL, attributed to the side and symbol that earned it."""
         pnl = units * dprice
+        day_pnl[sym] = day_pnl.get(sym, 0.0) + pnl
         res.gross_pnl += pnl
         if units > 0:
             res.gross_pnl_long += pnl
@@ -206,7 +211,7 @@ def run_backtest(
 
         # 2. Mark held positions from yesterday's close to today's open.
         for sym, units in positions.items():
-            mark(units, bars[sym].open - marks[sym])
+            mark(sym, units, bars[sym].open - marks[sym])
             marks[sym] = bars[sym].open
 
         # 3. 00:00 funding on the old book.
@@ -262,12 +267,14 @@ def run_backtest(
 
         # 6. Mark to today's close; record the daily equity point.
         for sym, units in positions.items():
-            mark(units, bars[sym].close - marks[sym])
+            mark(sym, units, bars[sym].close - marks[sym])
             marks[sym] = bars[sym].close
         equity = (
             cfg.initial_capital + res.gross_pnl - res.total_fees
             + res.total_funding
         )
+        res.pnl_by_symbol_day.append(dict(day_pnl))
+        day_pnl.clear()
         res.timestamps.append(t)
         res.equity.append(equity)
         res.gross_equity.append(cfg.initial_capital + res.gross_pnl)
