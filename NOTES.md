@@ -937,3 +937,134 @@ Stage 2e §1–§7 and §9 implemented; §10 (live fixes) is explicitly
 *before Phase 2, not before the grid* and is not done. Minute ingest of
 20,550 symbol-months runs at ~7/s. **The grid has not been run.** Budget 0
 of 20. Validate and holdout untouched.
+
+## 18. THE FIRST VALID TRAIN GRID (2026-08-27, commit `c46c295`)
+
+Pre-flight 12/12. 832 symbols, 612,421 daily and 3,057,900 minute bars,
+2020-01-01 -> 2026-07-31. Capital $400, leverage floor withdrawn, fills at
+the +1min open, taker, N=10, 20% vol target. **12 runs = 6 trials**
+(slippage is a cost assumption reported as a pair, never selected between;
+the conservative count is 12 and is available from
+`runner.n_trials_conservative`). **Budget now 6 of 20.**
+
+### 18.1 Results
+
+```
+                 slippage 0.0 bps                    slippage 5.0 bps
+ lb skip  sharpe  ann_ret  maxDD  feedrag | sharpe  ann_ret  maxDD  feedrag
+  7    0    0.96   23.99%  35.3%   41.5%  |   0.60   12.85%  36.6%   75.4%
+  7    2    0.48    8.11%  39.6%   84.6%  |   0.12    0.28%  48.0%  288.4%
+ 14    0    0.91   20.92%  25.0%   41.1%  |   0.81   18.35%  27.7%   48.3%
+ 14    2    0.42    6.77%  38.6%   99.5%  |   0.17    1.33%  46.4%  423.8%
+ 28    0    0.97   20.57%  30.4%   37.2%  |   0.72   14.15%  35.9%   61.3%
+ 28    2    0.90   17.08%  31.5%   40.4%  |   0.61   10.67%  36.3%   70.7%
+```
+
+**Active days 1380-1381 of 1381 in every config.** That is the line that
+makes these numbers mean anything at all, and the difference from the void
+grid v2, whose headline came from 72 active days of 1,342. The $400 capital
+did what it was supposed to: `below_min_notional` skips are **0.00%** of
+scheduled rebalances (the post-hedge check fires on 1.1-2.4%, and total
+skips are ~20%, almost all `universe_too_small` during the 2020 warm-up).
+
+Realised gross leverage median 0.44, p05 0.21, 96-97% below 1.0x --
+confirming the Stage 2d ruling: at this leverage a $100 book could not have
+cleared the floor, and raising leverage to fix that would have broken the
+vol target (Test 20).
+
+Other per-config figures: realised vol 19.7-25.6% against the 20% target;
+beta SE median 0.24-0.26 with median shrink 0.011-0.013; rescale-on-skip
+20-38 events costing $0.30-0.56 in fees; 0 delistings (no metadata -- see
+17.3), 2-4 data-gap forced exits; intraday H/L stress bottoms at 76-92% of
+starting capital, so no config trips the 25% flag; deflated Sharpe
+0.26-0.79 over 6 distinct configs.
+
+### 18.2 WHO IS PAYING -- and the answer changes what this strategy is
+
+No config reaches Sharpe 1.5, so 6.3's bug-gate does not fire. But the
+question is worth answering anyway, and the answer is uncomfortable.
+
+**Funding is 49-100% of net PnL in every single config**:
+
+```
+ lb skip  bps   gross     fees   funding      net   funding as % of net
+  7   0     0  +435.16   180.62  +247.36  +501.90         49%
+ 14   0     0  +318.15   130.83  +233.52  +420.84         55%
+ 28   0     0  +283.17   105.33  +233.99  +411.83         57%
+ 14   0     5  +266.67   128.69  +218.68  +356.66         61%
+ 28   0     5  +155.95    95.55  +199.63  +260.03         77%
+  7   2     5   +44.74   129.04   +88.49    +4.20       2108%
+```
+
+For the `skip=2` configs at 5bps, price PnL after fees is *negative* and
+funding alone keeps them above water. Even for the best config, 61% of net
+profit at the realistic slippage setting is funding, not price movement.
+
+The mechanism, and it is the one the spec's own calibration note names:
+the book is short the losers, losers in crypto are disproportionately
+crowded-long alts, and **positive funding means longs pay shorts**. The
+payer is identifiable -- leveraged retail longs -- and this is exactly the
+carry trade the STAGE2_PROMPT 6 reference describes (Sharpe 6.45 2020-2025,
+4.06 from 2024, negative in 2025 as capital arrived).
+
+So: **a substantial majority of this strategy's profit is carry, not
+cross-sectional momentum.** That has direct consequences:
+
+- The decay profile is carry's, not momentum's. The reference says carry
+  went negative in 2025 -- inside the holdout window.
+- The long leg makes the price PnL (+412 to +840) while the short leg loses
+  it (-208 to -579). The shorts pay for themselves through funding receipts,
+  not through price decline. A momentum story would have the shorts
+  contributing on price.
+- Comparing this against a pure carry benchmark is now the obvious question,
+  and it is a NEW strategy, so it costs trials. Not done, not decided.
+
+### 18.3 Drift decomposition (6.2)
+
+Run on `lb14/skip0` at 5bps -- chosen as the best *worst-case* across the
+pre-registered slippage pair (0.81 at 5bps is the highest any config
+reaches there, 0.91 at 0bps is within 0.06 of the maximum) and the only
+config whose max drawdown stays under the 30% kill threshold at both
+settings. That choice is a selection made on train and is recorded as such.
+
+```
+Sharpe (real)      : 0.81
+Sharpe (demeaned)  : 0.46
+Drift component    : 0.36  (44% of total)
+NOTE: DIAGNOSTIC ONLY -- full-sample means, not runnable live.
+```
+
+Against the ~18% synthetic zero-drift floor (`TEST_NOTES` obs. 2), 44% is
+well clear of noise. It does not cross 12's majority rule, but combined with
+18.2 the picture is that trend-continuation is the *smallest* of the three
+contributions: carry > drift-harvesting > trend.
+
+**A trap caught before it produced a wrong number.** `xsmom_demeaned.db` had
+been built before the minute bars existed, so it had zero 1m rows. Running
+the decomposition against it would have aborted every fill and reported the
+demeaned Sharpe as ~0, inflating the "drift" component to ~100%. The tool
+now demeans the 1m execution bars with the same per-day factor as the daily
+bars -- scaling the daily series alone would leave fills on an undemeaned
+price series and put the drift back through every fill while the daily data
+looked correct. Same class of failure as 17.2; found by checking the input
+rather than the output.
+
+### 18.4 Two honest limitations in these numbers
+
+1. **31 traded symbols have no `symbol_filters` row**, so `min_notional` is
+   None and they are exempt from the floor check. Measured impact: **3 of
+   12,781 executed positions (0.02%)** fell under $5, all in delisted names
+   (HNT, MATIC, SRM). Immaterial here, but it is a real hole and it would
+   not be immaterial at smaller capital.
+2. **~7,300 missing funding settlements per run.** With funding now known to
+   drive most of the PnL, this is no longer a minor diagnostic. They are
+   counted, never zero-filled, and the funding-start filter (17.6, 0.81% of
+   symbol-days) removes the worst offenders -- but the residual is
+   concentrated in exactly the long-tail names the strategy trades.
+
+### 18.5 Status
+
+Grid: **run once, on train, logged, 6 of 20 trials used.** Not re-run.
+Validate and holdout untouched -- per 2d 7 the walk-forward-vs-single-validate
+decision needs this output on the table first, and that decision is the
+user's. The two remaining scarce trials are unspent.

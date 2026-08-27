@@ -109,6 +109,31 @@ def build_demeaned_db(
                     for r, f in zip(rows, factors)
                 ],
             )
+            # The execution (1m) bars of day i must carry the SAME factor as
+            # day i's daily bar. Scaling the daily bars alone would leave the
+            # fills on an undemeaned price series -- and, since the engine
+            # fills at the +1min open, would put the drift straight back in
+            # through every fill while looking correct in the daily data.
+            by_day = {r[0]: f for r, f in zip(rows, factors)}
+            mrows = dst_conn.execute(
+                "SELECT open_time, open, high, low, close FROM klines "
+                "WHERE symbol = ? AND interval = '1m' ORDER BY open_time",
+                (sym,),
+            ).fetchall()
+            if mrows:
+                DAY_MS = 86_400_000
+                upd = []
+                for m in mrows:
+                    f = by_day.get((m[0] // DAY_MS) * DAY_MS)
+                    if f is None:
+                        continue      # minute bar with no daily bar: leave it
+                    upd.append((m[1] * f, m[2] * f, m[3] * f, m[4] * f,
+                                sym, m[0]))
+                dst_conn.executemany(
+                    "UPDATE klines SET open = ?, high = ?, low = ?, close = ? "
+                    "WHERE symbol = ? AND interval = '1m' AND open_time = ?",
+                    upd,
+                )
         dst_conn.commit()
     finally:
         dst_conn.close()

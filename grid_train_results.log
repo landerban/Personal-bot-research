@@ -1,0 +1,386 @@
+=== GRID start 2026-08-27T09:21:43Z commit c46c295 | capital 400 | floor 0.0 | delay 1min | taker ===
+
+################ slippage 0 bps ################
+
+##### grid: lookback=7 skip=0 fee=taker #####
+
+=== train | 1381 days | 1285 rebalances | capital $400 ===
+ann return        23.99%
+ann vol           25.63%
+sharpe            0.96   90% CI [+0.07, +1.82] (stationary bootstrap)
+max drawdown      35.25%   (expected ~ sigma/2S = 13.29%)
+turnover (ann, x capital)  141.62
+FEE DRAG (% of gross PnL)  41.51%
+  gross PnL +435.16 | fees 180.62 | funding +247.36
+hit rate          47.39%   avg win 1.043% vs avg loss -0.811%   (over 1380 active of 1380 window days)
+beta SE (median per book): median 0.243 | p95 0.393 | max 0.576   shrink |post-pre|: median 0.012
+long-leg PnL +643.05 | short-leg PnL -207.89
+realised gross leverage  min 0.09 | p05 0.23 | median 0.45 | p95 0.88 | max 1.60 | below 1.0x: 96.65%
+skipped rebalances: 297 of 1582 scheduled (18.77%)
+    universe_too_small           284  (17.95%)
+    below_min_notional_post_hedge     7  (0.44%)
+    missing_fill_bar               4  (0.25%)
+    insufficient_candidates        2  (0.13%)
+    below_min_notional             0  (0.00%)
+min position notional taken  $3.38  vs binding MIN_NOTIONAL $20.00
+rescale-on-skip events: 30 | turnover $969.49 | fees $0.48 | positions dropped under floor: 9
+execution: fills at the +1min open
+slippage assumed 0.0 bps/side -> cost $0.00
+intraday stress (H/L): min implied equity $307.55 (77% of start) on 2020-05-10
+delistings: 0 | data-gap forced exits: 4 (tolerance 3d)
+forced liquidations: 4 | missing funding settlements: 7299  (rates absent from data; NOT zero-cost in reality)
+deflated Sharpe   n/a  (over 1 distinct configs on this split; needs >=2 trials)
+Who is paying, and why would they keep paying? — answer required before trusting this line (see NOTES.md).
+
+##### grid: lookback=7 skip=2 fee=taker #####
+
+=== train | 1382 days | 1261 rebalances | capital $400 ===
+ann return        8.11%
+ann vol           20.41%
+sharpe            0.48   90% CI [-0.46, +1.33] (stationary bootstrap)
+max drawdown      39.60%   (expected ~ sigma/2S = 21.12%)
+turnover (ann, x capital)  137.79
+FEE DRAG (% of gross PnL)  84.64%
+  gross PnL +178.01 | fees 150.67 | funding +109.87
+hit rate          47.65%   avg win 0.851% vs avg loss -0.723%   (over 1381 active of 1381 window days)
+beta SE (median per book): median 0.243 | p95 0.394 | max 0.623   shrink |post-pre|: median 0.011
+long-leg PnL +487.83 | short-leg PnL -309.82
+realised gross leverage  min 0.10 | p05 0.23 | median 0.45 | p95 0.87 | max 1.59 | below 1.0x: 96.75%
+skipped rebalances: 321 of 1582 scheduled (20.29%)
+    universe_too_small           291  (18.39%)
+    below_min_notional_post_hedge    21  (1.33%)
+    missing_fill_bar               6  (0.38%)
+    insufficient_candidates        3  (0.19%)
+    below_min_notional             0  (0.00%)
+min position notional taken  $3.29  vs binding MIN_NOTIONAL $20.00
+rescale-on-skip events: 32 | turnover $802.75 | fees $0.40 | positions dropped under floor: 7
+execution: fills at the +1min open
+slippage assumed 0.0 bps/side -> cost $0.00
+intraday stress (H/L): min implied equity $353.81 (88% of start) on 2020-04-16
+delistings: 0 | data-gap forced exits: 4 (tolerance 3d)
+forced liquidations: 4 | missing funding settlements: 7310  (rates absent from data; NOT zero-cost in reality)
+deflated Sharpe   0.73  (over 2 distinct configs on this split)
+Who is paying, and why would they keep paying? — answer required before trusting this line (see NOTES.md).
+
+##### grid: lookback=14 skip=0 fee=taker #####
+
+=== train | 1382 days | 1255 rebalances | capital $400 ===
+ann return        20.92%
+ann vol           24.03%
+sharpe            0.91   90% CI [+0.10, +1.68] (stationary bootstrap)
+max drawdown      24.96%   (expected ~ sigma/2S = 13.23%)
+turnover (ann, x capital)  108.99
+FEE DRAG (% of gross PnL)  41.12%
+  gross PnL +318.15 | fees 130.83 | funding +233.52
+hit rate          49.09%   avg win 0.919% vs avg loss -0.768%   (over 1381 active of 1381 window days)
+beta SE (median per book): median 0.249 | p95 0.408 | max 0.653   shrink |post-pre|: median 0.012
+long-leg PnL +735.20 | short-leg PnL -417.05
+realised gross leverage  min 0.10 | p05 0.21 | median 0.45 | p95 0.91 | max 1.70 | below 1.0x: 96.73%
+skipped rebalances: 327 of 1582 scheduled (20.67%)
+    universe_too_small           312  (19.72%)
+    below_min_notional_post_hedge     8  (0.51%)
+    insufficient_candidates        4  (0.25%)
+    missing_fill_bar               3  (0.19%)
+    below_min_notional             0  (0.00%)
+min position notional taken  $3.51  vs binding MIN_NOTIONAL $50.00
+rescale-on-skip events: 24 | turnover $716.30 | fees $0.36 | positions dropped under floor: 13
+execution: fills at the +1min open
+slippage assumed 0.0 bps/side -> cost $0.00
+intraday stress (H/L): min implied equity $366.86 (92% of start) on 2020-03-22
+delistings: 0 | data-gap forced exits: 2 (tolerance 3d)
+forced liquidations: 2 | missing funding settlements: 7221  (rates absent from data; NOT zero-cost in reality)
+deflated Sharpe   0.92  (over 3 distinct configs on this split)
+Who is paying, and why would they keep paying? — answer required before trusting this line (see NOTES.md).
+
+##### grid: lookback=14 skip=2 fee=taker #####
+
+=== train | 1382 days | 1262 rebalances | capital $400 ===
+ann return        6.77%
+ann vol           20.48%
+sharpe            0.42   90% CI [-0.58, +1.37] (stationary bootstrap)
+max drawdown      38.62%   (expected ~ sigma/2S = 24.30%)
+turnover (ann, x capital)  111.62
+FEE DRAG (% of gross PnL)  99.49%
+  gross PnL +105.93 | fees 105.40 | funding +111.89
+hit rate          46.63%   avg win 0.850% vs avg loss -0.699%   (over 1381 active of 1381 window days)
+beta SE (median per book): median 0.252 | p95 0.404 | max 0.653   shrink |post-pre|: median 0.012
+long-leg PnL +454.74 | short-leg PnL -348.80
+realised gross leverage  min 0.14 | p05 0.22 | median 0.44 | p95 0.91 | max 1.73 | below 1.0x: 96.59%
+skipped rebalances: 320 of 1582 scheduled (20.23%)
+    universe_too_small           272  (17.19%)
+    below_min_notional_post_hedge    41  (2.59%)
+    missing_fill_bar               4  (0.25%)
+    insufficient_candidates        3  (0.19%)
+    below_min_notional             0  (0.00%)
+min position notional taken  $3.56  vs binding MIN_NOTIONAL $20.00
+rescale-on-skip events: 23 | turnover $604.62 | fees $0.30 | positions dropped under floor: 6
+execution: fills at the +1min open
+slippage assumed 0.0 bps/side -> cost $0.00
+intraday stress (H/L): min implied equity $355.59 (89% of start) on 2020-04-16
+delistings: 0 | data-gap forced exits: 3 (tolerance 3d)
+forced liquidations: 3 | missing funding settlements: 7339  (rates absent from data; NOT zero-cost in reality)
+deflated Sharpe   0.60  (over 4 distinct configs on this split)
+Who is paying, and why would they keep paying? — answer required before trusting this line (see NOTES.md).
+
+##### grid: lookback=28 skip=0 fee=taker #####
+
+=== train | 1382 days | 1268 rebalances | capital $400 ===
+ann return        20.57%
+ann vol           21.64%
+sharpe            0.97   90% CI [+0.02, +1.87] (stationary bootstrap)
+max drawdown      30.40%   (expected ~ sigma/2S = 11.15%)
+turnover (ann, x capital)  84.88
+FEE DRAG (% of gross PnL)  37.20%
+  gross PnL +283.17 | fees 105.33 | funding +233.99
+hit rate          50.40%   avg win 0.836% vs avg loss -0.733%   (over 1381 active of 1381 window days)
+beta SE (median per book): median 0.257 | p95 0.420 | max 0.610   shrink |post-pre|: median 0.013
+long-leg PnL +839.98 | short-leg PnL -556.81
+realised gross leverage  min 0.08 | p05 0.21 | median 0.44 | p95 0.92 | max 1.54 | below 1.0x: 96.37%
+skipped rebalances: 314 of 1582 scheduled (19.85%)
+    universe_too_small           286  (18.08%)
+    below_min_notional_post_hedge    21  (1.33%)
+    insufficient_candidates        4  (0.25%)
+    missing_fill_bar               3  (0.19%)
+    below_min_notional             0  (0.00%)
+min position notional taken  $3.78  vs binding MIN_NOTIONAL $50.00
+rescale-on-skip events: 27 | turnover $706.48 | fees $0.35 | positions dropped under floor: 16
+execution: fills at the +1min open
+slippage assumed 0.0 bps/side -> cost $0.00
+intraday stress (H/L): min implied equity $340.16 (85% of start) on 2020-04-14
+delistings: 0 | data-gap forced exits: 3 (tolerance 3d)
+forced liquidations: 3 | missing funding settlements: 7228  (rates absent from data; NOT zero-cost in reality)
+deflated Sharpe   0.91  (over 5 distinct configs on this split)
+Who is paying, and why would they keep paying? — answer required before trusting this line (see NOTES.md).
+
+##### grid: lookback=28 skip=2 fee=taker #####
+
+=== train | 1382 days | 1268 rebalances | capital $400 ===
+ann return        17.08%
+ann vol           19.74%
+sharpe            0.90   90% CI [-0.11, +1.88] (stationary bootstrap)
+max drawdown      31.54%   (expected ~ sigma/2S = 11.00%)
+turnover (ann, x capital)  83.57
+FEE DRAG (% of gross PnL)  40.35%
+  gross PnL +250.44 | fees 101.04 | funding +176.98
+hit rate          50.04%   avg win 0.806% vs avg loss -0.710%   (over 1381 active of 1381 window days)
+beta SE (median per book): median 0.258 | p95 0.419 | max 0.611   shrink |post-pre|: median 0.013
+long-leg PnL +651.48 | short-leg PnL -401.04
+realised gross leverage  min 0.08 | p05 0.21 | median 0.43 | p95 0.92 | max 1.49 | below 1.0x: 96.37%
+skipped rebalances: 314 of 1582 scheduled (19.85%)
+    universe_too_small           283  (17.89%)
+    below_min_notional_post_hedge    23  (1.45%)
+    insufficient_candidates        4  (0.25%)
+    missing_fill_bar               4  (0.25%)
+    below_min_notional             0  (0.00%)
+min position notional taken  $3.50  vs binding MIN_NOTIONAL $50.00
+rescale-on-skip events: 20 | turnover $527.06 | fees $0.26 | positions dropped under floor: 6
+execution: fills at the +1min open
+slippage assumed 0.0 bps/side -> cost $0.00
+intraday stress (H/L): min implied equity $329.50 (82% of start) on 2020-04-14
+delistings: 0 | data-gap forced exits: 2 (tolerance 3d)
+forced liquidations: 2 | missing funding settlements: 7357  (rates absent from data; NOT zero-cost in reality)
+deflated Sharpe   0.87  (over 6 distinct configs on this split)
+Who is paying, and why would they keep paying? — answer required before trusting this line (see NOTES.md).
+
+=== grid summary | train | 6 configs ===
+ lb skip  sharpe  ann_ret  ann_vol  max_dd   turn  fee_drag lev_med   <1.0x  bmn_skip  n_rb
+  7    0    0.96   23.99%   25.63%  35.25%  141.6    41.51%    0.45     97%      0.0%  1285
+  7    2    0.48    8.11%   20.41%  39.60%  137.8    84.64%    0.45     97%      0.0%  1261
+ 14    0    0.91   20.92%   24.03%  24.96%  109.0    41.12%    0.45     97%      0.0%  1255
+ 14    2    0.42    6.77%   20.48%  38.62%  111.6    99.49%    0.44     97%      0.0%  1262
+ 28    0    0.97   20.57%   21.64%  30.40%   84.9    37.20%    0.44     96%      0.0%  1268
+ 28    2    0.90   17.08%   19.74%  31.54%   83.6    40.35%    0.43     96%      0.0%  1268
+bmn_skip = below_min_notional skips as a share of scheduled rebalances; <1.0x = share of filled rebalances with realised gross leverage under 1.0
+
+################ slippage 5 bps ################
+
+##### grid: lookback=7 skip=0 fee=taker #####
+
+=== train | 1381 days | 1255 rebalances | capital $400 ===
+ann return        12.85%
+ann vol           25.64%
+sharpe            0.60   90% CI [-0.29, +1.45] (stationary bootstrap)
+max drawdown      36.63%   (expected ~ sigma/2S = 21.47%)
+turnover (ann, x capital)  139.28
+FEE DRAG (% of gross PnL)  75.40%
+  gross PnL +189.66 | fees 143.01 | funding +185.16
+hit rate          46.38%   avg win 1.039% vs avg loss -0.820%   (over 1380 active of 1380 window days)
+beta SE (median per book): median 0.241 | p95 0.394 | max 0.576   shrink |post-pre|: median 0.011
+long-leg PnL +484.11 | short-leg PnL -294.45
+realised gross leverage  min 0.09 | p05 0.24 | median 0.45 | p95 0.89 | max 1.60 | below 1.0x: 96.65%
+skipped rebalances: 327 of 1582 scheduled (20.67%)
+    universe_too_small           293  (18.52%)
+    below_min_notional_post_hedge    27  (1.71%)
+    missing_fill_bar               4  (0.25%)
+    insufficient_candidates        3  (0.19%)
+    below_min_notional             0  (0.00%)
+min position notional taken  $2.52  vs binding MIN_NOTIONAL $20.00
+rescale-on-skip events: 38 | turnover $1113.24 | fees $0.56 | positions dropped under floor: 13
+execution: fills at the +1min open
+slippage assumed 5.0 bps/side -> cost $142.96   (5bps = plausible magnitude from n=1 synthetic testnet fill, NOT a measurement)
+intraday stress (H/L): min implied equity $306.12 (77% of start) on 2020-05-10
+delistings: 0 | data-gap forced exits: 4 (tolerance 3d)
+forced liquidations: 4 | missing funding settlements: 7264  (rates absent from data; NOT zero-cost in reality)
+deflated Sharpe   0.72  (over 6 distinct configs on this split)
+Who is paying, and why would they keep paying? — answer required before trusting this line (see NOTES.md).
+
+##### grid: lookback=7 skip=2 fee=taker #####
+
+=== train | 1382 days | 1240 rebalances | capital $400 ===
+ann return        0.28%
+ann vol           20.44%
+sharpe            0.12   90% CI [-0.83, +0.96] (stationary bootstrap)
+max drawdown      47.96%   (expected ~ sigma/2S = 88.79%)
+turnover (ann, x capital)  135.92
+FEE DRAG (% of gross PnL)  288.41%
+  gross PnL +44.74 | fees 129.04 | funding +88.49
+hit rate          46.42%   avg win 0.852% vs avg loss -0.726%   (over 1381 active of 1381 window days)
+beta SE (median per book): median 0.243 | p95 0.389 | max 0.626   shrink |post-pre|: median 0.011
+long-leg PnL +412.44 | short-leg PnL -367.70
+realised gross leverage  min 0.14 | p05 0.23 | median 0.45 | p95 0.88 | max 1.59 | below 1.0x: 96.69%
+skipped rebalances: 342 of 1582 scheduled (21.62%)
+    universe_too_small           316  (19.97%)
+    below_min_notional_post_hedge    17  (1.07%)
+    missing_fill_bar               6  (0.38%)
+    insufficient_candidates        3  (0.19%)
+    below_min_notional             0  (0.00%)
+min position notional taken  $3.91  vs binding MIN_NOTIONAL $20.00
+rescale-on-skip events: 28 | turnover $744.47 | fees $0.37 | positions dropped under floor: 5
+execution: fills at the +1min open
+slippage assumed 5.0 bps/side -> cost $128.97   (5bps = plausible magnitude from n=1 synthetic testnet fill, NOT a measurement)
+intraday stress (H/L): min implied equity $340.01 (85% of start) on 2023-07-24
+delistings: 0 | data-gap forced exits: 4 (tolerance 3d)
+forced liquidations: 4 | missing funding settlements: 7329  (rates absent from data; NOT zero-cost in reality)
+deflated Sharpe   0.26  (over 6 distinct configs on this split)
+Who is paying, and why would they keep paying? — answer required before trusting this line (see NOTES.md).
+
+##### grid: lookback=14 skip=0 fee=taker #####
+
+=== train | 1382 days | 1282 rebalances | capital $400 ===
+ann return        18.35%
+ann vol           24.20%
+sharpe            0.81   90% CI [-0.00, +1.59] (stationary bootstrap)
+max drawdown      27.71%   (expected ~ sigma/2S = 14.85%)
+turnover (ann, x capital)  109.39
+FEE DRAG (% of gross PnL)  48.26%
+  gross PnL +266.67 | fees 128.69 | funding +218.68
+hit rate          48.81%   avg win 0.929% vs avg loss -0.780%   (over 1381 active of 1381 window days)
+beta SE (median per book): median 0.250 | p95 0.409 | max 0.653   shrink |post-pre|: median 0.012
+long-leg PnL +722.87 | short-leg PnL -456.19
+realised gross leverage  min 0.10 | p05 0.21 | median 0.44 | p95 0.90 | max 1.70 | below 1.0x: 96.80%
+skipped rebalances: 300 of 1582 scheduled (18.96%)
+    universe_too_small           276  (17.45%)
+    below_min_notional_post_hedge    18  (1.14%)
+    insufficient_candidates        3  (0.19%)
+    missing_fill_bar               3  (0.19%)
+    below_min_notional             0  (0.00%)
+min position notional taken  $3.44  vs binding MIN_NOTIONAL $50.00
+rescale-on-skip events: 20 | turnover $691.72 | fees $0.35 | positions dropped under floor: 13
+execution: fills at the +1min open
+slippage assumed 5.0 bps/side -> cost $128.66   (5bps = plausible magnitude from n=1 synthetic testnet fill, NOT a measurement)
+intraday stress (H/L): min implied equity $366.62 (92% of start) on 2020-03-22
+delistings: 0 | data-gap forced exits: 2 (tolerance 3d)
+forced liquidations: 2 | missing funding settlements: 7352  (rates absent from data; NOT zero-cost in reality)
+deflated Sharpe   0.79  (over 6 distinct configs on this split)
+Who is paying, and why would they keep paying? — answer required before trusting this line (see NOTES.md).
+
+##### grid: lookback=14 skip=2 fee=taker #####
+
+=== train | 1382 days | 1255 rebalances | capital $400 ===
+ann return        1.33%
+ann vol           20.61%
+sharpe            0.17   90% CI [-0.83, +1.10] (stationary bootstrap)
+max drawdown      46.38%   (expected ~ sigma/2S = 61.91%)
+turnover (ann, x capital)  114.40
+FEE DRAG (% of gross PnL)  423.83%
+  gross PnL +23.14 | fees 98.07 | funding +95.38
+hit rate          46.42%   avg win 0.848% vs avg loss -0.717%   (over 1381 active of 1381 window days)
+beta SE (median per book): median 0.251 | p95 0.411 | max 0.653   shrink |post-pre|: median 0.012
+long-leg PnL +456.25 | short-leg PnL -433.11
+realised gross leverage  min 0.13 | p05 0.23 | median 0.44 | p95 0.91 | max 1.74 | below 1.0x: 96.49%
+skipped rebalances: 327 of 1582 scheduled (20.67%)
+    universe_too_small           282  (17.83%)
+    below_min_notional_post_hedge    38  (2.40%)
+    missing_fill_bar               4  (0.25%)
+    insufficient_candidates        3  (0.19%)
+    below_min_notional             0  (0.00%)
+min position notional taken  $3.15  vs binding MIN_NOTIONAL $20.00
+rescale-on-skip events: 24 | turnover $603.63 | fees $0.30 | positions dropped under floor: 6
+execution: fills at the +1min open
+slippage assumed 5.0 bps/side -> cost $98.03   (5bps = plausible magnitude from n=1 synthetic testnet fill, NOT a measurement)
+intraday stress (H/L): min implied equity $305.58 (76% of start) on 2023-08-01
+delistings: 0 | data-gap forced exits: 3 (tolerance 3d)
+forced liquidations: 3 | missing funding settlements: 7265  (rates absent from data; NOT zero-cost in reality)
+deflated Sharpe   0.27  (over 6 distinct configs on this split)
+Who is paying, and why would they keep paying? — answer required before trusting this line (see NOTES.md).
+
+##### grid: lookback=28 skip=0 fee=taker #####
+
+=== train | 1382 days | 1266 rebalances | capital $400 ===
+ann return        14.15%
+ann vol           21.62%
+sharpe            0.72   90% CI [-0.25, +1.61] (stationary bootstrap)
+max drawdown      35.94%   (expected ~ sigma/2S = 15.05%)
+turnover (ann, x capital)  83.83
+FEE DRAG (% of gross PnL)  61.27%
+  gross PnL +155.95 | fees 95.55 | funding +199.63
+hit rate          49.53%   avg win 0.837% vs avg loss -0.737%   (over 1381 active of 1381 window days)
+beta SE (median per book): median 0.257 | p95 0.420 | max 0.610   shrink |post-pre|: median 0.013
+long-leg PnL +735.01 | short-leg PnL -579.06
+realised gross leverage  min 0.09 | p05 0.21 | median 0.44 | p95 0.91 | max 1.54 | below 1.0x: 96.45%
+skipped rebalances: 316 of 1582 scheduled (19.97%)
+    universe_too_small           285  (18.02%)
+    below_min_notional_post_hedge    24  (1.52%)
+    insufficient_candidates        4  (0.25%)
+    missing_fill_bar               3  (0.19%)
+    below_min_notional             0  (0.00%)
+min position notional taken  $3.66  vs binding MIN_NOTIONAL $50.00
+rescale-on-skip events: 27 | turnover $681.05 | fees $0.34 | positions dropped under floor: 16
+execution: fills at the +1min open
+slippage assumed 5.0 bps/side -> cost $95.51   (5bps = plausible magnitude from n=1 synthetic testnet fill, NOT a measurement)
+intraday stress (H/L): min implied equity $339.45 (85% of start) on 2020-04-14
+delistings: 0 | data-gap forced exits: 3 (tolerance 3d)
+forced liquidations: 3 | missing funding settlements: 7217  (rates absent from data; NOT zero-cost in reality)
+deflated Sharpe   0.72  (over 6 distinct configs on this split)
+Who is paying, and why would they keep paying? — answer required before trusting this line (see NOTES.md).
+
+##### grid: lookback=28 skip=2 fee=taker #####
+
+=== train | 1382 days | 1263 rebalances | capital $400 ===
+ann return        10.67%
+ann vol           19.77%
+sharpe            0.61   90% CI [-0.39, +1.60] (stationary bootstrap)
+max drawdown      36.34%   (expected ~ sigma/2S = 16.16%)
+turnover (ann, x capital)  84.32
+FEE DRAG (% of gross PnL)  70.74%
+  gross PnL +129.62 | fees 91.69 | funding +149.18
+hit rate          49.67%   avg win 0.799% vs avg loss -0.723%   (over 1381 active of 1381 window days)
+beta SE (median per book): median 0.257 | p95 0.418 | max 0.611   shrink |post-pre|: median 0.013
+long-leg PnL +570.82 | short-leg PnL -441.19
+realised gross leverage  min 0.13 | p05 0.21 | median 0.44 | p95 0.92 | max 1.49 | below 1.0x: 96.44%
+skipped rebalances: 319 of 1582 scheduled (20.16%)
+    universe_too_small           273  (17.26%)
+    below_min_notional_post_hedge    38  (2.40%)
+    insufficient_candidates        4  (0.25%)
+    missing_fill_bar               4  (0.25%)
+    below_min_notional             0  (0.00%)
+min position notional taken  $3.99  vs binding MIN_NOTIONAL $50.00
+rescale-on-skip events: 22 | turnover $590.46 | fees $0.30 | positions dropped under floor: 4
+execution: fills at the +1min open
+slippage assumed 5.0 bps/side -> cost $91.67   (5bps = plausible magnitude from n=1 synthetic testnet fill, NOT a measurement)
+intraday stress (H/L): min implied equity $328.83 (82% of start) on 2020-04-14
+delistings: 0 | data-gap forced exits: 2 (tolerance 3d)
+forced liquidations: 2 | missing funding settlements: 7359  (rates absent from data; NOT zero-cost in reality)
+deflated Sharpe   0.67  (over 6 distinct configs on this split)
+Who is paying, and why would they keep paying? — answer required before trusting this line (see NOTES.md).
+
+=== grid summary | train | 6 configs ===
+ lb skip  sharpe  ann_ret  ann_vol  max_dd   turn  fee_drag lev_med   <1.0x  bmn_skip  n_rb
+  7    0    0.60   12.85%   25.64%  36.63%  139.3    75.40%    0.45     97%      0.0%  1255
+  7    2    0.12    0.28%   20.44%  47.96%  135.9   288.41%    0.45     97%      0.0%  1240
+ 14    0    0.81   18.35%   24.20%  27.71%  109.4    48.26%    0.44     97%      0.0%  1282
+ 14    2    0.17    1.33%   20.61%  46.38%  114.4   423.83%    0.44     96%      0.0%  1255
+ 28    0    0.72   14.15%   21.62%  35.94%   83.8    61.27%    0.44     96%      0.0%  1266
+ 28    2    0.61   10.67%   19.77%  36.34%   84.3    70.74%    0.44     96%      0.0%  1263
+bmn_skip = below_min_notional skips as a share of scheduled rebalances; <1.0x = share of filled rebalances with realised gross leverage under 1.0
+=== GRID end 2026-08-27T10:01:57Z ===
