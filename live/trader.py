@@ -65,6 +65,7 @@ class PaperConfig:
     fee_mode: str = "taker"            # "taker" -> MARKET; "maker" -> post-only LIMIT at touch
     vol_target: float = 0.20
     max_gross: float = 3.0
+    min_gross: float = 1.05           # Stage 2c 3 floor, same as the backtester
     window: int = 60
     stop_pct: float = 0.20             # exchange-side reduce-only stop distance (safety, not strategy)
     maker_wait_s: float = 30.0
@@ -197,7 +198,8 @@ class Trader:
             return hedged
         hedged_w, _ = hedged
         final, k, est = W.vol_target_scale(hedged_w, [L, S], R[:, :2],
-                                           self.cfg.vol_target, self.cfg.max_gross)
+                                           self.cfg.vol_target, self.cfg.max_gross,
+                                           self.cfg.min_gross)
         self._log({"kind": "weights", "final": final, "vol_scale": k,
                    "est_vol_ann": est, "betas": betas})
         return final

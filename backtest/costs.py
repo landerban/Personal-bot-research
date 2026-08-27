@@ -39,6 +39,27 @@ def fee_rate(fee_mode: str) -> float:
         raise ValueError(f"unknown fee_mode: {fee_mode!r}") from None
 
 
+def slippage_bps(symbol: str, view, cfg) -> float:
+    """
+    Slippage assumption for one fill, in bps per side (Stage 2c 4.1 hook).
+
+    Returns the flat config value. A per-symbol model (BTCUSDT under a
+    basis point, mid-cap alts 5-20bps) can drop in here once a baseline
+    exists and live/costlog.py has accumulated tiered data; fitting one
+    before the baseline would be an extra trial with nothing to measure
+    against.
+    """
+    return float(cfg.slippage_bps_per_side)
+
+
+def slip_price(open_px: float, delta_units: float, bps: float) -> float:
+    """Fill price adverse to the trade direction: buys pay up, sells hit down."""
+    if delta_units == 0.0 or bps == 0.0:
+        return open_px
+    sign = 1.0 if delta_units > 0 else -1.0
+    return open_px * (1.0 + sign * bps / 1e4)
+
+
 def trade_fee(delta_units: float, fill_price: float, fee_mode: str) -> float:
     """
     Fee for one fill, as a positive cost.

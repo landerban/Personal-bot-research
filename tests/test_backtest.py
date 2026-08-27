@@ -420,7 +420,9 @@ def test_fee_reconciliation():
     assert math.isclose(turnover, res.total_turnover, rel_tol=1e-12)
     assert math.isclose(res.total_fees, turnover * TAKER, rel_tol=1e-12)
     assert math.isclose(
-        sum(rb.fees for rb in res.rebalances), res.total_fees, rel_tol=1e-12
+        sum(rb.fees for rb in res.rebalances)
+        + sum(rc.fees for rc in res.rescales),
+        res.total_fees, rel_tol=1e-12
     )
     print("PASS fee_reconciliation")
 
@@ -688,38 +690,11 @@ def test_pnl_trace_reconciles():
     print("PASS pnl_trace_reconciles")
 
 
-def test_flatten_on_skip():
-    """Ruling 2026-08-27 (NOTES 13.1): a skipped rebalance closes the book at
-    the next open. A held book would otherwise drift through the 3x cap as
-    equity moves. Exactly one flatten per run of consecutive skips, fees on
-    the closing turnover, then cash: no trace, flat equity."""
-    closes, _ = factor_market(seed=11)
-    cutoff = T0 + 300 * DAY - 1
-
-    def sig(view, symbol, cfg):
-        if view.as_of >= cutoff:
-            return None                # every candidate dropped -> skip
-        return momentum_signal(view, symbol, cfg)
-
-    res = run(build_store(closes), signal_fn=sig)
-    first_skip = min(ts for ts, r, _ in res.skips if r == "insufficient_candidates")
-    assert len(res.flattens) == 1, res.flattens
-    ts_flat, reason, turnover, fees = res.flattens[0]
-    assert ts_flat == first_skip + DAY and reason == "insufficient_candidates"
-    assert turnover > 0 and abs(fees - turnover * TAKER) < 1e-9
-    idx = res.timestamps.index(ts_flat)
-    assert all(not d for d in res.pnl_by_symbol_day[idx + 1:]), "positions survived a skip"
-    assert all(abs(e - res.equity[idx]) < 1e-9 for e in res.equity[idx + 1:])
-    assert abs(sum(rb.fees for rb in res.rebalances) + fees - res.total_fees) < 1e-9
-    assert res.rebalances[-1].ts_fill < ts_flat
-    print("PASS flatten_on_skip")
-
-
 # ----------------------------------------------------------------- test 16
 
 def check_leverage_cap_every_day(res, cap: float) -> float:
-    """The invariant, over the DAILY trace (filled, skipped or held days).
-    Returns the peak."""
+    """The cap invariant over the DAILY trace (filled, skipped or held days).
+    Returns the observed peak."""
     assert len(res.daily_leverage) == len(res.timestamps)
     peak = max(L for _, L in res.daily_leverage)
     for ts, L in res.daily_leverage:
@@ -728,21 +703,24 @@ def check_leverage_cap_every_day(res, cap: float) -> float:
 
 
 def test_leverage_cap_holds_every_day():
-    """Stage 2c Test 16. The first grid breached the 3x cap on days it did
-    NOT trade; the old test looked only at res.rebalances. Asserted here on
-    every day of a skip-heavy fixture and of the plain factor run."""
+    """Stage 2c Test 16. The first real grid breached the 3x cap on days it
+    did NOT trade, while the old assertion looked only at res.rebalances.
+    Asserted here on every day of a skip-heavy fixture and of the plain
+    factor run. Verified to FAIL against the pre-fix engine: peak 35.71x,
+    8 days over cap, bankrupt (NOTES 14)."""
     closes, cutoff = breach_market()
     res = run(build_store(closes), n_days=400, signal_fn=index_signal_until(cutoff))
     assert any(r == "insufficient_candidates" for _, r, _ in res.skips), "fixture must skip"
     peak = check_leverage_cap_every_day(res, CFG.max_gross_leverage)
     peak2 = check_leverage_cap_every_day(shared_factor_run(), CFG.max_gross_leverage)
-    print(f"PASS leverage_cap_holds_every_day (peak {peak:.2f}x skip-heavy, {peak2:.2f}x plain)")
+    print(f"PASS leverage_cap_holds_every_day (peak {peak:.2f}x skip-heavy, "
+          f"{peak2:.2f}x plain)")
 
 
 def test_below_min_notional_fires():
-    """Stage 2c 1.3: the sizing-below-floor path must be exercised. Universe
-    viable (filter assumes 3x -> $15 smallest) but the vol-targeted book at
-    ~1x puts the smallest position under a $6 floor."""
+    """Stage 2c 1.3: the sizing-below-floor path must actually be exercised.
+    Universe viable (the filter assumes 3x -> $15 smallest) but the
+    vol-targeted book puts the smallest position under a $6 floor."""
     closes, _ = factor_market(seed=12)
     res = run(build_store(closes, min_notionals={s: 6.0 for s in closes}),
               cfg=Config(lookback=14, skip=2, initial_capital=100.0))
@@ -752,6 +730,157 @@ def test_below_min_notional_fires():
     assert not late, "after warm-up the floor must bind at sizing, not in the filter"
     print(f"PASS below_min_notional_fires ({reasons['below_min_notional']} skips, "
           f"{len(res.rebalances)} fills)")
+
+
+def test_rescale_on_skip():
+    """Stage 2c Test 17. On a skip the held book keeps its proportions and a
+    single scalar restores the vol target; inside the deadband nothing
+    trades; a position the scalar pushes under MIN_NOTIONAL is closed and
+    the remainder re-planned; consecutive skips keep leverage bounded."""
+    from backtest.weights import RESCALE_DEADBAND, plan_rescale
+
+    closes, cutoff = breach_market()
+    res = run(build_store(closes), n_days=400, signal_fn=index_signal_until(cutoff))
+    assert res.rescales, "the crash fixture must trigger at least one rescale"
+    for rc in res.rescales:
+        assert rc.ts_fill == rc.ts_decision + DAY
+        kept = [s for s in rc.units_before if s not in rc.dropped]
+        for sym in kept:  # ratios preserved: ONE scalar for everyone
+            assert math.isclose(
+                rc.units_after[sym] / rc.units_before[sym], rc.alpha, rel_tol=1e-12
+            ), "rescale must not re-rank"
+        for sym in rc.dropped:
+            assert sym not in rc.units_after
+        # open_d == close_{d-1} in this fixture, so realised == planned
+        if not rc.dropped:
+            assert abs(rc.post_gross - rc.target_gross) < 1e-9
+        assert rc.post_gross <= CFG.max_gross_leverage + 1e-9
+        # fired only outside the deadband
+        assert abs(rc.pre_gross / rc.target_gross - 1.0) > RESCALE_DEADBAND
+        assert abs(rc.fees - rc.turnover_notional * TAKER) < 1e-9
+    check_leverage_cap_every_day(res, CFG.max_gross_leverage)
+    # the first skip sees a book filled the day before: inside the deadband
+    first_skip = min(ts for ts, r, _ in res.skips if r == "insufficient_candidates")
+    assert not any(rc.ts_decision == first_skip for rc in res.rescales)
+    assert abs(
+        sum(rb.fees for rb in res.rebalances)
+        + sum(rc.fees for rc in res.rescales) - res.total_fees
+    ) < 1e-9
+
+    # ---- unit level: deadband, ratios, drop rule, cap/floor-only ----
+    class Bar:
+        def __init__(self, ot, c):
+            self.open_time, self.close = ot, c
+
+    class FakeView:
+        as_of = T0 + 100 * DAY - 1
+
+        def __init__(self, series, floors, misaligned=()):
+            self.series, self.floors, self.mis = series, floors, misaligned
+
+        def klines(self, sym, limit=100):
+            n = len(self.series[sym])
+            shift = DAY if sym in self.mis else 0
+            return [
+                Bar(T0 + (n - limit + i) * DAY + shift, c)
+                for i, c in enumerate(self.series[sym][-limit:])
+            ]
+
+        def min_notional(self, sym):
+            return self.floors.get(sym)
+
+    rng = np.random.default_rng(3)
+    n = 100
+    series = {BTC: 100 * np.cumprod(1 + rng.normal(0, 0.02, n))}
+    for sym in ("A", "B", "C"):
+        series[sym] = 100 * np.cumprod(1 + rng.normal(0, 0.03, n))
+    cfg = Config(lookback=14, skip=2, initial_capital=100.0)
+    floors = {"A": 5.0, "B": 5.0, "C": 5.0}
+    view = FakeView(series, floors)
+    marks = {sym: float(series[sym][-1]) for sym in ("A", "B", "C")}
+
+    pos = {"A": 30 / marks["A"], "B": -30 / marks["B"], "C": 20 / marks["C"]}
+    plan = plan_rescale(view, cfg, pos, marks, 100.0, "universe_too_small")
+    assert plan is not None and plan.mode == "vol_target" and not plan.dropped
+    assert abs(plan.target_gross - plan.alpha * 0.8) < 1e-12
+    assert plan.target_gross >= cfg.min_gross_leverage - 1e-12
+    assert plan.target_gross <= cfg.max_gross_leverage + 1e-12
+
+    # already at target -> deadband -> no trade at all
+    scaled = {sym: u * plan.alpha for sym, u in pos.items()}
+    assert plan_rescale(view, cfg, scaled, marks, 100.0, "x") is None
+
+    # a $4.50 leg that a shrink pushes under the $5 floor is dropped
+    pos2 = {"A": 120 / marks["A"], "B": -120 / marks["B"], "C": 4.5 / marks["C"]}
+    plan2 = plan_rescale(view, cfg, pos2, marks, 100.0, "x")
+    assert plan2 is not None and plan2.alpha < 1.0 and plan2.dropped == ("C",)
+
+    # misaligned history -> cap/floor only, never an imputed vol
+    view_mis = FakeView(series, floors, misaligned=("B",))
+    big = {"A": 200 / marks["A"], "B": -200 / marks["B"]}   # gross 4.0 > cap
+    plan3 = plan_rescale(view_mis, cfg, big, marks, 100.0, "x")
+    assert plan3 is not None and plan3.mode == "cap_floor_only"
+    assert plan3.est_vol_ann is None
+    assert abs(plan3.target_gross - cfg.max_gross_leverage) < 1e-12
+    print(f"PASS rescale_on_skip ({len(res.rescales)} rescales, "
+          f"{len(res.rescale_drops)} drops on the skip-heavy fixture)")
+
+
+# ----------------------------------------------------------------- test 18
+
+def test_leverage_floor_holds():
+    """Stage 2c Test 18: realised gross never below min_gross_leverage on a
+    filled or rescaled day (a fully-dropped book is the one exception)."""
+    floor = CFG.min_gross_leverage
+    assert floor == 1.05, "the pre-registered floor"
+    runs = [shared_factor_run()]
+    closes, cutoff = breach_market()
+    runs.append(run(build_store(closes), n_days=400,
+                    signal_fn=index_signal_until(cutoff)))
+    n_bind = 0
+    for res in runs:
+        for rb in res.rebalances:
+            assert rb.realised_gross_leverage >= floor - 1e-9
+            n_bind += abs(rb.realised_gross_leverage - floor) < 1e-9
+        for rc in res.rescales:
+            if rc.units_after:
+                assert rc.post_gross >= floor - 1e-9
+    assert n_bind > 0, "fixture never reaches the floor; the test would be vacuous"
+    print(f"PASS leverage_floor_holds (floor binds on {n_bind} rebalances)")
+
+
+def test_slippage_is_adverse_and_priced():
+    """Stage 2c 4: slippage moves every fill against the trade, costs
+    turnover x bps, and is reported. Zero bps must reproduce the old fills
+    exactly (the sensitivity pair shares one code path)."""
+    closes, _ = factor_market(seed=4)
+    store_a, store_b = build_store(closes), build_store(closes)
+    base = Config(lookback=14, skip=2, initial_capital=10_000.0)
+    slipped = Config(lookback=14, skip=2, initial_capital=10_000.0,
+                     slippage_bps_per_side=5.0)
+    res0 = run(store_a, cfg=base)
+    res5 = run(store_b, cfg=slipped)
+    assert res0.total_slippage == 0.0
+    assert res5.total_slippage > 0.0
+    assert len(res0.rebalances) == len(res5.rebalances)
+    rb0, rb5 = res0.rebalances[0], res5.rebalances[0]
+    for sym, (delta, price) in rb5.fills.items():
+        open_px = rb0.fills[sym][1]          # 0bps fill price IS the open
+        assert price > open_px if delta > 0 else price < open_px
+        assert math.isclose(abs(price / open_px - 1.0), 5e-4, rel_tol=1e-9)
+    # cost equals turnover x bps, and it makes the strategy poorer
+    assert math.isclose(res5.total_slippage,
+                        sum(abs(d) * res0.rebalances[i].fills[s][1]
+                            for i, rb in enumerate(res5.rebalances)
+                            for s, (d, _) in rb.fills.items()) * 5e-4,
+                        rel_tol=1e-6)
+    assert res5.gross_pnl < res0.gross_pnl
+    assert costs.slip_price(100.0, +1, 5.0) == 100.05
+    assert costs.slip_price(100.0, -1, 5.0) == 99.95
+    assert costs.slip_price(100.0, +1, 0.0) == 100.0
+    assert costs.slippage_bps("ANY", None, slipped) == 5.0
+    print(f"PASS slippage_is_adverse_and_priced (cost ${res5.total_slippage:.2f} "
+          f"at 5bps vs ${res0.total_slippage:.2f} at 0)")
 
 
 # ------------------------------------------------------- metrics sanity

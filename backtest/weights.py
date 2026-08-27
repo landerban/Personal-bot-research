@@ -48,6 +48,11 @@ ANNUALISATION = 365.0  # perps trade every calendar day; 252 would understate
 # two agree. Vol scaling is applied separately and must not be folded in.
 WEIGHT_BAND = (0.5, 1.5)
 
+# Stage 2c 2.2: rescale-on-skip fires only when the held book's gross has
+# drifted more than this from its target -- roughly half the drift needed
+# to breach the floor. NOT a tunable parameter; do not grid it.
+RESCALE_DEADBAND = 0.10
+
 # A leg-average beta below this is treated as exactly zero. Numerical guard
 # against 0/0 on degenerate (e.g. flat-price) data, not a tunable parameter.
 _BETA_EPS = 1e-12
@@ -174,6 +179,7 @@ def vol_target_scale(
     returns: np.ndarray,
     vol_target: float,
     max_gross: float,
+    min_gross: float = 0.0,
 ) -> tuple[dict[str, float], float, float]:
     """
     Scale the book to `vol_target` annualised, hard-capped at `max_gross`.
@@ -198,6 +204,10 @@ def vol_target_scale(
     cap_scale = max_gross / gross
     k = (vol_target / est_vol_ann) if est_vol_ann > 0 else np.inf
     k = min(k, cap_scale)
+    # Stage 2c 3: floor gross leverage so the smallest position clears
+    # MIN_NOTIONAL at C=$100, N=10. Applied after the cap; Config
+    # validation guarantees floor <= cap, so this cannot undo it.
+    k = max(k, min_gross / gross)
     return {s: wt * k for s, wt in weights.items()}, float(k), est_vol_ann
 
 
@@ -299,6 +309,7 @@ def compute_target_weights(
         ret_matrix[-cfg.vol_window:],
         cfg.vol_target,
         cfg.max_gross_leverage,
+        cfg.min_gross_leverage,
     )
 
     # Every executed position must clear its symbol's MIN_NOTIONAL. Position
@@ -331,3 +342,107 @@ def compute_target_weights(
         min_position_notional=min_pos,
         binding_min_notional=binding,
     )
+
+
+@dataclass(frozen=True)
+class RescalePlan:
+    """Stage 2c 2: what to do with a held book on a skip day."""
+    alpha: float                  # scalar applied to every kept position's units
+    pre_gross: float              # whole book at decision, in equity terms
+    target_gross: float           # alpha * gross of the KEPT book
+    dropped: tuple[str, ...]      # closed outright: under MIN_NOTIONAL after rescale
+    est_vol_ann: float | None     # ex-ante vol of the kept book, None if unavailable
+    mode: str                     # 'vol_target' | 'cap_floor_only'
+    reason: str                   # the skip reason that triggered it
+
+
+def plan_rescale(
+    view: "PITView",
+    cfg: "Config",
+    positions: dict[str, float],
+    marks: dict[str, float],
+    equity: float,
+    reason: str,
+) -> RescalePlan | None:
+    """
+    On a skip, restore the vol target with ONE scalar on the held book.
+
+    Deliberately does NOT re-rank: a skip means "I cannot re-rank today",
+    so relative weights are preserved and only the scalar changes. This is
+    available whatever the skip reason -- shrinking existing positions needs
+    no viable universe -- which is why it works under universe_too_small,
+    the most common reason.
+
+    Subject to max_gross_leverage and the 2c 3 floor. A position the scalar
+    would push under MIN_NOTIONAL is closed outright (reduce-only orders are
+    floor-exempt on Binance) and the remainder re-planned. Inside the
+    deadband, returns None: no trade, no fee.
+
+    Reads only data available at view.as_of; the plan executes at the next
+    open. If the held book's return window cannot be aligned with BTCUSDT's
+    dates the vol estimate is unavailable, and the scalar comes from the cap
+    and floor alone ('cap_floor_only') -- never from an imputed vol.
+    """
+    if not positions or equity <= 0:
+        return None
+    window = cfg.vol_window
+    btc = _aligned_closes(view, BTC, window + 1)
+    btc_times = btc[0] if btc is not None else None
+
+    held = dict(positions)
+    dropped: list[str] = []
+    pre_gross = sum(abs(u) * marks[s] for s, u in held.items()) / equity
+
+    for _ in range(len(positions) + 1):
+        if not held:
+            # everything under the floor: close the book outright
+            return RescalePlan(0.0, pre_gross, 0.0, tuple(dropped), None,
+                               "cap_floor_only", reason)
+        syms = list(held)
+        w = np.array([held[s] * marks[s] / equity for s in syms])
+        gross = float(np.abs(w).sum())
+        if gross <= 0:
+            return None
+
+        est: float | None = None
+        if btc_times is not None:
+            cols = []
+            for s in syms:
+                got = _aligned_closes(view, s, window + 1)
+                if got is None or got[0] != btc_times or np.any(got[1] <= 0):
+                    cols = None
+                    break
+                cols.append(np.diff(got[1]) / got[1][:-1])
+            if cols is not None:
+                R = np.column_stack(cols)
+                cov = (np.cov(R.T, ddof=1) if len(syms) > 1
+                       else np.array([[np.var(R[:, 0], ddof=1)]]))
+                est = float(np.sqrt(max(float(w @ cov @ w), 0.0))
+                            * np.sqrt(ANNUALISATION))
+
+        alpha = (cfg.vol_target / est) if (est is not None and est > 0) else np.inf
+        alpha = min(alpha, cfg.max_gross_leverage / gross)
+        alpha = max(alpha, cfg.min_gross_leverage / gross)
+        target = alpha * gross
+        mode = "vol_target" if est is not None else "cap_floor_only"
+
+        if abs(gross / target - 1.0) <= RESCALE_DEADBAND:
+            # Within the deadband. If earlier iterations dropped positions
+            # those still have to be closed, so emit a plan with alpha = 1.
+            if not dropped:
+                return None
+            return RescalePlan(1.0, pre_gross, gross, tuple(dropped), est, mode, reason)
+
+        under = [
+            s for s in syms
+            if (mn := view.min_notional(s)) is not None
+            and alpha * abs(held[s]) * marks[s] < mn
+        ]
+        if not under:
+            return RescalePlan(float(alpha), pre_gross, float(target),
+                               tuple(dropped), est, mode, reason)
+        dropped.extend(under)
+        for s in under:
+            del held[s]
+
+    raise RuntimeError("rescale planning did not converge")  # unreachable

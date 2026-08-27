@@ -171,8 +171,12 @@ def summarise(result: BacktestResult) -> dict:
         "total_fees": _r(result.total_fees),
         "total_funding": _r(result.total_funding),
         "forced_liquidations": len(result.forced_liquidations),
-        "n_flattens": len(result.flattens),
-        "flatten_fees": _r(sum(f[3] for f in result.flattens)),
+        "n_rescales": len(result.rescales),
+        "rescale_fees": _r(sum(r.fees for r in result.rescales)),
+        "n_rescale_drops": len(result.rescale_drops),
+        "slippage_bps": result.config.slippage_bps_per_side,
+        "total_slippage": _r(result.total_slippage),
+        "min_gross_leverage": result.config.min_gross_leverage,
         "missing_funding_settlements": result.missing_funding_settlements,
     }
 
@@ -223,13 +227,35 @@ def trial_srs_for_deflation(split: str) -> list[float]:
     """
     latest: dict[str, float] = {}
     for rec in load_trials():
-        if rec.get("split") != split or rec.get("error"):
+        if rec.get("split") != split or rec.get("error") or rec.get("void"):
             continue
         sr = rec.get("sharpe")
         if sr is None:
             continue
-        latest[rec["config_hash"]] = sr / math.sqrt(metrics.ANN)
+        latest[strategy_key(rec["config"])] = sr / math.sqrt(metrics.ANN)
     return list(latest.values())
+
+
+def strategy_key(config: dict) -> str:
+    """
+    Trial identity for the DSR: the config MINUS the slippage assumption.
+    Stage 2c 4 counts the 6-point grid at two slippage settings as 6
+    trials, not 12, because slippage is a cost assumption reported as a
+    pair rather than a strategy parameter selected between. The
+    conservative count (every distinct config hash) is printed alongside
+    so the stricter reading is always visible.
+    """
+    c = {k: v for k, v in config.items() if k != "slippage_bps_per_side"}
+    return json.dumps(c, sort_keys=True)
+
+
+def n_trials_conservative(split: str) -> int:
+    """Distinct non-void config hashes on this split (slippage counted)."""
+    return len({
+        rec["config_hash"] for rec in load_trials()
+        if rec.get("split") == split and not rec.get("void")
+        and not rec.get("error")
+    })
 
 
 def report(result: BacktestResult, split: str) -> None:
@@ -297,10 +323,16 @@ def report(result: BacktestResult, split: str) -> None:
         print(f"min position notional taken  ${min_pos:.2f}  vs binding "
               f"MIN_NOTIONAL "
               + (f"${binding:.2f}" if binding is not None else "n/a (no filter)"))
-    fl_fees = sum(f[3] for f in result.flattens)
-    fl_turn = sum(f[2] for f in result.flattens)
-    print(f"flatten-on-skip events: {len(result.flattens)} | turnover "
-          f"${fl_turn:.2f} | fees ${fl_fees:.2f}")
+    rs_fees = sum(r.fees for r in result.rescales)
+    rs_turn = sum(r.turnover_notional for r in result.rescales)
+    print(f"rescale-on-skip events: {len(result.rescales)} | turnover "
+          f"${rs_turn:.2f} | fees ${rs_fees:.2f} | positions dropped under "
+          f"floor: {len(result.rescale_drops)}")
+    print(f"slippage assumed {result.config.slippage_bps_per_side:.1f} bps/side "
+          f"-> cost ${result.total_slippage:.2f}"
+          + ("   (5bps = plausible magnitude from n=1 synthetic testnet "
+             "fill, NOT a measurement)"
+             if result.config.slippage_bps_per_side else ""))
     print(f"forced liquidations: {len(result.forced_liquidations)} | "
           f"missing funding settlements: {result.missing_funding_settlements}"
           + ("  (rates absent from data; NOT zero-cost in reality)"
@@ -481,7 +513,9 @@ def main(argv: list[str] | None = None) -> None:
     r.add_argument("--skip", type=int, choices=GRID_SKIPS, required=True)
     r.add_argument("--fee-mode", choices=("taker", "maker"), default="taker")
     r.add_argument("--capital", type=float, default=100.0,
-                   help="initial capital in USDT (user ruling 2026-08-27: 400)")
+                   help="initial capital in USDT (default 100)")
+    r.add_argument("--slippage-bps", type=float, default=0.0,
+                   help="adverse slippage per side in bps (Stage 2c 4: run 0 and 5 as a pair)")
     r.add_argument("--purpose", default="manual")
     r.add_argument("--i-understand-this-is-the-only-look",
                    action="store_true")
@@ -491,7 +525,9 @@ def main(argv: list[str] | None = None) -> None:
                    help="the grid is a train-only exercise")
     g.add_argument("--fee-mode", choices=("taker", "maker"), default="taker")
     g.add_argument("--capital", type=float, default=100.0,
-                   help="initial capital in USDT (user ruling 2026-08-27: 400)")
+                   help="initial capital in USDT (default 100)")
+    g.add_argument("--slippage-bps", type=float, default=0.0,
+                   help="adverse slippage per side in bps (Stage 2c 4: run 0 and 5 as a pair)")
 
     d = sub.add_parser(
         "diagnose",
@@ -501,7 +537,9 @@ def main(argv: list[str] | None = None) -> None:
     d.add_argument("--skip", type=int, choices=GRID_SKIPS, required=True)
     d.add_argument("--fee-mode", choices=("taker", "maker"), default="taker")
     d.add_argument("--capital", type=float, default=100.0,
-                   help="initial capital in USDT (user ruling 2026-08-27: 400)")
+                   help="initial capital in USDT (default 100)")
+    d.add_argument("--slippage-bps", type=float, default=0.0,
+                   help="adverse slippage per side in bps (Stage 2c 4: run 0 and 5 as a pair)")
     d.add_argument("--demeaned-db", default=str(ROOT / "xsmom_demeaned.db"))
 
     args = p.parse_args(argv)
@@ -516,7 +554,8 @@ def main(argv: list[str] | None = None) -> None:
                      f"tools/build_demeaned_db.py first")
         cfg = Config(lookback=args.lookback, skip=args.skip,
                      fee_mode=args.fee_mode,
-                         initial_capital=args.capital)
+                         initial_capital=args.capital,
+                         slippage_bps_per_side=args.slippage_bps)
         drift_decomposition(cfg, db, dm, split="train")
         return
 
@@ -525,7 +564,8 @@ def main(argv: list[str] | None = None) -> None:
         if args.cmd == "run":
             cfg = Config(lookback=args.lookback, skip=args.skip,
                          fee_mode=args.fee_mode,
-                         initial_capital=args.capital)
+                         initial_capital=args.capital,
+                         slippage_bps_per_side=args.slippage_bps)
             ensure_data_covers(store, args.split)  # before the look is spent
             if args.split == "holdout":
                 check_holdout_guard(args, cfg)
@@ -537,7 +577,8 @@ def main(argv: list[str] | None = None) -> None:
                 for sk in GRID_SKIPS:
                     cfg = Config(lookback=lb, skip=sk,
                                  fee_mode=args.fee_mode,
-                         initial_capital=args.capital)
+                         initial_capital=args.capital,
+                         slippage_bps_per_side=args.slippage_bps)
                     print(f"\n##### grid: lookback={lb} skip={sk} "
                           f"fee={args.fee_mode} #####")
                     res = execute(store, cfg, args.split, "grid")

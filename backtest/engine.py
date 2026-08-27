@@ -34,7 +34,14 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 from backtest import costs
-from backtest.weights import Decision, SignalFn, Skip, compute_target_weights
+from backtest.weights import (
+    Decision,
+    RescalePlan,
+    SignalFn,
+    Skip,
+    compute_target_weights,
+    plan_rescale,
+)
 from pitdata.store import PointInTimeStore
 
 
@@ -51,6 +58,15 @@ class Config:
     initial_capital: float = 100.0
     fee_mode: str = "taker"    # "taker" | "maker"
     rebalance_ms: int = 86_400_000
+    # Stage 2c 3 (pre-registered): floor on gross leverage so the smallest
+    # position clears MIN_NOTIONAL at C=$100, N=10. Costs ~1 point of vol
+    # (21% vs 20%). Derived from the floor arithmetic, not tunable.
+    min_gross_leverage: float = 1.05
+    # Stage 2c 4: adverse slippage per side on every fill, on top of fees.
+    # Run at 0.0 and 5.0 as a sensitivity PAIR, never selected between.
+    # 5bps came from n=1 synthetic testnet fill: a plausible magnitude,
+    # not a measurement.
+    slippage_bps_per_side: float = 0.0
 
     def __post_init__(self):
         if self.n_positions < 2 or self.n_positions % 2:
@@ -59,6 +75,10 @@ class Config:
             raise ValueError(f"fee_mode must be taker|maker, got {self.fee_mode!r}")
         if self.initial_capital <= 0:
             raise ValueError("initial_capital must be positive")
+        if not 0 < self.min_gross_leverage <= self.max_gross_leverage:
+            raise ValueError("min_gross_leverage must be in (0, max_gross_leverage]")
+        if self.slippage_bps_per_side < 0:
+            raise ValueError("slippage_bps_per_side must be >= 0")
 
 
 @dataclass
@@ -80,6 +100,25 @@ class RebalanceRecord:
     realised_gross_leverage: float         # sum(|units| * fill) / equity
     min_position_notional: float           # smallest |units| * fill taken
     binding_min_notional: float | None     # largest MIN_NOTIONAL in the book
+
+
+@dataclass
+class RescaleRecord:
+    """One rescale-on-skip execution (Stage 2c 2)."""
+    ts_decision: int
+    ts_fill: int
+    reason: str                            # the skip reason that triggered it
+    alpha: float                           # scalar applied to kept positions
+    pre_gross: float                       # whole book at decision
+    target_gross: float                    # planned, kept book
+    post_gross: float                      # realised at the fill
+    turnover_notional: float
+    fees: float
+    dropped: tuple[str, ...]
+    units_before: dict[str, float]
+    units_after: dict[str, float]
+    est_vol_ann: float | None
+    mode: str                              # 'vol_target' | 'cap_floor_only'
 
 
 @dataclass
@@ -105,9 +144,10 @@ class BacktestResult:
     # Every day, filled or not: gross notional / equity at the close. The
     # 3x cap is asserted on THIS (Test 16), not on the rebalance list.
     daily_leverage: list[tuple[int, float]] = field(default_factory=list)
-    # Flatten-on-skip events: (ts_fill, reason, turnover_notional, fees).
-    # Ruling 2026-08-27: a skipped rebalance goes to cash at the next open.
-    flattens: list[tuple[int, str, float, float]] = field(default_factory=list)
+    # Rescale-on-skip events (Stage 2c 2, superseding flatten-on-skip).
+    rescales: list[RescaleRecord] = field(default_factory=list)
+    rescale_drops: list[tuple[int, str]] = field(default_factory=list)
+    total_slippage: float = 0.0            # adverse fill cost, equity terms
 
     def skip_counts(self) -> dict[str, int]:
         out: dict[str, int] = {}
@@ -134,7 +174,10 @@ def run_backtest(
     pending_dollars: dict[str, float] = {}
     pending_ts: int = 0
     pending_equity: float = 0.0
-    pending_flatten: Optional[str] = None   # skip reason awaiting execution
+    pending_rescale: Optional[RescalePlan] = None   # from a skip, fills next open
+    pending_rescale_ts: int = 0
+    pending_rescale_equity: float = 0.0
+    bps = cfg.slippage_bps_per_side
     equity = cfg.initial_capital
     step = cfg.rebalance_ms
 
@@ -191,7 +234,8 @@ def run_backtest(
             missing = [s for s in pending_dollars if bars.get(s) is None]
             res.skips.append((t, "missing_fill_bar", ",".join(missing)))
             pending, pending_dollars = None, {}
-            pending_flatten = "missing_fill_bar"   # no valid book -> cash
+            # The book is held today; step 7 decides again at this close
+            # (either a fresh rebalance, or a skip that rescales it).
 
         # Funding settlements in (yesterday's close, today's close]:
         # 00:00 belongs to the book held across midnight (pre-fill);
@@ -225,27 +269,34 @@ def run_backtest(
         # 3. 00:00 funding on the old book.
         apply_funding(positions, lambda st: st == day_open_time)
 
-        # 4. Fill at today's open.
+        # 4. Fill at today's open. Slippage (Stage 2c 4) makes every fill
+        # adverse by `bps`: the delta is marked from its fill price back to
+        # the open, so the cost lands in gross PnL and is totalled separately.
         if pending is not None:
             fills: dict[str, tuple[float, float]] = {}
             turnover = 0.0
             fees = 0.0
             for sym in set(positions) | set(pending_dollars):
-                price = bars[sym].open
-                target_units = pending_dollars.get(sym, 0.0) / price
-                delta = target_units - positions.get(sym, 0.0)
-                if delta == 0.0:
+                open_px = bars[sym].open
+                held = positions.get(sym, 0.0)
+                delta_ref = pending_dollars.get(sym, 0.0) / open_px - held
+                if delta_ref == 0.0:
                     continue
+                price = costs.slip_price(open_px, delta_ref, bps)
+                target_units = pending_dollars.get(sym, 0.0) / price
+                delta = target_units - held
                 fee = costs.trade_fee(delta, price, cfg.fee_mode)
                 fees += fee
                 turnover += abs(delta) * price
+                res.total_slippage += abs(delta) * open_px * bps / 1e4
                 fills[sym] = (delta, price)
+                mark(sym, delta, open_px - price)   # adverse fill vs the open
                 if target_units == 0.0:
                     positions.pop(sym, None)
                     marks.pop(sym, None)
                 else:
                     positions[sym] = target_units
-                    marks[sym] = price
+                    marks[sym] = open_px
             res.total_fees += fees
             res.total_turnover += turnover
             exposures = [abs(u) * bars[s].open for s, u in positions.items()]
@@ -269,25 +320,60 @@ def run_backtest(
                 )
             )
             pending, pending_dollars = None, {}
-        elif pending_flatten is not None:
-            # A skip means no valid book exists for today. Holding the old
-            # one would let its leverage drift without bound as equity moves
-            # (it went past 20x on real data, through the 3x cap), so the
-            # book is closed at the open, with fees on the turnover, and the
-            # strategy is in cash until a rebalance succeeds.
-            fl_turnover = 0.0
-            fl_fees = 0.0
-            for sym, units in positions.items():
-                price = bars[sym].open
-                fl_fees += costs.trade_fee(-units, price, cfg.fee_mode)
-                fl_turnover += abs(units) * price
-            if positions:
-                res.total_fees += fl_fees
-                res.total_turnover += fl_turnover
-                res.flattens.append((t, pending_flatten, fl_turnover, fl_fees))
-                positions.clear()
-                marks.clear()
-            pending_flatten = None
+        elif pending_rescale is not None:
+            # Rescale-on-skip (Stage 2c 2). The ranking could not be redone,
+            # so the held book keeps its proportions and ONE scalar restores
+            # the vol target within cap and floor. Positions the scalar would
+            # push under MIN_NOTIONAL are closed outright (reduce-only orders
+            # are floor-exempt). Deltas fill at the open with normal fees and
+            # slippage. This replaces flatten-on-skip: cost scales with the
+            # drift, not with book size.
+            plan = pending_rescale
+            before = dict(positions)
+            rs_fees = 0.0
+            rs_turnover = 0.0
+            for sym in list(positions):
+                units = positions[sym]
+                target = 0.0 if sym in plan.dropped else plan.alpha * units
+                delta = target - units
+                if delta == 0.0:
+                    continue
+                open_px = bars[sym].open
+                price = costs.slip_price(open_px, delta, bps)
+                rs_fees += costs.trade_fee(delta, price, cfg.fee_mode)
+                rs_turnover += abs(delta) * price
+                res.total_slippage += abs(delta) * open_px * bps / 1e4
+                mark(sym, delta, open_px - price)
+                if target == 0.0:
+                    positions.pop(sym, None)
+                    marks.pop(sym, None)
+                else:
+                    positions[sym] = target
+                    marks[sym] = open_px
+            res.total_fees += rs_fees
+            res.total_turnover += rs_turnover
+            post = sum(abs(u) * bars[s].open for s, u in positions.items())
+            res.rescales.append(
+                RescaleRecord(
+                    ts_decision=pending_rescale_ts,
+                    ts_fill=t,
+                    reason=plan.reason,
+                    alpha=plan.alpha,
+                    pre_gross=plan.pre_gross,
+                    target_gross=plan.target_gross,
+                    post_gross=post / pending_rescale_equity,
+                    turnover_notional=rs_turnover,
+                    fees=rs_fees,
+                    dropped=plan.dropped,
+                    units_before=before,
+                    units_after=dict(positions),
+                    est_vol_ann=plan.est_vol_ann,
+                    mode=plan.mode,
+                )
+            )
+            for sym in plan.dropped:
+                res.rescale_drops.append((t, sym))
+            pending_rescale = None
 
         # 5. 08:00 / 16:00 funding on the new book.
         apply_funding(positions, lambda st: st > day_open_time)
@@ -314,14 +400,23 @@ def run_backtest(
             res.bankrupt = True
             break
 
-        # 7. Decide for tomorrow's open — except at the final view, whose
-        # fill would land outside the split.
+        # 7. Decide for tomorrow's open - except at the final view, whose
+        # fill would land outside the split. A skip is logged and, when the
+        # held book has drifted past the deadband, a rescale is queued for
+        # tomorrow's open (Stage 2c 2) so leverage cannot run away on days
+        # the strategy does not trade.
         if t + step <= end_view_ms:
             res.n_scheduled += 1
             decision = compute_target_weights(view, cfg, equity, signal_fn)
             if isinstance(decision, Skip):
                 res.skips.append((t, decision.reason, decision.detail))
-                pending_flatten = decision.reason   # executed at tomorrow's open
+                plan = plan_rescale(
+                    view, cfg, positions, marks, equity, decision.reason
+                )
+                if plan is not None:
+                    pending_rescale = plan
+                    pending_rescale_ts = t
+                    pending_rescale_equity = equity
             else:
                 pending = decision
                 pending_ts = t

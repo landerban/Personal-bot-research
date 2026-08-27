@@ -404,7 +404,10 @@ further backtest to check. Nothing runs until the user chooses. Validate
 and holdout untouched.
 
 
-## 14. Stage 2b — corrections (Part A)
+## 16. Stage 2b — corrections (Part A)
+
+*(Renumbered from §14: STAGE2C_PREGRID.md reserves §14/§15 for the invariant
+audit and the void-trial record.)*
 
 - **A1/A2 — `MIN_WEIGHT_FRACTION` 0.25 → 0.5.** The one authorised change to
   `pitdata/store.py`. The 0.25 double-counted the vol factor (once as 0.5×,
@@ -431,7 +434,9 @@ and holdout untouched.
   above ~1.6 (2 SE = 2/√1.58); 0.7–1.0 is below what the holdout can confirm.
 - **A6 — BTCUSDT $50**: reference only, documented in `weights.py`.
 
-## 15. Stage 2b — paper-trading harness (Part B)
+## 17. Stage 2b — paper-trading harness (Part B)
+
+*(Renumbered from §15.)*
 
 Built offline while the backfill ran; 19 tests in `tests/test_live.py`
 against an in-memory fake of the USDS-M REST surface with Binance's real
@@ -472,7 +477,12 @@ rejection codes. Design choices and their reasons:
 - **Not verified**: the testnet WebSocket host name (`WS_BASE`) — flagged in
   the runbook; a wrong host only costs telemetry.
 
-### 13.8 Ruling — capital $400 (user, 2026-08-27)
+### 13.8 Ruling — capital $400 (user, 2026-08-27) — **WITHDRAWN, see §15.2**
+
+> Superseded by the pre-registered 1.05x leverage floor (2c §3), which
+> makes C=$100 viable by construction. `initial_capital` stays at the
+> specified $100; the `--capital` flag remains but is not used for the
+> grid. The reasoning below rests on leverage measured without a floor.
 
 Constraint change chosen by the user: `initial_capital` 100 → **400** for
 the re-run; N, vol target, cap and windows unchanged. Rationale: `C ≥ 10N/L`
@@ -491,10 +501,20 @@ asserts `gross_notional / equity ≤ cap` on the **daily** trace
 `7f2ea6d` (hold-on-skip) was loaded unmodified except for the additive
 daily-leverage trace, and run on `breach_market()` — deterministic ranking,
 then skips while the held longs fall 10%/day and the shorts rise 4%/day for
-30 days. Observed: **peak leverage 35.71×, 8 days over the cap, bankrupt
-(min equity −$146)**; Test 16 fails on day 315 at 3.03×. On the current
-engine the same fixture peaks at 1.25× and the plain factor run at 1.29×.
-The test reproduces the bug it guards.
+30 days. Reproducible with `tools/verify_test16_prefix.py`.
+
+| Measured | Pre-fix peak leverage | Days over cap | Outcome | Test 16 |
+|---|---|---|---|---|
+| before the 2c 3 floor existed | **35.71×** | 8 | bankrupt, −$146 | fails, day 315 at 3.03× |
+| under the committed config (floor 1.05×) | **156.44×** | 8 | bankrupt, −$367 | fails, day 313 at 3.18× |
+
+Both are the same bug; the second is larger because the 1.05× floor starts
+the book bigger before the crash, so the held notional it fails to shrink is
+bigger too. The second row is what the committed tool reproduces today —
+quoted in preference, with the first kept because it is the number the fix
+was originally verified against. On the **current** engine the same fixture
+peaks at 3.00× (the cap binding through the rescale path, not a breach) and
+the plain factor run at 1.29×. The test reproduces the bug it guards.
 
 **Audit of the other invariants (2c §1.2):**
 
@@ -507,3 +527,88 @@ The test reproduces the bug it guards.
 | beta neutrality (test 5) | realised beta over the whole run | no — held days are in the sample | Test 17 runs the skip-heavy fixture through it as well |
 | vol target (test 6) | realised over the run | no; but the ex-ante target is restored on skips only by rescaling | Test 17 |
 | MIN_NOTIONAL (test 8) | at fill | partial — a held position can drift under the floor | rescale's drop rule + Test 17 |
+
+## 15. Stage 2c — void trial records, and the figures struck from the record
+
+### 15.1 A first look at real train data happened, and produced only wipeouts
+
+All **13** logged rows in `trials.jsonl` are now marked `"void": true` with a
+reason. They stay in the file — deleting them would falsify the record — but
+they do **not** consume trial budget and are excluded from the Deflated
+Sharpe trial set (`runner.trial_srs_for_deflation` skips `void`).
+
+| Commit | Runs | Why void |
+|---|---|---|
+| `36f191d` | 6 | Pre-fix harness held the stale book through the pre-registered 3× cap (35.71× reproduced on the fixture). Measured the bug, not the strategy. |
+| `fa99ffa` | 6 | Flatten-on-skip, superseded by the pre-registered rescale-on-skip (2c §2). Not comparable to a rescale run. |
+| `e4c69ca` | 1 | Aborted mid-grid; capital $400 is superseded by the 1.05× floor at C=$100, and the harness lacked rescale, floor and slippage. |
+
+**Budget: 0 of 20 consumed.** Re-running the six configs post-fix is *the same
+six trials*, not six more (2c §5.4). The bug fix is not a trial: restoring
+conformance to a pre-registered constraint is not a new choice.
+
+Information content of that first look: near zero, but not literally zero,
+and it is on the record. What it established was about the *harness* — the
+invariant hole of §14 — not about edge.
+
+### 15.2 STRICKEN — do not carry these forward as priors
+
+Every number below came from a void harness. They are struck explicitly so
+they cannot drift into memory as a prior:
+
+- ~~Sharpe 1.12 (lb7/skip0), 0.83 (lb28/skip0)~~ — stale-book artifact
+- ~~four bankruptcies, "vol 216–819%"~~ — the same artifact, inverted
+- ~~Sharpe 1.65 (lb28/skip2) at $100 with flatten-on-skip~~, and its
+  ~~drift decomposition 1.65 / 1.61 / 3%~~ — a flatten harness, 72 active
+  days; the decomposition must be re-run against the rescale harness on the
+  config the *new* grid selects
+- ~~"C ≥ $217–370, capital is the lever"~~ — superseded: the pre-registered
+  1.05× floor (2c §3) makes C=$100 viable by construction, and the earlier
+  arithmetic used leverage from a harness that did not enforce a floor
+- ~~median realised leverage 0.46, 81% below-floor skips~~ — measured
+  without the floor
+
+The **$400 capital ruling of §13.8 is withdrawn**: it was a response to the
+floor problem that 2c §3 solves at the pre-registered level, and it was not
+pre-registered. `Config.initial_capital` stays at its specified **$100**;
+`--capital` remains available but is not used for the grid.
+
+### 15.3 The 2c rulings as implemented
+
+| Ruling | Where | Test |
+|---|---|---|
+| Rescale on skip, not flatten (§2) | `weights.plan_rescale`, engine step 4 `elif pending_rescale` | 17 |
+| Deadband 0.10, not tunable (§2.2) | `weights.RESCALE_DEADBAND` | 17 (in-band → no trade) |
+| No re-ranking on a skip (§2.1) | one scalar `alpha`; ratios preserved to 1e-12 | 17 |
+| Drop a position under MIN_NOTIONAL, rescale the rest (§2.1.5) | `plan_rescale` loop; `rescale_drops` | 17 |
+| Gross leverage floor 1.05× (§3) | `Config.min_gross_leverage`, `vol_target_scale(min_gross=)` | 18 |
+| Slippage per side, 0 and 5 bps as a pair (§4) | `Config.slippage_bps_per_side`, `costs.slip_price` | `slippage_is_adverse_and_priced` |
+| Per-symbol slippage hook, flat for now (§4.1) | `costs.slippage_bps(symbol, view, cfg)` | same |
+| Void runs excluded from DSR (§5) | `runner.trial_srs_for_deflation`, `strategy_key` | — |
+
+**Trial accounting for the slippage pair (§4):** the DSR trial set keys on
+the config *minus* `slippage_bps_per_side`, so the 6-point grid at two
+slippage settings counts as **6 trials**. `runner.n_trials_conservative()`
+reports the stricter count (12 distinct hashes) alongside it, since 2c §4
+says over-counting is the safe direction.
+
+**Caveat carried:** 5 bps came from **n = 1 synthetic testnet fill**. It is a
+plausible magnitude, not a measurement, and the report prints that wherever
+the number appears.
+
+### 15.4 Two things I flag rather than act on (§0)
+
+1. **The floor and the cap can now both bind on the same day.** With
+   `min_gross_leverage = 1.05`, a book whose ex-ante vol implies less than
+   1.05× is levered *up* to the floor — so realised vol exceeds 20% by
+   construction on those days, which is the intended trade (2c §3 accepts
+   ~21%). But on the skip-heavy fixture the rescale path now pins leverage at
+   exactly 3.00× on the worst days (Test 16 peak), i.e. the cap binds while
+   the crash runs. That is the cap doing its job, and it is also the reason
+   the fixture no longer bankrupts. Recording it so the 3.00× in the test
+   output is not later mistaken for a breach.
+2. **`missing_fill_bar` no longer forces the book flat.** Under 2c §2 the
+   book is held and step 7 decides again at that close (rescaling if it has
+   drifted). This follows from "rescale, not flatten", but it is a change in
+   behaviour for that specific skip reason relative to Stage 2b, so it is
+   written down rather than left implicit.

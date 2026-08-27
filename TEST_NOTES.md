@@ -170,3 +170,69 @@ behaviour the synthetic suite cannot see — a skipped rebalance held the
 stale book while equity moved, driving leverage past 20× (four wipeouts).
 Diagnosed by deterministic replay (`tools/postmortem.py`, no budget), ruled
 "flatten on skip", pinned by test. Details: `NOTES.md` §13.
+
+
+---
+
+## Addendum — Stage 2c, 2026-08-27
+
+| Suite | Result |
+|---|---|
+| `tests/test_lookahead.py` | **13/13** |
+| `tests/test_backtest.py` | **28/28** |
+| `tests/test_live.py` | **19/19** |
+
+### The verification that mattered: Test 16 fails on the pre-fix code
+
+Stage 2c §1.1 requires proving the new regression test reproduces the bug
+before the fix is applied. The engine from commit `7f2ea6d` (hold-on-skip)
+was loaded unmodified apart from the additive `daily_leverage` trace and run
+on the `breach_market()` fixture:
+
+```
+PRE-FIX (hold on skip): rebalances=240 skips=80 bankrupt=True
+                        peak_leverage=156.44x days_over_cap=8 min_equity=-367.46
+Test 16 on pre-fix path: FAILS as required -> leverage 3.18x on day 313 (cap 3.0)
+```
+
+(Reproduce with `tools/verify_test16_prefix.py`. When the fix was first
+verified, before the 1.05x floor existed, the same run gave peak 35.71x /
+-$146 / failure at 3.03x on day 315. The floor starts the book larger, so
+the un-shrunk notional is larger; same bug, bigger number.)
+
+Same fixture on the current engine: **peak 3.00×**, no bankruptcy. The 3.00×
+is the cap binding through the rescale path during the crash, not a breach —
+`check_leverage_cap_every_day` asserts `<= cap + 1e-9` on every day of the
+run, filled or not.
+
+### New tests
+
+| Test | Proves |
+|---|---|
+| `leverage_cap_holds_every_day` (16) | the cap on the **daily** trace, not just fill days — the hole that let the void grid breach it |
+| `below_min_notional_fires` (§1.3) | the sizing-floor path is finally exercised: $6 floor, viable universe, **439 skips** with that exact reason, 0 fills |
+| `rescale_on_skip` (17) | one scalar, ratios preserved to 1e-12 (no re-ranking); deadband → zero trades; a $4.50 leg pushed under a $5 floor is dropped and the rest re-planned; misaligned history → `cap_floor_only`, never an imputed vol; fees reconcile |
+| `leverage_floor_holds` (18) | realised gross never below 1.05× — the floor **binds on 499 rebalances**, so the test is not vacuous |
+| `slippage_is_adverse_and_priced` (§4) | buys fill above the open and sells below, by exactly 5bps; cost = turnover × bps (**$865.93** on the shared fixture); 0bps reproduces the old fills exactly |
+
+### Null canaries, re-run at 30 seeds after the skip path changed
+
+As Stage 2c §6.8 predicted, they moved — the skip path is now a rescale
+rather than a flatten, so the synthetic runs that skip take different fills:
+
+| Canary | Before (flatten) | After (rescale) |
+|---|---|---|
+| random signal, gross | +0.140 (SE 0.173, t +0.81) | **+0.144** (SE 0.174, t **+0.83**), min −2.21 / max +2.13 |
+| random signal, net | −1.271 (t −7.39) | **−1.265** (SE 0.172, t −7.34) |
+| demeaned shuffle, gross | +0.037 (SE 0.183, t +0.20) | **−0.071** (SE 0.140, t **−0.50**), min −2.17 / max +1.31 |
+
+Both means sit inside 2 SE of zero; costs still turn the random signal
+clearly negative. Also moved, as expected under the 1.05× floor: realised
+vol on the shared fixture **0.192 → 0.205** (target 0.20, band 0.14–0.26),
+realised beta +0.033 → +0.035, max tilt 0.383 → 0.449.
+
+### Note on the earlier addendum
+
+The "24/24 at `fa99ffa`" line above describes the **flatten-on-skip**
+harness, which Stage 2c §2 superseded. Its test list is still accurate for
+that commit; `test_flatten_on_skip` no longer exists.
