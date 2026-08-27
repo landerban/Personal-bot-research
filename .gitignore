@@ -10,3 +10,7 @@ live/state/
 paper_log.jsonl
 paper_costs.jsonl
 .env
+
+# local duplicates dropped by the user (re-extracted Stage 1 zip; superseded root diagnose)
+/files/
+/diagnose.py
