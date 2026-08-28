@@ -3521,3 +3521,88 @@ the 2-point tolerance, but the shortfall is present at every target
   came at a different size.
 
 Budget **10 of 25**, unchanged — no sweep run was logged as a trial.
+
+## 40. RE-VALIDATE RULE — B at 14% on 2024. Pre-registered 2026-08-28, before the run.
+
+**Config:** B at **14% vol target** — the vol already locked by the §39 train
+drawdown rule. Top-15 PIT majors, `lookback=14`, `skip=0`, N=10, k=5, 3x cap,
+beta-neutral, +1min fill, 5bps slippage, $400, both fee schedules. **Window:
+2024 only.** Cost: **one trial, budget 10 -> 11 of 25.** Holdout sealed.
+
+### 40.1 The discipline that makes a second look at 2024 legitimate
+
+2024 has already been used once (Stage 6: B at 20%, Sharpe 0.675, passed).
+This is a **second look at the same year**, so the framing has to be exact:
+
+- **The vol is already chosen.** 14% was fixed by the §39 train rule on
+  measured drawdown, before this run and without reference to 2024.
+- **2024 answers exactly one question:** does the 14% config clear the same
+  pre-registered gates the 20% config cleared?
+- **The 20% result is reference only.** This is *not* "14% vs 20%, keep the
+  winner". Selecting the vol by 2024 performance would convert the validation
+  set into a selection set — the precise error avoided all project long.
+- **14% must pass on its own.** "Beats 20% on 2024" is not a criterion, will
+  not be computed as one, and will not be reported as one. The only place the
+  20% run appears is §40.4's floor comparison, which is a *mechanism* check
+  on whether the book still functions, not a performance ranking.
+
+If the framing drifts toward picking a vol from 2024, that is the error to
+stop on.
+
+### 40.2 Tier 1 — hard gates, any one failing = refuted
+
+| # | Test | REFUTED if |
+|---|---|---|
+| **G1** | price PnL sign | 2024 price PnL **< 0** |
+| **G2** | drawdown | max DD **> 30%** (USDT run). Should pass easily — train DD at 14% was 14.78% |
+| **G3** | Sharpe floor | Sharpe **< 0.30** at USDC fees |
+
+### 40.3 The drift-adjusted band — unchanged from §37.1
+
+41% of B's train Sharpe is drift and does not repeat out of sample. The
+reference is the **20% train Sharpe of 1.114**, not the 14% sweep figure —
+§39.7's invariance failure means the sweep's Sharpe column is not clean, and
+edge is the size-independent quantity:
+
+```
+  1.114 x (1 - 0.41)  ~  0.66     drift-adjusted success expectation
+```
+
+**A 2024 Sharpe of 0.5-0.7 is consistent with success.** More is not
+demanded. The 14% run's realised vol (~13%) means its *absolute return* will
+be lower than the 20% run's — that is arithmetic, expected, and **not a mark
+against it. Judge Sharpe, not return.**
+
+### 40.4 The floor check — specific to this config
+
+§39.7 established that vol targeting is not a clean rescale at $400: the
+`MIN_NOTIONAL` floor flips whole rebalances in and out of feasibility. So
+2024 at 14% must confirm the book actually *functions* out of sample:
+
+- skip rate against the 20% 2024 run (mechanism check, not performance)
+- realised vol against the 14% target (train fell ~1.1 points short)
+- names dropped under `MIN_NOTIONAL`
+- active-days fraction **>= 80%**
+
+**If the 14% config skips materially more of 2024 than the 20% config did,
+the floor is distorting it out of sample, and that is a caveat on any pass**
+— recorded explicitly, not absorbed into a green verdict.
+
+### 40.5 The reading
+
+| Outcome | Meaning |
+|---|---|
+| all Tier 1 pass, Sharpe 0.5-0.7, price-driven, floor clean | the 14% deployment config survives OOS; a holdout would test the config actually intended for live use |
+| all Tier 1 pass but floor skips **>>** the 20% run | passes, but the floor contaminates it OOS — deployment carries that limitation, recorded |
+| **G1 fails** | the 14% config does not survive. Since 20% passed and 14% did not, the difference is floor-driven day-selection rather than edge — **decisive against deploying 14%** |
+| **G2 fails** | would contradict the train sizing entirely — **investigate for a bug** before accepting |
+| **G3 fails** | too weak to carry to holdout at this vol |
+
+Nothing adjusted after seeing 2024.
+
+### 40.6 After the result
+
+**Stop at the report.** The holdout is a separate decision with a clear head
+(§37.5). A 14% pass does **not** auto-license it — it removes the §39.9
+tension (the deployment config would then have its own OOS evidence) and
+makes the holdout decision cleaner. Nothing more.
