@@ -304,12 +304,80 @@ def _aligned_closes(view: "PITView", symbol: str, n_bars: int):
     return [b.open_time for b in bars], np.array([b.close for b in bars])
 
 
+def select_legs(
+    ordered: list[str],
+    k: int,
+    buffer: int = 0,
+    held_sides: dict[str, int] | None = None,
+) -> tuple[list[str], list[str]]:
+    """
+    Section 2.3 leg selection, with the Stage 9 rank buffer (NOTES 45.1).
+
+    `ordered` is the candidate list best-first by signal. Returns
+    (longs best-first, shorts worst-first) -- the order `rank_weights`
+    expects.
+
+    `buffer` = 0, or nothing held, reproduces the frozen rule exactly: the
+    top k and the bottom k. With a buffer, a HELD name is retained while it
+    stays inside rank k+buffer of its own side, and only names that fall past
+    that are replaced. Entry is unchanged: a new name enters at rank <= k.
+
+    The three construction details are pre-registered in NOTES 45.1 and are
+    not free here:
+      1. retentions on BOTH legs resolve before either leg fills, so the rule
+         is leg-symmetric and neither leg gets first claim on a contested name
+      2. no name is used twice, and a name is only ever retained on the side
+         it is actually held -- this is what keeps b=3 well defined where the
+         two hold-zones touch (NOTES 45.2)
+      3. leg order follows momentum rank, not hold status, so a retained name
+         takes the weight its CURRENT rank earns. The buffer changes which
+         names are held, never the weight profile.
+    """
+    if buffer <= 0 or not held_sides:
+        return ordered[:k], ordered[-k:][::-1]
+
+    m = len(ordered)
+    rank = {s: i + 1 for i, s in enumerate(ordered)}
+    long_zone_end = k + buffer            # retain a long while rank <= this
+    short_zone_start = m - (k + buffer) + 1  # retain a short while rank >= this
+
+    # 1. retentions first, both legs (rule 1). A name is only retained on the
+    #    side it is held, so the two lists cannot collide (rule 2).
+    ret_long = [s for s in ordered
+                if held_sides.get(s, 0) > 0 and rank[s] <= long_zone_end][:k]
+    ret_short = [s for s in reversed(ordered)
+                 if held_sides.get(s, 0) < 0 and rank[s] >= short_zone_start][:k]
+    used = set(ret_long) | set(ret_short)
+
+    # 2. fill the vacancies from the best / worst unused ranks
+    longs = list(ret_long)
+    for s in ordered:
+        if len(longs) >= k:
+            break
+        if s not in used:
+            longs.append(s)
+            used.add(s)
+    shorts = list(ret_short)
+    for s in reversed(ordered):
+        if len(shorts) >= k:
+            break
+        if s not in used:
+            shorts.append(s)
+            used.add(s)
+
+    # 3. order by current rank, not by hold status
+    longs.sort(key=lambda s: rank[s])
+    shorts.sort(key=lambda s: -rank[s])
+    return longs, shorts
+
+
 def compute_target_weights(
     view: "PITView",
     cfg: "Config",
     equity: float,
     signal_fn: SignalFn | None = None,
     gross_hint: float | None = None,
+    held_sides: dict[str, int] | None = None,
 ) -> Decision | Skip:
     """
     The full section-2 pipeline at one `as_of`. Returns a Decision to be
@@ -406,8 +474,11 @@ def compute_target_weights(
     candidates.sort(key=lambda c: (-c[1], c[0]))
     k = n // 2
     rets_by_sym = {c[0]: c[2] for c in candidates}
-    longs = [c[0] for c in candidates[:k]]
-    shorts = [c[0] for c in candidates[-k:]][::-1]  # worst first
+    # Stage 9: leg selection, with the rank buffer if one is configured.
+    # rank_buffer=0 is the frozen rule and returns top-k / bottom-k.
+    longs, shorts = select_legs(
+        [c[0] for c in candidates], k, cfg.rank_buffer, held_sides
+    )
 
     if not btc_var_ok:
         # 2.4 A zero-variance BTC makes every beta 0/0 - undefined, not zero.

@@ -121,6 +121,13 @@ class Config:
     # is not fitted to the attribution that motivated it. This tests
     # 'exclude the tail', NOT 'trade only the majors' (NOTES 25).
     max_liquidity_rank: int | None = None
+    # Stage 9 (NOTES 45): rank-buffer / hysteresis width. 0 is the FROZEN
+    # rule -- a name exits the moment it leaves the top-k (long) or bottom-k
+    # (short). With b > 0 a HELD name is retained until it falls past rank
+    # k+b on its own side; entry is unchanged at rank <= k. Widths were fixed
+    # from universe geometry in NOTES 45.2, never from which one performed
+    # best, and the ceiling below is that geometry, not a preference.
+    rank_buffer: int = 0
 
     def __post_init__(self):
         if self.n_positions < 2 or self.n_positions % 2:
@@ -137,6 +144,22 @@ class Config:
             raise ValueError("execution_delay_minutes must be >= 0")
         if self.max_liquidity_rank is not None and self.max_liquidity_rank < self.n_positions:
             raise ValueError("max_liquidity_rank must be >= n_positions")
+        if self.rank_buffer < 0:
+            raise ValueError("rank_buffer must be >= 0")
+        # NOTES 45.2: the long hold-zone is ranks 1..k+b and the short
+        # hold-zone is ranks M-k-b+1..M, so they overlap once 2(k+b) > M+1.
+        # At k=5 in a 15-name universe that caps b at 3 (where the zones
+        # merely touch). A geometric constraint, enforced here so no later
+        # run can quietly exceed it.
+        if (self.rank_buffer and self.max_liquidity_rank is not None
+                and 2 * (self.n_positions // 2 + self.rank_buffer)
+                > self.max_liquidity_rank + 1):
+            raise ValueError(
+                f"rank_buffer={self.rank_buffer} exceeds the geometric ceiling "
+                f"(NOTES 45.2): with k={self.n_positions // 2} the long and "
+                f"short hold-zones overlap in a {self.max_liquidity_rank}-name "
+                f"universe"
+            )
 
 
 @dataclass
@@ -639,8 +662,13 @@ def run_backtest(
         # the strategy does not trade.
         if t + step <= end_view_ms:
             res.n_scheduled += 1
+            # Stage 9: the buffer needs the book held at THIS close -- the
+            # same book the fill at tomorrow's open will trade against. No
+            # lookahead: `positions` is post-fill, post-mark state of day T.
             decision = compute_target_weights(
-                view, cfg, equity, signal_fn, gross_hint=last_gross
+                view, cfg, equity, signal_fn, gross_hint=last_gross,
+                held_sides={s: (1 if u > 0 else -1)
+                            for s, u in positions.items() if u},
             )
             if isinstance(decision, Skip):
                 res.skips.append((t, decision.reason, decision.detail))

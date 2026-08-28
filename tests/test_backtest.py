@@ -29,6 +29,7 @@ from backtest.weights import (  # noqa: E402
     compute_target_weights,
     momentum_signal,
     rank_weights,
+    select_legs,
 )
 from pitdata.store import PointInTimeStore  # noqa: E402
 
@@ -1729,6 +1730,73 @@ def test_liquidity_cap_universe_is_survivorship_safe():
     assert doomed not in d_dead.final_weights
     print(f"PASS liquidity_cap_universe_is_survivorship_safe "
           f"({doomed} selected while alive, absent after it delists)")
+
+
+# ----------------------------------------------------------------- test 25
+
+def test_rank_buffer_selection():
+    """Stage 9 (NOTES 45.1): hysteresis retains a HELD name until it falls
+    past rank k+b on its own side, never changes entry, never changes the
+    weight profile, and b=0 is EXACTLY the frozen rule."""
+    ordered = [f"S{i:02d}" for i in range(15)]   # S00 best ... S14 worst
+    k = 5
+
+    # b=0 is a no-op whatever is held -- the frozen rule, bit for bit
+    base = (ordered[:5], ordered[-5:][::-1])
+    assert select_legs(ordered, k, 0, None) == base
+    held_all = {s: 1 for s in ordered[:8]}
+    assert select_legs(ordered, k, 0, held_all) == base, "b=0 must not look at the book"
+    # ...and so is any buffer with nothing held
+    assert select_legs(ordered, k, 3, {}) == base
+    assert select_legs(ordered, k, 3, None) == base
+
+    # a held long that slipped to rank 7 is RETAINED at b=2 (exit past 7)
+    held = {s: 1 for s in ["S00", "S01", "S02", "S03", "S06"]}
+    longs, _ = select_legs(ordered, k, 2, held)
+    assert "S06" in longs, longs
+    assert longs == ["S00", "S01", "S02", "S03", "S06"], longs
+    # the same name at rank 8 is past k+b and is DROPPED, replaced by rank 5
+    held8 = {s: 1 for s in ["S00", "S01", "S02", "S03", "S07"]}
+    longs8, _ = select_legs(ordered, k, 2, held8)
+    assert "S07" not in longs8 and "S04" in longs8, longs8
+
+    # entry is unchanged: a name outside the top k never enters unless held
+    assert all(ordered.index(s) < 5 for s in longs8), longs8
+
+    # short leg is symmetric: a held short that improved to rank 9 (of 15) is
+    # retained at b=2, whose bottom-7 hold-zone starts at rank 9...
+    held_s = {s: -1 for s in ["S14", "S13", "S12", "S11", "S08"]}
+    _, shorts = select_legs(ordered, k, 2, held_s)
+    assert "S08" in shorts, shorts
+    # ...and dropped at b=1, whose bottom-6 zone starts at rank 10
+    _, shorts1 = select_legs(ordered, k, 1, held_s)
+    assert "S08" not in shorts1 and "S10" in shorts1, shorts1
+
+    # legs stay disjoint and correctly sized where the zones TOUCH (b=3,
+    # M=15: rank 8 is reachable from both sides -- NOTES 45.2)
+    both = {"S07": 1, "S00": 1, "S01": 1, "S02": 1, "S03": 1,
+            "S14": -1, "S13": -1, "S12": -1, "S11": -1, "S10": -1}
+    L, S = select_legs(ordered, k, 3, both)
+    assert len(L) == len(S) == k and not set(L) & set(S), (L, S)
+    assert "S07" in L, L
+
+    # leg order follows CURRENT rank, not hold status: the retained name at
+    # rank 7 sorts last on the long leg, so rank_weights gives it the
+    # smallest magnitude rather than the one it held yesterday
+    assert longs[-1] == "S06", longs
+    assert list(shorts) == sorted(shorts, key=lambda s: -ordered.index(s)), shorts
+
+    # the geometric ceiling is enforced in Config, not left to the caller
+    Config(lookback=14, skip=0, max_liquidity_rank=15, rank_buffer=3)
+    for bad in (4, 5):
+        try:
+            Config(lookback=14, skip=0, max_liquidity_rank=15, rank_buffer=bad)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError(f"rank_buffer={bad} must be refused (NOTES 45.2)")
+    print("PASS rank_buffer_selection (b=0 is the frozen rule; retention at "
+          "k+b; entry and weight profile unchanged; ceiling enforced)")
 
 
 # ------------------------------------------------------- metrics sanity
