@@ -1,0 +1,6831 @@
+{
+ "snapshot_ts": 1787938166137,
+ "snapshot_date": "2026-08-28",
+ "source": "https://testnet.binancefuture.com/fapi/v1/exchangeInfo",
+ "git_commit": "76eed8898bf7e673dd8b03646253816c9733c047",
+ "n_symbols": 733,
+ "underlying_type_counts": {
+  "COIN": 675,
+  "PREMARKET": 22,
+  "EQUITY": 21,
+  "HK_EQUITY": 6,
+  "COMMODITY": 5,
+  "INDEX": 4
+ },
+ "symbols": {
+  "0GUSDT": {
+   "underlyingType": "PREMARKET",
+   "underlyingSubType": [
+    "Pre-Market"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "0G",
+   "status": "TRADING",
+   "onboardDate": 1758123900000
+  },
+  "1000000BOBUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "1000000BOB",
+   "status": "TRADING",
+   "onboardDate": 1667890800000
+  },
+  "1000000MOGUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "1000000MOG",
+   "status": "TRADING",
+   "onboardDate": 1730982600000
+  },
+  "1000BONKUSDC": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDC",
+   "baseAsset": "1000BONK",
+   "status": "TRADING",
+   "onboardDate": 1714633200000
+  },
+  "1000BONKUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "1000BONK",
+   "status": "TRADING",
+   "onboardDate": 1700661600000
+  },
+  "1000CATUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "1000CAT",
+   "status": "TRADING",
+   "onboardDate": 1729513800000
+  },
+  "1000CHEEMSUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "1000CHEEMS",
+   "status": "TRADING",
+   "onboardDate": 1732535100000
+  },
+  "1000FLOKIUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "1000FLOKI",
+   "status": "TRADING",
+   "onboardDate": 1683331200000
+  },
+  "1000LUNCUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "1000LUNC",
+   "status": "TRADING",
+   "onboardDate": 1662620400000
+  },
+  "1000PEPEUSDC": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDC",
+   "baseAsset": "1000PEPE",
+   "status": "TRADING",
+   "onboardDate": 1709800200000
+  },
+  "1000PEPEUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "1000PEPE",
+   "status": "TRADING",
+   "onboardDate": 1683158400000
+  },
+  "1000RATSUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "1000RATS",
+   "status": "TRADING",
+   "onboardDate": 1702648800000
+  },
+  "1000SATSUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "1000SATS",
+   "status": "TRADING",
+   "onboardDate": 1702389600000
+  },
+  "1000SHIBUSDC": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDC",
+   "baseAsset": "1000SHIB",
+   "status": "TRADING",
+   "onboardDate": 1711609200000
+  },
+  "1000SHIBUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "1000SHIB",
+   "status": "TRADING",
+   "onboardDate": 1620630000000
+  },
+  "1000WHYUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "1000WHY",
+   "status": "TRADING",
+   "onboardDate": 1732534200000
+  },
+  "1000XECUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "1000XEC",
+   "status": "TRADING",
+   "onboardDate": 1631775600000
+  },
+  "1000XUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "1000X",
+   "status": "TRADING",
+   "onboardDate": 1731501000000
+  },
+  "1INCHUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [
+    "DEFI",
+    "HOT"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "1INCH",
+   "status": "TRADING",
+   "onboardDate": 1608879600000
+  },
+  "1MBABYDOGEUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "1MBABYDOGE",
+   "status": "TRADING",
+   "onboardDate": 1726486500000
+  },
+  "2ZUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "2Z",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1759408200000
+  },
+  "42USDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "42",
+   "status": "TRADING",
+   "onboardDate": 1761561000000
+  },
+  "4USDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "4",
+   "status": "TRADING",
+   "onboardDate": 1759923000000
+  },
+  "A2ZUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "A2Z",
+   "status": "SETTLING",
+   "onboardDate": 1753862400000
+  },
+  "AAVEUSDC": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDC",
+   "baseAsset": "AAVE",
+   "status": "TRADING",
+   "onboardDate": 1750062600000
+  },
+  "AAVEUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [
+    "DEFI"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "AAVE",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "ABCCCUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ABCCC",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1734073200000
+  },
+  "ABCUSDT": {
+   "underlyingType": "PREMARKET",
+   "underlyingSubType": [
+    "Pre-IPO",
+    "TradFi"
+   ],
+   "contractType": "TRADIFI_PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ABC",
+   "status": "SETTLING",
+   "onboardDate": 1779784200000
+  },
+  "ACEUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ACE",
+   "status": "TRADING",
+   "onboardDate": 1702893600000
+  },
+  "ACHUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ACH",
+   "status": "TRADING",
+   "onboardDate": 1676962800000
+  },
+  "ACTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ACT",
+   "status": "TRADING",
+   "onboardDate": 1731327300000
+  },
+  "ACUUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ACU",
+   "status": "TRADING",
+   "onboardDate": 1768999500000
+  },
+  "ACXUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ACX",
+   "status": "TRADING",
+   "onboardDate": 1733497200000
+  },
+  "ADAUSDC": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDC",
+   "baseAsset": "ADA",
+   "status": "TRADING",
+   "onboardDate": 1741256100000
+  },
+  "ADAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [
+    "HOT"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ADA",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "AERGOUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "AERGO",
+   "status": "SETTLING",
+   "onboardDate": 1725884100000
+  },
+  "AEROUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "AERO",
+   "status": "TRADING",
+   "onboardDate": 1733321700000
+  },
+  "AEVOUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "AEVO",
+   "status": "TRADING",
+   "onboardDate": 1710336600000
+  },
+  "AGIXUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "AGIX",
+   "status": "SETTLING",
+   "onboardDate": 1676444400000
+  },
+  "AGLDUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "AGLD",
+   "status": "TRADING",
+   "onboardDate": 1690597800000
+  },
+  "AGTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "AGT",
+   "status": "TRADING",
+   "onboardDate": 1747737000000
+  },
+  "AI16ZUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "AI16Z",
+   "status": "SETTLING",
+   "onboardDate": 1735825500000
+  },
+  "AIAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "AIA",
+   "status": "TRADING",
+   "onboardDate": 1768903200000
+  },
+  "AINUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "AIN",
+   "status": "TRADING",
+   "onboardDate": 1752144300000
+  },
+  "AIOTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "AIOT",
+   "status": "TRADING",
+   "onboardDate": 1746016200000
+  },
+  "AIOUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "AIO",
+   "status": "TRADING",
+   "onboardDate": 1755084600000
+  },
+  "AIUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "AI",
+   "status": "TRADING",
+   "onboardDate": 1704717000000
+  },
+  "AIXBTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "AIXBT",
+   "status": "TRADING",
+   "onboardDate": 1734719400000
+  },
+  "AKEUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "AKE",
+   "status": "TRADING",
+   "onboardDate": 1758889800000
+  },
+  "AKTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "AKT",
+   "status": "TRADING",
+   "onboardDate": 1731929400000
+  },
+  "ALCHUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ALCH",
+   "status": "TRADING",
+   "onboardDate": 1736250300000
+  },
+  "ALGOUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [
+    "DEFI"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ALGO",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "ALICEUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ALICE",
+   "status": "TRADING",
+   "onboardDate": 1615791600000
+  },
+  "ALLOUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ALLO",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1762866000000
+  },
+  "ALLUSDT": {
+   "underlyingType": "INDEX",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ALL",
+   "status": "TRADING",
+   "onboardDate": 1754470800000
+  },
+  "ALPACAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ALPACA",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1724322600000
+  },
+  "ALPHAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [
+    "DEFI"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ALPHA",
+   "status": "SETTLING",
+   "onboardDate": 1569398400000
+  },
+  "ALPINEUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ALPINE",
+   "status": "TRADING",
+   "onboardDate": 1746524700000
+  },
+  "ALTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ALT",
+   "status": "TRADING",
+   "onboardDate": 1706191200000
+  },
+  "AMBUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "AMB",
+   "status": "SETTLING",
+   "onboardDate": 1680048000000
+  },
+  "AMZNUSDT": {
+   "underlyingType": "EQUITY",
+   "underlyingSubType": [
+    "TradFi"
+   ],
+   "contractType": "TRADIFI_PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "AMZN",
+   "status": "TRADING",
+   "onboardDate": 1770648000000
+  },
+  "ANIMEUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ANIME",
+   "status": "TRADING",
+   "onboardDate": 1737651600000
+  },
+  "ANKRUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ANKR",
+   "status": "TRADING",
+   "onboardDate": 1611558000000
+  },
+  "ANTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ANT",
+   "status": "SETTLING",
+   "onboardDate": 1640329200000
+  },
+  "APEUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [
+    "NFT"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "APE",
+   "status": "TRADING",
+   "onboardDate": 1647500400000
+  },
+  "API3USDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "API3",
+   "status": "TRADING",
+   "onboardDate": 1645426800000
+  },
+  "APRUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "APR",
+   "status": "TRADING",
+   "onboardDate": 1761215400000
+  },
+  "APTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "APT",
+   "status": "TRADING",
+   "onboardDate": 1666076400000
+  },
+  "ARBUSDC": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDC",
+   "baseAsset": "ARB",
+   "status": "TRADING",
+   "onboardDate": 1713423600000
+  },
+  "ARBUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ARB",
+   "status": "TRADING",
+   "onboardDate": 1679270400000
+  },
+  "ARCUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ARC",
+   "status": "TRADING",
+   "onboardDate": 1737118800000
+  },
+  "ARIAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ARIA",
+   "status": "TRADING",
+   "onboardDate": 1756897200000
+  },
+  "ARKMUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ARKM",
+   "status": "TRADING",
+   "onboardDate": 1690512300000
+  },
+  "ARKUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ARK",
+   "status": "TRADING",
+   "onboardDate": 1695133800000
+  },
+  "ARPAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ARPA",
+   "status": "TRADING",
+   "onboardDate": 1634540400000
+  },
+  "ARUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "AR",
+   "status": "TRADING",
+   "onboardDate": 1632639600000
+  },
+  "ASRUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ASR",
+   "status": "TRADING",
+   "onboardDate": 1746611130000
+  },
+  "ASTERUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ASTER",
+   "status": "TRADING",
+   "onboardDate": 1758283200000
+  },
+  "ASTRUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ASTR",
+   "status": "TRADING",
+   "onboardDate": 1676271600000
+  },
+  "ATAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ATA",
+   "status": "TRADING",
+   "onboardDate": 1630306800000
+  },
+  "ATHUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ATH",
+   "status": "TRADING",
+   "onboardDate": 1743608700000
+  },
+  "ATOMUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ATOM",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "ATUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "AT",
+   "status": "TRADING",
+   "onboardDate": 1761737400000
+  },
+  "AUCTIONUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "AUCTION",
+   "status": "TRADING",
+   "onboardDate": 1702645200000
+  },
+  "AUDIOUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "AUDIO",
+   "status": "SETTLING",
+   "onboardDate": 1629270000000
+  },
+  "AUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "A",
+   "status": "TRADING",
+   "onboardDate": 1748419200000
+  },
+  "AVAAIUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "AVAAI",
+   "status": "TRADING",
+   "onboardDate": 1737119700000
+  },
+  "AVAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "AVA",
+   "status": "TRADING",
+   "onboardDate": 1734094800000
+  },
+  "AVAXUSDC": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDC",
+   "baseAsset": "AVAX",
+   "status": "TRADING",
+   "onboardDate": 1710918000000
+  },
+  "AVAXUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [
+    "DEFI"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "AVAX",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "AVNTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "AVNT",
+   "status": "TRADING",
+   "onboardDate": 1757430000000
+  },
+  "AWEUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "AWE",
+   "status": "TRADING",
+   "onboardDate": 1747814400000
+  },
+  "AXLUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "AXL",
+   "status": "TRADING",
+   "onboardDate": 1709307000000
+  },
+  "AXSUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "AXS",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "AZTECUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "AZTEC",
+   "status": "TRADING",
+   "onboardDate": 1770784200000
+  },
+  "B2USDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "B2",
+   "status": "TRADING",
+   "onboardDate": 1746538200000
+  },
+  "B3USDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "B3",
+   "status": "SETTLING",
+   "onboardDate": 1739446200000
+  },
+  "BABYUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "BABY",
+   "status": "TRADING",
+   "onboardDate": 1743859800000
+  },
+  "BADGERUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "BADGER",
+   "status": "SETTLING",
+   "onboardDate": 1699533000000
+  },
+  "BAKEUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "BAKE",
+   "status": "SETTLING",
+   "onboardDate": 1621321200000
+  },
+  "BALUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [
+    "DEFI"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "BAL",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1569398400000
+  },
+  "BANANAS31USDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "BANANAS31",
+   "status": "TRADING",
+   "onboardDate": 1742634900000
+  },
+  "BANANAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "BANANA",
+   "status": "TRADING",
+   "onboardDate": 1723687200000
+  },
+  "BANDUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [
+    "DEFI"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "BAND",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "BANKUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "BANK",
+   "status": "TRADING",
+   "onboardDate": 1745001000000
+  },
+  "BANUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "BAN",
+   "status": "TRADING",
+   "onboardDate": 1731929400000
+  },
+  "BARDUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "BARD",
+   "status": "TRADING",
+   "onboardDate": 1758193200000
+  },
+  "BASUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "BAS",
+   "status": "TRADING",
+   "onboardDate": 1756215000000
+  },
+  "BATUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "BAT",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "BBUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "BB",
+   "status": "TRADING",
+   "onboardDate": 1715603400000
+  },
+  "BCHUSDC": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDC",
+   "baseAsset": "BCH",
+   "status": "TRADING",
+   "onboardDate": 1712214000000
+  },
+  "BCHUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "BCH",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "BDXNUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "BDXN",
+   "status": "SETTLING",
+   "onboardDate": 1667890800000
+  },
+  "BEAMXUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "BEAMX",
+   "status": "TRADING",
+   "onboardDate": 1700227800000
+  },
+  "BEATUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "BEAT",
+   "status": "TRADING",
+   "onboardDate": 1762949700000
+  },
+  "BELUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [
+    "DEFI",
+    "BSC"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "BEL",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "BERAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "BERA",
+   "status": "TRADING",
+   "onboardDate": 1738854000000
+  },
+  "BICOUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "BICO",
+   "status": "TRADING",
+   "onboardDate": 1695933000000
+  },
+  "BIDUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "BID",
+   "status": "TRADING",
+   "onboardDate": 1742462100000
+  },
+  "BIGTIMEUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "BIGTIME",
+   "status": "TRADING",
+   "onboardDate": 1697121000000
+  },
+  "BIOUSDC": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDC",
+   "baseAsset": "BIO",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1756106100000
+  },
+  "BIOUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "BIO",
+   "status": "TRADING",
+   "onboardDate": 1735906500000
+  },
+  "BIRBUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "BIRB",
+   "status": "TRADING",
+   "onboardDate": 1769320200000
+  },
+  "BLESSUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "BLESS",
+   "status": "TRADING",
+   "onboardDate": 1758619800000
+  },
+  "BLUAIUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "BLUAI",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1761046200000
+  },
+  "BLUEBIRDUSDT": {
+   "underlyingType": "INDEX",
+   "underlyingSubType": [
+    "Index"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "BLUEBIRD",
+   "status": "SETTLING",
+   "onboardDate": 1667286000000
+  },
+  "BLURUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "BLUR",
+   "status": "TRADING",
+   "onboardDate": 1682553600000
+  },
+  "BMNRUSDT": {
+   "underlyingType": "EQUITY",
+   "underlyingSubType": [
+    "TradFi"
+   ],
+   "contractType": "TRADIFI_PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "BMNR",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1765497600000
+  },
+  "BMTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "BMT",
+   "status": "TRADING",
+   "onboardDate": 1742218200000
+  },
+  "BNBUSDC": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDC",
+   "baseAsset": "BNB",
+   "status": "TRADING",
+   "onboardDate": 1704285600000
+  },
+  "BNBUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [
+    "BSC",
+    "HOT"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "BNB",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "BNTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "BNT",
+   "status": "TRADING",
+   "onboardDate": 1608534000000
+  },
+  "BNXUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "BNX",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1742563740000
+  },
+  "BOBUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "BOB",
+   "status": "TRADING",
+   "onboardDate": 1763721900000
+  },
+  "BOMEUSDC": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDC",
+   "baseAsset": "BOME",
+   "status": "TRADING",
+   "onboardDate": 1714028400000
+  },
+  "BOMEUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "BOME",
+   "status": "TRADING",
+   "onboardDate": 1710592200000
+  },
+  "BONDUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "BOND",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1697380200000
+  },
+  "BRETTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "BRETT",
+   "status": "TRADING",
+   "onboardDate": 1724150100000
+  },
+  "BREVUSDT": {
+   "underlyingType": "PREMARKET",
+   "underlyingSubType": [
+    "Pre-Market"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "BREV",
+   "status": "TRADING",
+   "onboardDate": 1767090600000
+  },
+  "BROCCOLI714USDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "BROCCOLI714",
+   "status": "TRADING",
+   "onboardDate": 1742547600000
+  },
+  "BROCCOLIF3BUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "BROCCOLIF3B",
+   "status": "TRADING",
+   "onboardDate": 1742548500000
+  },
+  "BRUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "BR",
+   "status": "TRADING",
+   "onboardDate": 1742561100000
+  },
+  "BSBUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "BSB",
+   "status": "TRADING",
+   "onboardDate": 1774439100000
+  },
+  "BSBUSDT_260618": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "CURRENT_WEEK",
+   "quoteAsset": "USDT",
+   "baseAsset": "BSB",
+   "status": "TRADING",
+   "onboardDate": 1781091900000
+  },
+  "BSBUSDT_260625": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "NEXT_WEEK",
+   "quoteAsset": "USDT",
+   "baseAsset": "BSB",
+   "status": "TRADING",
+   "onboardDate": 1781164800000
+  },
+  "BSVUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "BSV",
+   "status": "TRADING",
+   "onboardDate": 1697833800000
+  },
+  "BSWUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "BSW",
+   "status": "SETTLING",
+   "onboardDate": 1725516000000
+  },
+  "BTCDOMUSDT": {
+   "underlyingType": "INDEX",
+   "underlyingSubType": [
+    "DEFI"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "BTCDOM",
+   "status": "TRADING",
+   "onboardDate": 1623913200000
+  },
+  "BTCSTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [
+    "DEFI"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "BTCST",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1614754800000
+  },
+  "BTCU": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [
+    "PoW"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "U",
+   "baseAsset": "BTC",
+   "status": "TRADING",
+   "onboardDate": 1782829800000
+  },
+  "BTCUSD1": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USD1",
+   "baseAsset": "BTC",
+   "status": "TRADING",
+   "onboardDate": 1779094800000
+  },
+  "BTCUSDC": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDC",
+   "baseAsset": "BTC",
+   "status": "TRADING",
+   "onboardDate": 1704285000000
+  },
+  "BTCUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "BTC",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "BTCUSDT_250627": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "CURRENT_QUARTER DELIVERING",
+   "quoteAsset": "USDT",
+   "baseAsset": "BTC",
+   "status": "DELIVERING",
+   "onboardDate": 1735200000000
+  },
+  "BTCUSDT_250926": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "CURRENT_QUARTER DELIVERING",
+   "quoteAsset": "USDT",
+   "baseAsset": "BTC",
+   "status": "DELIVERING",
+   "onboardDate": 1742544000000
+  },
+  "BTCUSDT_251226": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "CURRENT_QUARTER DELIVERING",
+   "quoteAsset": "USDT",
+   "baseAsset": "BTC",
+   "status": "DELIVERING",
+   "onboardDate": 1750838400000
+  },
+  "BTCUSDT_260327": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "CURRENT_QUARTER DELIVERING",
+   "quoteAsset": "USDT",
+   "baseAsset": "BTC",
+   "status": "DELIVERING",
+   "onboardDate": 1758700800000
+  },
+  "BTCUSDT_260626": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "CURRENT_QUARTER DELIVERING",
+   "quoteAsset": "USDT",
+   "baseAsset": "BTC",
+   "status": "DELIVERING",
+   "onboardDate": 1766476800000
+  },
+  "BTCUSDT_260925": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "CURRENT_QUARTER",
+   "quoteAsset": "USDT",
+   "baseAsset": "BTC",
+   "status": "TRADING",
+   "onboardDate": 1774252800000
+  },
+  "BTCUSDT_261225": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "NEXT_QUARTER",
+   "quoteAsset": "USDT",
+   "baseAsset": "BTC",
+   "status": "TRADING",
+   "onboardDate": 1782460800000
+  },
+  "BTRUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "BTR",
+   "status": "TRADING",
+   "onboardDate": 1756294200000
+  },
+  "BULLAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "BULLA",
+   "status": "TRADING",
+   "onboardDate": 1751619600000
+  },
+  "BUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "B",
+   "status": "TRADING",
+   "onboardDate": 1747931400000
+  },
+  "C98USDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "C98",
+   "status": "TRADING",
+   "onboardDate": 1629702000000
+  },
+  "CAKEUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "CAKE",
+   "status": "TRADING",
+   "onboardDate": 1698929100000
+  },
+  "CARVUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "CARV",
+   "status": "TRADING",
+   "onboardDate": 1754585100000
+  },
+  "CATIUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "CATI",
+   "status": "TRADING",
+   "onboardDate": 1726831800000
+  },
+  "CCUSDT": {
+   "underlyingType": "PREMARKET",
+   "underlyingSubType": [
+    "Pre-Market"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "CC",
+   "status": "TRADING",
+   "onboardDate": 1761911100000
+  },
+  "CELOUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "CELO",
+   "status": "TRADING",
+   "onboardDate": 1632639600000
+  },
+  "CELRUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "CELR",
+   "status": "TRADING",
+   "onboardDate": 1617001200000
+  },
+  "CETUSUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "CETUS",
+   "status": "TRADING",
+   "onboardDate": 1730901600000
+  },
+  "CFXUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "CFX",
+   "status": "TRADING",
+   "onboardDate": 1676790000000
+  },
+  "CGPTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "CGPT",
+   "status": "TRADING",
+   "onboardDate": 1734722100000
+  },
+  "CHESSUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "CHESS",
+   "status": "TRADING",
+   "onboardDate": 1724916600000
+  },
+  "CHILLGUYUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "CHILLGUY",
+   "status": "TRADING",
+   "onboardDate": 1732718700000
+  },
+  "CHRUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "CHR",
+   "status": "TRADING",
+   "onboardDate": 1615532400000
+  },
+  "CHZUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "CHZ",
+   "status": "TRADING",
+   "onboardDate": 1611212400000
+  },
+  "CKBUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "CKB",
+   "status": "TRADING",
+   "onboardDate": 1677456000000
+  },
+  "CLANKERUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "CLANKER",
+   "status": "TRADING",
+   "onboardDate": 1762948800000
+  },
+  "CLOUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "CLO",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1760441400000
+  },
+  "COAIUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "COAI",
+   "status": "TRADING",
+   "onboardDate": 1758785400000
+  },
+  "COINUSDT": {
+   "underlyingType": "EQUITY",
+   "underlyingSubType": [
+    "TradFi"
+   ],
+   "contractType": "TRADIFI_PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "COIN",
+   "status": "TRADING",
+   "onboardDate": 1770649200000
+  },
+  "COLLECTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "COLLECT",
+   "status": "TRADING",
+   "onboardDate": 1767186900000
+  },
+  "COMBOUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "COMBO",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1685707200000
+  },
+  "COMMONUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "COMMON",
+   "status": "TRADING",
+   "onboardDate": 1761568200000
+  },
+  "COMPUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [
+    "DEFI"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "COMP",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "COOKIEUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "COOKIE",
+   "status": "TRADING",
+   "onboardDate": 1736249400000
+  },
+  "COPPERUSDT": {
+   "underlyingType": "COMMODITY",
+   "underlyingSubType": [
+    "TradFi"
+   ],
+   "contractType": "TRADIFI_PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "COPPER",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1772787600000
+  },
+  "COSUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "COS",
+   "status": "TRADING",
+   "onboardDate": 1727701200000
+  },
+  "COTIUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "COTI",
+   "status": "TRADING",
+   "onboardDate": 1615273200000
+  },
+  "COWUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "COW",
+   "status": "TRADING",
+   "onboardDate": 1730899800000
+  },
+  "CRCLUSDT": {
+   "underlyingType": "EQUITY",
+   "underlyingSubType": [
+    "TradFi"
+   ],
+   "contractType": "TRADIFI_PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "CRCL",
+   "status": "TRADING",
+   "onboardDate": 1770647400000
+  },
+  "CROSSUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "CROSS",
+   "status": "TRADING",
+   "onboardDate": 1752143400000
+  },
+  "CRVUSDC": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDC",
+   "baseAsset": "CRV",
+   "status": "TRADING",
+   "onboardDate": 1720076400000
+  },
+  "CRVUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [
+    "DEFI"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "CRV",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "CSOPSAMSUNG2LUSDT": {
+   "underlyingType": "HK_EQUITY",
+   "underlyingSubType": [
+    "TradFi"
+   ],
+   "contractType": "TRADIFI_PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "CSOPSAMSUNG2L",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1784264400000
+  },
+  "CTKUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [
+    "BSC"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "CTK",
+   "status": "SETTLING",
+   "onboardDate": 1569398400000
+  },
+  "CTSIUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "CTSI",
+   "status": "TRADING",
+   "onboardDate": 1635145200000
+  },
+  "CUDISUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "CUDIS",
+   "status": "TRADING",
+   "onboardDate": 1755688500000
+  },
+  "CUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "C",
+   "status": "TRADING",
+   "onboardDate": 1752570000000
+  },
+  "CVXUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "CVX",
+   "status": "SETTLING",
+   "onboardDate": 1662757200000
+  },
+  "CYBERUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "CYBER",
+   "status": "TRADING",
+   "onboardDate": 1692619200000
+  },
+  "CYSUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "CYS",
+   "status": "TRADING",
+   "onboardDate": 1765537200000
+  },
+  "DAMUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "DAM",
+   "status": "TRADING",
+   "onboardDate": 1755520200000
+  },
+  "DARUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "DAR",
+   "status": "SETTLING",
+   "onboardDate": 1651129200000
+  },
+  "DASHUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "DASH",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "DEEPUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "DEEP",
+   "status": "TRADING",
+   "onboardDate": 1745310600000
+  },
+  "DEFIUSDT": {
+   "underlyingType": "INDEX",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "DEFI",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1569398400000
+  },
+  "DEGENUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "DEGEN",
+   "status": "TRADING",
+   "onboardDate": 1731670200000
+  },
+  "DEGOUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "DEGO",
+   "status": "SETTLING",
+   "onboardDate": 1734095700000
+  },
+  "DENTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "DENT",
+   "status": "TRADING",
+   "onboardDate": 1616482800000
+  },
+  "DEXEUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "DEXE",
+   "status": "TRADING",
+   "onboardDate": 1735039800000
+  },
+  "DFUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "DF",
+   "status": "TRADING",
+   "onboardDate": 1735558200000
+  },
+  "DGBUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "DGB",
+   "status": "SETTLING",
+   "onboardDate": 1618815600000
+  },
+  "DIAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "DIA",
+   "status": "TRADING",
+   "onboardDate": 1727785800000
+  },
+  "DISUSDT": {
+   "underlyingType": "EQUITY",
+   "underlyingSubType": [
+    "TradFi"
+   ],
+   "contractType": "TRADIFI_PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "DIS",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1778852400000
+  },
+  "DMCUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "DMC",
+   "status": "TRADING",
+   "onboardDate": 1750770000000
+  },
+  "DODOXUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "DODOX",
+   "status": "TRADING",
+   "onboardDate": 1691496000000
+  },
+  "DOGEUSDC": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDC",
+   "baseAsset": "DOGE",
+   "status": "TRADING",
+   "onboardDate": 1705572000000
+  },
+  "DOGEUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [
+    "HOT"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "DOGE",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "DOGSUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "DOGS",
+   "status": "TRADING",
+   "onboardDate": 1724675400000
+  },
+  "DOLOUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "DOLO",
+   "status": "TRADING",
+   "onboardDate": 1746068400000
+  },
+  "DOODUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "DOOD",
+   "status": "TRADING",
+   "onboardDate": 1746797400000
+  },
+  "DOTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [
+    "HOT"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "DOT",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "DRIFTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "DRIFT",
+   "status": "TRADING",
+   "onboardDate": 1731080700000
+  },
+  "DUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "D",
+   "status": "TRADING",
+   "onboardDate": 1736416800000
+  },
+  "DUSKUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "DUSK",
+   "status": "TRADING",
+   "onboardDate": 1641452400000
+  },
+  "DYDXUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "DYDX",
+   "status": "TRADING",
+   "onboardDate": 1631170800000
+  },
+  "DYMUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "DYM",
+   "status": "TRADING",
+   "onboardDate": 1707280200000
+  },
+  "EDENUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "EDEN",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1759230000000
+  },
+  "EDGEUSDT": {
+   "underlyingType": "PREMARKET",
+   "underlyingSubType": [
+    "Pre-Market"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "EDGE",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1773928800000
+  },
+  "EDUUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "EDU",
+   "status": "TRADING",
+   "onboardDate": 1682640000000
+  },
+  "EGLDUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "EGLD",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "EIGENUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "EIGEN",
+   "status": "TRADING",
+   "onboardDate": 1727762400000
+  },
+  "ELSAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ELSA",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1769066700000
+  },
+  "ENAUSDC": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDC",
+   "baseAsset": "ENA",
+   "status": "TRADING",
+   "onboardDate": 1714633200000
+  },
+  "ENAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ENA",
+   "status": "TRADING",
+   "onboardDate": 1712061000000
+  },
+  "ENJUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ENJ",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "ENSOUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ENSO",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1760432400000
+  },
+  "ENSUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ENS",
+   "status": "TRADING",
+   "onboardDate": 1638169200000
+  },
+  "EOSUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "EOS",
+   "status": "SETTLING",
+   "onboardDate": 1569398400000
+  },
+  "EPICUSDT": {
+   "underlyingType": "PREMARKET",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "EPIC",
+   "status": "TRADING",
+   "onboardDate": 1741852800000
+  },
+  "EPTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "EPT",
+   "status": "TRADING",
+   "onboardDate": 1745240400000
+  },
+  "ERAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ERA",
+   "status": "TRADING",
+   "onboardDate": 1752759000000
+  },
+  "ESPORTSUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ESPORTS",
+   "status": "TRADING",
+   "onboardDate": 1753783200000
+  },
+  "ESPUSDT": {
+   "underlyingType": "PREMARKET",
+   "underlyingSubType": [
+    "Pre-Market"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ESP",
+   "status": "TRADING",
+   "onboardDate": 1770711000000
+  },
+  "ETCUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ETC",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "ETHBTC": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "BTC",
+   "baseAsset": "ETH",
+   "status": "TRADING",
+   "onboardDate": 1680566400000
+  },
+  "ETHFIUSDC": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDC",
+   "baseAsset": "ETHFI",
+   "status": "TRADING",
+   "onboardDate": 1714634100000
+  },
+  "ETHFIUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ETHFI",
+   "status": "TRADING",
+   "onboardDate": 1710775800000
+  },
+  "ETHU": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [
+    "Layer-1"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "U",
+   "baseAsset": "ETH",
+   "status": "TRADING",
+   "onboardDate": 1782829800000
+  },
+  "ETHUSD1": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [
+    "Layer-1"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USD1",
+   "baseAsset": "ETH",
+   "status": "TRADING",
+   "onboardDate": 1782993600000
+  },
+  "ETHUSDC": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDC",
+   "baseAsset": "ETH",
+   "status": "TRADING",
+   "onboardDate": 1704285300000
+  },
+  "ETHUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ETH",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "ETHUSDT_250627": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "CURRENT_QUARTER DELIVERING",
+   "quoteAsset": "USDT",
+   "baseAsset": "ETH",
+   "status": "DELIVERING",
+   "onboardDate": 1735027200000
+  },
+  "ETHUSDT_250926": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "CURRENT_QUARTER DELIVERING",
+   "quoteAsset": "USDT",
+   "baseAsset": "ETH",
+   "status": "DELIVERING",
+   "onboardDate": 1742544000000
+  },
+  "ETHUSDT_251226": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "CURRENT_QUARTER DELIVERING",
+   "quoteAsset": "USDT",
+   "baseAsset": "ETH",
+   "status": "DELIVERING",
+   "onboardDate": 1750838400000
+  },
+  "ETHUSDT_260327": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "CURRENT_QUARTER DELIVERING",
+   "quoteAsset": "USDT",
+   "baseAsset": "ETH",
+   "status": "DELIVERING",
+   "onboardDate": 1758700800000
+  },
+  "ETHUSDT_260626": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "CURRENT_QUARTER DELIVERING",
+   "quoteAsset": "USDT",
+   "baseAsset": "ETH",
+   "status": "DELIVERING",
+   "onboardDate": 1766476800000
+  },
+  "ETHUSDT_260925": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "CURRENT_QUARTER",
+   "quoteAsset": "USDT",
+   "baseAsset": "ETH",
+   "status": "TRADING",
+   "onboardDate": 1774252800000
+  },
+  "ETHUSDT_261225": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "NEXT_QUARTER",
+   "quoteAsset": "USDT",
+   "baseAsset": "ETH",
+   "status": "TRADING",
+   "onboardDate": 1782460800000
+  },
+  "ETHWUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ETHW",
+   "status": "TRADING",
+   "onboardDate": 1701174600000
+  },
+  "EULUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "EUL",
+   "status": "TRADING",
+   "onboardDate": 1760365800000
+  },
+  "EVAAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "EVAA",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1759487400000
+  },
+  "EWJUSDT": {
+   "underlyingType": "EQUITY",
+   "underlyingSubType": [
+    "TradFi"
+   ],
+   "contractType": "TRADIFI_PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "EWJ",
+   "status": "TRADING",
+   "onboardDate": 1773878400000
+  },
+  "FAHOODUSDT": {
+   "underlyingType": "EQUITY",
+   "underlyingSubType": [
+    "TradFi"
+   ],
+   "contractType": "TRADIFI_PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "FAHOOD",
+   "status": "SETTLING",
+   "onboardDate": 1770043500000
+  },
+  "FAKEKR000660USDT": {
+   "underlyingType": "EQUITY",
+   "underlyingSubType": [
+    "TradFi"
+   ],
+   "contractType": "TRADIFI_PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "FAKEKR000660",
+   "status": "SETTLING",
+   "onboardDate": 1779148800000
+  },
+  "FARTCOINUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "FARTCOIN",
+   "status": "TRADING",
+   "onboardDate": 1734720300000
+  },
+  "FETUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "FET",
+   "status": "TRADING",
+   "onboardDate": 1676530800000
+  },
+  "FFUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "FF",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1759150800000
+  },
+  "FHEUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "FHE",
+   "status": "TRADING",
+   "onboardDate": 1744470000000
+  },
+  "FIDAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "FIDA",
+   "status": "TRADING",
+   "onboardDate": 1726749000000
+  },
+  "FIGHTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "FIGHT",
+   "status": "TRADING",
+   "onboardDate": 1769170500000
+  },
+  "FILUSDC": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDC",
+   "baseAsset": "FIL",
+   "status": "TRADING",
+   "onboardDate": 1713425400000
+  },
+  "FILUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "FIL",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "FIOUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "FIO",
+   "status": "TRADING",
+   "onboardDate": 1726831800000
+  },
+  "FISUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "FIS",
+   "status": "TRADING",
+   "onboardDate": 1745566200000
+  },
+  "FLMUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [
+    "DEFI"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "FLM",
+   "status": "PRE_SETTLE",
+   "onboardDate": 1569398400000
+  },
+  "FLOCKUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "FLOCK",
+   "status": "TRADING",
+   "onboardDate": 1757400300000
+  },
+  "FLOWUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "FLOW",
+   "status": "TRADING",
+   "onboardDate": 1644390000000
+  },
+  "FLUIDUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "FLUID",
+   "status": "TRADING",
+   "onboardDate": 1758708900000
+  },
+  "FLUXUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "FLUX",
+   "status": "TRADING",
+   "onboardDate": 1725346800000
+  },
+  "FOGOUSDT": {
+   "underlyingType": "PREMARKET",
+   "underlyingSubType": [
+    "Pre-Market"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "FOGO",
+   "status": "TRADING",
+   "onboardDate": 1768053600000
+  },
+  "FOLKSUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "FOLKS",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1762432200000
+  },
+  "FOOTBALLUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "FOOTBALL",
+   "status": "SETTLING",
+   "onboardDate": 1627628400000
+  },
+  "FORMUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "FORM",
+   "status": "TRADING",
+   "onboardDate": 1742371200000
+  },
+  "FORTHUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "FORTH",
+   "status": "TRADING",
+   "onboardDate": 1744101000000
+  },
+  "FRAXUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "FRAX",
+   "status": "TRADING",
+   "onboardDate": 1768464000000
+  },
+  "FTMUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [
+    "DEFI"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "FTM",
+   "status": "SETTLING",
+   "onboardDate": 1569398400000
+  },
+  "FUNUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "FUN",
+   "status": "TRADING",
+   "onboardDate": 1743409800000
+  },
+  "FUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "F",
+   "status": "TRADING",
+   "onboardDate": 1750250700000
+  },
+  "FXSUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "FXS",
+   "status": "TRADING",
+   "onboardDate": 1674111600000
+  },
+  "GAIBUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "GAIB",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1763629200000
+  },
+  "GALAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "GALA",
+   "status": "TRADING",
+   "onboardDate": 1631862000000
+  },
+  "GASUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "GAS",
+   "status": "TRADING",
+   "onboardDate": 1698201900000
+  },
+  "GHSTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "GHST",
+   "status": "TRADING",
+   "onboardDate": 1727096400000
+  },
+  "GIGGLEUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "GIGGLE",
+   "status": "TRADING",
+   "onboardDate": 1760003100000
+  },
+  "GLMRUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "GLMR",
+   "status": "SETTLING",
+   "onboardDate": 1695691800000
+  },
+  "GLMUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "GLM",
+   "status": "TRADING",
+   "onboardDate": 1708596000000
+  },
+  "GMTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "GMT",
+   "status": "TRADING",
+   "onboardDate": 1647241200000
+  },
+  "GMXUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "GMX",
+   "status": "TRADING",
+   "onboardDate": 1676530800000
+  },
+  "GOATUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "GOAT",
+   "status": "TRADING",
+   "onboardDate": 1729776600000
+  },
+  "GOOGLEUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "TRADIFI_PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "GOOGLE",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1774396800000
+  },
+  "GOOGLUSDT": {
+   "underlyingType": "EQUITY",
+   "underlyingSubType": [
+    "TradFi"
+   ],
+   "contractType": "TRADIFI_PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "GOOGL",
+   "status": "TRADING",
+   "onboardDate": 1774396800000
+  },
+  "GPSUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "GPS",
+   "status": "TRADING",
+   "onboardDate": 1739811600000
+  },
+  "GRASSUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "GRASS",
+   "status": "TRADING",
+   "onboardDate": 1731079800000
+  },
+  "GRIFFAINUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "GRIFFAIN",
+   "status": "TRADING",
+   "onboardDate": 1735824600000
+  },
+  "GRTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "GRT",
+   "status": "TRADING",
+   "onboardDate": 1598252400000
+  },
+  "GTCUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "GTC",
+   "status": "TRADING",
+   "onboardDate": 1615791600000
+  },
+  "GUAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "GUA",
+   "status": "TRADING",
+   "onboardDate": 1766312100000
+  },
+  "GUNUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "GUN",
+   "status": "TRADING",
+   "onboardDate": 1743426000000
+  },
+  "GUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "G",
+   "status": "TRADING",
+   "onboardDate": 1723725000000
+  },
+  "GWEIUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "GWEI",
+   "status": "TRADING",
+   "onboardDate": 1769320200000
+  },
+  "HAEDALUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "HAEDAL",
+   "status": "TRADING",
+   "onboardDate": 1746069300000
+  },
+  "HANAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "HANA",
+   "status": "TRADING",
+   "onboardDate": 1758886200000
+  },
+  "HBARUSDC": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDC",
+   "baseAsset": "HBAR",
+   "status": "TRADING",
+   "onboardDate": 1741342500000
+  },
+  "HBARUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "HBAR",
+   "status": "TRADING",
+   "onboardDate": 1615964400000
+  },
+  "HEIUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "HEI",
+   "status": "TRADING",
+   "onboardDate": 1739437200000
+  },
+  "HEMIUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "HEMI",
+   "status": "TRADING",
+   "onboardDate": 1756441800000
+  },
+  "HFTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "HFT",
+   "status": "TRADING",
+   "onboardDate": 1680652800000
+  },
+  "HIFIUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "HIFI",
+   "status": "SETTLING",
+   "onboardDate": 1694874600000
+  },
+  "HIGHUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "HIGH",
+   "status": "TRADING",
+   "onboardDate": 1675407600000
+  },
+  "HIPPOUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "HIPPO",
+   "status": "TRADING",
+   "onboardDate": 1731501000000
+  },
+  "HIVEUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "HIVE",
+   "status": "TRADING",
+   "onboardDate": 1734953400000
+  },
+  "HK0700USDT": {
+   "underlyingType": "HK_EQUITY",
+   "underlyingSubType": [
+    "TradFi"
+   ],
+   "contractType": "TRADIFI_PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "HK0700",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1784257800000
+  },
+  "HK1810USDT": {
+   "underlyingType": "HK_EQUITY",
+   "underlyingSubType": [
+    "TradFi"
+   ],
+   "contractType": "TRADIFI_PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "HK1810",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1784258100000
+  },
+  "HMSTRUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "HMSTR",
+   "status": "TRADING",
+   "onboardDate": 1727353800000
+  },
+  "HOLOUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "HOLO",
+   "status": "TRADING",
+   "onboardDate": 1757592000000
+  },
+  "HOMEUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "HOME",
+   "status": "TRADING",
+   "onboardDate": 1667890800000
+  },
+  "HOODUSDT": {
+   "underlyingType": "EQUITY",
+   "underlyingSubType": [
+    "TradFi"
+   ],
+   "contractType": "TRADIFI_PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "HOOD",
+   "status": "TRADING",
+   "onboardDate": 1770043500000
+  },
+  "HOOKUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "HOOK",
+   "status": "TRADING",
+   "onboardDate": 1674111600000
+  },
+  "HOTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "HOT",
+   "status": "TRADING",
+   "onboardDate": 1617087600000
+  },
+  "HUMAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "HUMA",
+   "status": "TRADING",
+   "onboardDate": 1748264400000
+  },
+  "HUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "H",
+   "status": "TRADING",
+   "onboardDate": 1750843800000
+  },
+  "HYPERUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "HYPER",
+   "status": "TRADING",
+   "onboardDate": 1745326800000
+  },
+  "HYPEUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "HYPE",
+   "status": "TRADING",
+   "onboardDate": 1748601000000
+  },
+  "ICNTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ICNT",
+   "status": "TRADING",
+   "onboardDate": 1751547600000
+  },
+  "ICXUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ICX",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "IDEXUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "IDEX",
+   "status": "SETTLING",
+   "onboardDate": 1682985600000
+  },
+  "IDOL": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "IDOL",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1751620500000
+  },
+  "IDOLUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "IDOL",
+   "status": "TRADING",
+   "onboardDate": 1751620500000
+  },
+  "IDUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ID",
+   "status": "TRADING",
+   "onboardDate": 1679529600000
+  },
+  "ILVUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ILV",
+   "status": "TRADING",
+   "onboardDate": 1699633800000
+  },
+  "IMXUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "IMX",
+   "status": "TRADING",
+   "onboardDate": 1644476400000
+  },
+  "INITUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "INIT",
+   "status": "TRADING",
+   "onboardDate": 1744785000000
+  },
+  "INJUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "INJ",
+   "status": "TRADING",
+   "onboardDate": 1660633200000
+  },
+  "INTCUSDT": {
+   "underlyingType": "EQUITY",
+   "underlyingSubType": [
+    "TradFi"
+   ],
+   "contractType": "TRADIFI_PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "INTC",
+   "status": "TRADING",
+   "onboardDate": 1770042600000
+  },
+  "INUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "IN",
+   "status": "TRADING",
+   "onboardDate": 1754562600000
+  },
+  "INXUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "INX",
+   "status": "TRADING",
+   "onboardDate": 1769799600000
+  },
+  "IOSTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "IOST",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "IOTAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "IOTA",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "IOTXUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "IOTX",
+   "status": "TRADING",
+   "onboardDate": 1628665200000
+  },
+  "IOUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "IO",
+   "status": "TRADING",
+   "onboardDate": 1718114400000
+  },
+  "IPUSDC": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDC",
+   "baseAsset": "IP",
+   "status": "TRADING",
+   "onboardDate": 1741169700000
+  },
+  "IPUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "IP",
+   "status": "TRADING",
+   "onboardDate": 1739466000000
+  },
+  "IRUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "IR",
+   "status": "TRADING",
+   "onboardDate": 1766313000000
+  },
+  "JASMYUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "JASMY",
+   "status": "TRADING",
+   "onboardDate": 1650351600000
+  },
+  "JCTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "JCT",
+   "status": "TRADING",
+   "onboardDate": 1762770600000
+  },
+  "JELLYJELLYUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "JELLYJELLY",
+   "status": "TRADING",
+   "onboardDate": 1743004800000
+  },
+  "JOEUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "JOE",
+   "status": "TRADING",
+   "onboardDate": 1679961600000
+  },
+  "JSTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "JST",
+   "status": "TRADING",
+   "onboardDate": 1745832600000
+  },
+  "JTOUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "JTO",
+   "status": "TRADING",
+   "onboardDate": 1702029600000
+  },
+  "JUPUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "JUP",
+   "status": "TRADING",
+   "onboardDate": 1706725800000
+  },
+  "KAIAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "KAIA",
+   "status": "TRADING",
+   "onboardDate": 1733320800000
+  },
+  "KAITOUSDC": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDC",
+   "baseAsset": "KAITO",
+   "status": "TRADING",
+   "onboardDate": 1741168800000
+  },
+  "KAITOUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "KAITO",
+   "status": "TRADING",
+   "onboardDate": 1740056400000
+  },
+  "KASUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "KAS",
+   "status": "TRADING",
+   "onboardDate": 1700186400000
+  },
+  "KATUSDT": {
+   "underlyingType": "PREMARKET",
+   "underlyingSubType": [
+    "Pre-Market"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "KAT",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1772427600000
+  },
+  "KAVAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [
+    "DEFI"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "KAVA",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "KDAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "KDA",
+   "status": "SETTLING",
+   "onboardDate": 1726666200000
+  },
+  "KERNELUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "KERNEL",
+   "status": "TRADING",
+   "onboardDate": 1744632000000
+  },
+  "KEYUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "KEY",
+   "status": "SETTLING",
+   "onboardDate": 1684800000000
+  },
+  "KGENUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "KGEN",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1759840200000
+  },
+  "KITEUSDT": {
+   "underlyingType": "PREMARKET",
+   "underlyingSubType": [
+    "Pre-Market"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "KITE",
+   "status": "TRADING",
+   "onboardDate": 1761733800000
+  },
+  "KLAYUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "KLAY",
+   "status": "SETTLING",
+   "onboardDate": 1633935600000
+  },
+  "KMNOUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "KMNO",
+   "status": "TRADING",
+   "onboardDate": 1734721200000
+  },
+  "KNCUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [
+    "DEFI"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "KNC",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "KOMAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "KOMA",
+   "status": "TRADING",
+   "onboardDate": 1733832900000
+  },
+  "KORUUSDT": {
+   "underlyingType": "EQUITY",
+   "underlyingSubType": [
+    "TradFi"
+   ],
+   "contractType": "TRADIFI_PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "KORU",
+   "status": "TRADING",
+   "onboardDate": 1783414800000
+  },
+  "KSMUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "KSM",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "LABUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "LAB",
+   "status": "TRADING",
+   "onboardDate": 1760711400000
+  },
+  "LAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "LA",
+   "status": "TRADING",
+   "onboardDate": 1749114000000
+  },
+  "LAYERUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "LAYER",
+   "status": "TRADING",
+   "onboardDate": 1739288700000
+  },
+  "LDOUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "LDO",
+   "status": "TRADING",
+   "onboardDate": 1662757200000
+  },
+  "LEVERUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "LEVER",
+   "status": "SETTLING",
+   "onboardDate": 1680048000000
+  },
+  "LIGHTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "LIGHT",
+   "status": "TRADING",
+   "onboardDate": 1758972600000
+  },
+  "LINAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "LINA",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1615964400000
+  },
+  "LINEAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "LINEA",
+   "status": "TRADING",
+   "onboardDate": 1756715400000
+  },
+  "LINKUSDC": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDC",
+   "baseAsset": "LINK",
+   "status": "TRADING",
+   "onboardDate": 1708072200000
+  },
+  "LINKUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [
+    "DEFI",
+    "HOT"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "LINK",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "LISTAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "LISTA",
+   "status": "TRADING",
+   "onboardDate": 1718886600000
+  },
+  "LITUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "LIT",
+   "status": "SETTLING",
+   "onboardDate": 1613545200000
+  },
+  "LOKAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "LOKA",
+   "status": "SETTLING",
+   "onboardDate": 1727177400000
+  },
+  "LOOMUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "LOOM",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1697034600000
+  },
+  "LPTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "LPT",
+   "status": "TRADING",
+   "onboardDate": 1636527600000
+  },
+  "LQTYUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "LQTY",
+   "status": "TRADING",
+   "onboardDate": 1678345200000
+  },
+  "LRCUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [
+    "DEFI"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "LRC",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "LSKUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "LSK",
+   "status": "TRADING",
+   "onboardDate": 1706192100000
+  },
+  "LTCUSDC": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDC",
+   "baseAsset": "LTC",
+   "status": "TRADING",
+   "onboardDate": 1712818800000
+  },
+  "LTCUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "LTC",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "LUMIAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "LUMIA",
+   "status": "TRADING",
+   "onboardDate": 1734521400000
+  },
+  "LUNA2USDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "LUNA2",
+   "status": "TRADING",
+   "onboardDate": 1662706800000
+  },
+  "LYNUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "LYN",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1759735800000
+  },
+  "MAGICUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "MAGIC",
+   "status": "TRADING",
+   "onboardDate": 1674457200000
+  },
+  "MAGMAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "MAGMA",
+   "status": "TRADING",
+   "onboardDate": 1767187800000
+  },
+  "MANAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "MANA",
+   "status": "TRADING",
+   "onboardDate": 1615705200000
+  },
+  "MANTAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "MANTA",
+   "status": "TRADING",
+   "onboardDate": 1705586400000
+  },
+  "MANTRAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "MANTRA",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1772611200000
+  },
+  "MASKUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "MASK",
+   "status": "TRADING",
+   "onboardDate": 1626418800000
+  },
+  "MAVIAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "MAVIA",
+   "status": "SETTLING",
+   "onboardDate": 1708509600000
+  },
+  "MAVUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "MAV",
+   "status": "TRADING",
+   "onboardDate": 1688040000000
+  },
+  "MBLUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "MBL",
+   "status": "SETTLING",
+   "onboardDate": 1699974000000
+  },
+  "MBOXUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "MBOX",
+   "status": "TRADING",
+   "onboardDate": 1724837400000
+  },
+  "MDTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "MDT",
+   "status": "SETTLING",
+   "onboardDate": 1688126400000
+  },
+  "MEGAUSDT": {
+   "underlyingType": "PREMARKET",
+   "underlyingSubType": [
+    "Pre-Market"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "MEGA",
+   "status": "TRADING",
+   "onboardDate": 1769775300000
+  },
+  "MELANIAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "MELANIA",
+   "status": "TRADING",
+   "onboardDate": 1737365400000
+  },
+  "MEMEFIUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "MEMEFI",
+   "status": "SETTLING",
+   "onboardDate": 1745565300000
+  },
+  "MEMEUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "MEME",
+   "status": "TRADING",
+   "onboardDate": 1699012800000
+  },
+  "MERLUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "MERL",
+   "status": "TRADING",
+   "onboardDate": 1748507400000
+  },
+  "METAUSDT": {
+   "underlyingType": "EQUITY",
+   "underlyingSubType": [
+    "TradFi"
+   ],
+   "contractType": "TRADIFI_PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "META",
+   "status": "TRADING",
+   "onboardDate": 1774396800000
+  },
+  "METISUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "METIS",
+   "status": "TRADING",
+   "onboardDate": 1710232200000
+  },
+  "METUSDT": {
+   "underlyingType": "PREMARKET",
+   "underlyingSubType": [
+    "Pre-Market"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "MET",
+   "status": "TRADING",
+   "onboardDate": 1760185800000
+  },
+  "MEUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ME",
+   "status": "TRADING",
+   "onboardDate": 1733850000000
+  },
+  "MEWUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "MEW",
+   "status": "TRADING",
+   "onboardDate": 1718632800000
+  },
+  "MILKUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "MILK",
+   "status": "TRADING",
+   "onboardDate": 1746539100000
+  },
+  "MINAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "MINA",
+   "status": "TRADING",
+   "onboardDate": 1675407600000
+  },
+  "MINIMAXUSDT": {
+   "underlyingType": "HK_EQUITY",
+   "underlyingSubType": [
+    "TradFi"
+   ],
+   "contractType": "TRADIFI_PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "MINIMAX",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1784257200000
+  },
+  "MIRAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "MIRA",
+   "status": "TRADING",
+   "onboardDate": 1758888000000
+  },
+  "MITOUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "MITO",
+   "status": "TRADING",
+   "onboardDate": 1756391400000
+  },
+  "MKRUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [
+    "DEFI"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "MKR",
+   "status": "SETTLING",
+   "onboardDate": 1569398400000
+  },
+  "MLNUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "MLN",
+   "status": "TRADING",
+   "onboardDate": 1743410700000
+  },
+  "MMTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "MMT",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1762257600000
+  },
+  "MOCAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "MOCA",
+   "status": "TRADING",
+   "onboardDate": 1734348600000
+  },
+  "MONUSDT": {
+   "underlyingType": "PREMARKET",
+   "underlyingSubType": [
+    "Pre-Market"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "MON",
+   "status": "TRADING",
+   "onboardDate": 1760080500000
+  },
+  "MOODENGUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "MOODENG",
+   "status": "TRADING",
+   "onboardDate": 1729850400000
+  },
+  "MORPHOUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "MORPHO",
+   "status": "TRADING",
+   "onboardDate": 1732717800000
+  },
+  "MOVEUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "MOVE",
+   "status": "TRADING",
+   "onboardDate": 1733752800000
+  },
+  "MOVRUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "MOVR",
+   "status": "TRADING",
+   "onboardDate": 1703593800000
+  },
+  "MSTRUSDT": {
+   "underlyingType": "EQUITY",
+   "underlyingSubType": [
+    "TradFi"
+   ],
+   "contractType": "TRADIFI_PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "MSTR",
+   "status": "TRADING",
+   "onboardDate": 1770647400000
+  },
+  "MTLUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "MTL",
+   "status": "TRADING",
+   "onboardDate": 1617174000000
+  },
+  "MUBARAKUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "MUBARAK",
+   "status": "TRADING",
+   "onboardDate": 1742219100000
+  },
+  "MUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "M",
+   "status": "TRADING",
+   "onboardDate": 1751880600000
+  },
+  "MVLLUSDT": {
+   "underlyingType": "EQUITY",
+   "underlyingSubType": [
+    "TradFi"
+   ],
+   "contractType": "TRADIFI_PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "MVLL",
+   "status": "TRADING",
+   "onboardDate": 1782740100000
+  },
+  "MYROUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "MYRO",
+   "status": "TRADING",
+   "onboardDate": 1709627400000
+  },
+  "MYXUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "MYX",
+   "status": "TRADING",
+   "onboardDate": 1750249800000
+  },
+  "NAORISUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "NAORIS",
+   "status": "TRADING",
+   "onboardDate": 1753965000000
+  },
+  "NEARUSDC": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDC",
+   "baseAsset": "NEAR",
+   "status": "TRADING",
+   "onboardDate": 1712819700000
+  },
+  "NEARUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "NEAR",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "NEIROETHUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "NEIROETH",
+   "status": "SETTLING",
+   "onboardDate": 1725631200000
+  },
+  "NEIROUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "NEIRO",
+   "status": "TRADING",
+   "onboardDate": 1726486200000
+  },
+  "NEOUSDC": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDC",
+   "baseAsset": "NEO",
+   "status": "TRADING",
+   "onboardDate": 1713424500000
+  },
+  "NEOUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "NEO",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "NEWTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [
+    "PreMarket"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "NEWT",
+   "status": "TRADING",
+   "onboardDate": 1750343400000
+  },
+  "NFPUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "NFP",
+   "status": "SETTLING",
+   "onboardDate": 1703680200000
+  },
+  "NIGHTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "NIGHT",
+   "status": "TRADING",
+   "onboardDate": 1765364400000
+  },
+  "NILUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "NIL",
+   "status": "TRADING",
+   "onboardDate": 1742821200000
+  },
+  "NKNUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "NKN",
+   "status": "SETTLING",
+   "onboardDate": 1617865200000
+  },
+  "NMRUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "NMR",
+   "status": "TRADING",
+   "onboardDate": 1687435200000
+  },
+  "NOMUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "NOM",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1759305600000
+  },
+  "NOTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "NOT",
+   "status": "TRADING",
+   "onboardDate": 1715868000000
+  },
+  "NTRNUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "NTRN",
+   "status": "TRADING",
+   "onboardDate": 1699963200000
+  },
+  "NULSUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "NULS",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1724661000000
+  },
+  "NVDAUSDT": {
+   "underlyingType": "EQUITY",
+   "underlyingSubType": [
+    "TradFi"
+   ],
+   "contractType": "TRADIFI_PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "NVDA",
+   "status": "TRADING",
+   "onboardDate": 1774396800000
+  },
+  "NXPCUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "NXPC",
+   "status": "TRADING",
+   "onboardDate": 1747290600000
+  },
+  "OBOLUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "OBOL",
+   "status": "TRADING",
+   "onboardDate": 1746613800000
+  },
+  "OCEANUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "OCEAN",
+   "status": "SETTLING",
+   "onboardDate": 1569398400000
+  },
+  "OGNUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "OGN",
+   "status": "TRADING",
+   "onboardDate": 1617174000000
+  },
+  "OGUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "OG",
+   "status": "TRADING",
+   "onboardDate": 1747040400000
+  },
+  "OLUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "OL",
+   "status": "SETTLING",
+   "onboardDate": 1750851000000
+  },
+  "OMGUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [
+    "Pre-IPO",
+    "TradFi"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "OMG",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1569398400000
+  },
+  "OMNIUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "OMNI",
+   "status": "SETTLING",
+   "onboardDate": 1713362400000
+  },
+  "OMUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "OM",
+   "status": "TRADING",
+   "onboardDate": 1707832800000
+  },
+  "ONDOUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ONDO",
+   "status": "TRADING",
+   "onboardDate": 1705755600000
+  },
+  "ONEUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ONE",
+   "status": "TRADING",
+   "onboardDate": 1615964400000
+  },
+  "ONGUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ONG",
+   "status": "TRADING",
+   "onboardDate": 1701090000000
+  },
+  "ONTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [
+    "BSC"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ONT",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "ONUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ON",
+   "status": "TRADING",
+   "onboardDate": 1761294600000
+  },
+  "OPENAIUSDT": {
+   "underlyingType": "PREMARKET",
+   "underlyingSubType": [
+    "Pre-IPO",
+    "TradFi"
+   ],
+   "contractType": "TRADIFI_PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "OPENAI",
+   "status": "TRADING",
+   "onboardDate": 1779784200000
+  },
+  "OPUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "OP",
+   "status": "TRADING",
+   "onboardDate": 1654066800000
+  },
+  "ORBSUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ORBS",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1697522400000
+  },
+  "ORCAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ORCA",
+   "status": "TRADING",
+   "onboardDate": 1733461200000
+  },
+  "ORDERUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ORDER",
+   "status": "TRADING",
+   "onboardDate": 1758890700000
+  },
+  "ORDIUSDC": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDC",
+   "baseAsset": "ORDI",
+   "status": "TRADING",
+   "onboardDate": 1708585200000
+  },
+  "ORDIUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ORDI",
+   "status": "TRADING",
+   "onboardDate": 1699360200000
+  },
+  "OXTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "OXT",
+   "status": "SETTLING",
+   "onboardDate": 1691755200000
+  },
+  "PARTIUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "PARTI",
+   "status": "TRADING",
+   "onboardDate": 1742907600000
+  },
+  "PAXGUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "PAXG",
+   "status": "TRADING",
+   "onboardDate": 1743071400000
+  },
+  "PAYPUSDT": {
+   "underlyingType": "EQUITY",
+   "underlyingSubType": [
+    "TradFi"
+   ],
+   "contractType": "TRADIFI_PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "PAYP",
+   "status": "TRADING",
+   "onboardDate": 1774224000000
+  },
+  "PENDLEUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "PENDLE",
+   "status": "TRADING",
+   "onboardDate": 1690511400000
+  },
+  "PENGUUSDC": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDC",
+   "baseAsset": "PENGU",
+   "status": "TRADING",
+   "onboardDate": 1753255800000
+  },
+  "PENGUUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "PENGU",
+   "status": "TRADING",
+   "onboardDate": 1734452100000
+  },
+  "PEOPLEUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "PEOPLE",
+   "status": "TRADING",
+   "onboardDate": 1640242800000
+  },
+  "PERPUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "PERP",
+   "status": "SETTLING",
+   "onboardDate": 1677801600000
+  },
+  "PHAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "PHA",
+   "status": "TRADING",
+   "onboardDate": 1735558200000
+  },
+  "PHBUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "PHB",
+   "status": "TRADING",
+   "onboardDate": 1676444400000
+  },
+  "PIEVERSEUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "PIEVERSE",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1763119800000
+  },
+  "PIPPINUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "PIPPIN",
+   "status": "TRADING",
+   "onboardDate": 1737713700000
+  },
+  "PIXELUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "PIXEL",
+   "status": "TRADING",
+   "onboardDate": 1708354800000
+  },
+  "PLAYUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "PLAY",
+   "status": "TRADING",
+   "onboardDate": 1753954200000
+  },
+  "PLTRUSDT": {
+   "underlyingType": "EQUITY",
+   "underlyingSubType": [
+    "TradFi"
+   ],
+   "contractType": "TRADIFI_PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "PLTR",
+   "status": "TRADING",
+   "onboardDate": 1767830400000
+  },
+  "PLUMEUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "PLUME",
+   "status": "TRADING",
+   "onboardDate": 1742562000000
+  },
+  "PNUTUSDC": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDC",
+   "baseAsset": "PNUT",
+   "status": "TRADING",
+   "onboardDate": 1741341600000
+  },
+  "PNUTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "PNUT",
+   "status": "TRADING",
+   "onboardDate": 1731327300000
+  },
+  "POLUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "POL",
+   "status": "TRADING",
+   "onboardDate": 1726229700000
+  },
+  "POLYXUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "POLYX",
+   "status": "TRADING",
+   "onboardDate": 1698201000000
+  },
+  "PONKEUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "PONKE",
+   "status": "TRADING",
+   "onboardDate": 1730723400000
+  },
+  "POPCATUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "POPCAT",
+   "status": "TRADING",
+   "onboardDate": 1724331600000
+  },
+  "PORT3USDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "PORT3",
+   "status": "TRADING",
+   "onboardDate": 1667890800000
+  },
+  "PORTALUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "PORTAL",
+   "status": "TRADING",
+   "onboardDate": 1709218800000
+  },
+  "POWERUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "POWER",
+   "status": "TRADING",
+   "onboardDate": 1765011600000
+  },
+  "POWRUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "POWR",
+   "status": "TRADING",
+   "onboardDate": 1698373800000
+  },
+  "PROMPTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "PROMPT",
+   "status": "TRADING",
+   "onboardDate": 1744353000000
+  },
+  "PROMUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "PROM",
+   "status": "TRADING",
+   "onboardDate": 1736944200000
+  },
+  "PROVEUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "PROVE",
+   "status": "TRADING",
+   "onboardDate": 1754413200000
+  },
+  "PTBUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "PTB",
+   "status": "TRADING",
+   "onboardDate": 1756902600000
+  },
+  "PUFFERUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "PUFFER",
+   "status": "TRADING",
+   "onboardDate": 1667890800000
+  },
+  "PUMPBTCUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "PUMPBTC",
+   "status": "TRADING",
+   "onboardDate": 1749808800000
+  },
+  "PUMPUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "PUMP",
+   "status": "SETTLING",
+   "onboardDate": 1744468200000
+  },
+  "PUNDIXUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "PUNDIX",
+   "status": "TRADING",
+   "onboardDate": 1746007200000
+  },
+  "PYTHUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "PYTH",
+   "status": "TRADING",
+   "onboardDate": 1700663400000
+  },
+  "QNTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "QNT",
+   "status": "TRADING",
+   "onboardDate": 1666076400000
+  },
+  "QNTXUSDT": {
+   "underlyingType": "PREMARKET",
+   "underlyingSubType": [
+    "Pre-IPO",
+    "TradFi"
+   ],
+   "contractType": "TRADIFI_PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "QNTX",
+   "status": "TRADING",
+   "onboardDate": 1780042500000
+  },
+  "QQQUSDT": {
+   "underlyingType": "EQUITY",
+   "underlyingSubType": [
+    "TradFi"
+   ],
+   "contractType": "TRADIFI_PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "QQQ",
+   "status": "TRADING",
+   "onboardDate": 1775482200000
+  },
+  "QTUMUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "QTUM",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "QUICKUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "QUICK",
+   "status": "TRADING",
+   "onboardDate": 1725598800000
+  },
+  "QUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "Q",
+   "status": "TRADING",
+   "onboardDate": 1756798200000
+  },
+  "RADUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "RAD",
+   "status": "SETTLING",
+   "onboardDate": 1683590400000
+  },
+  "RAREUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "RARE",
+   "status": "TRADING",
+   "onboardDate": 1723726800000
+  },
+  "RAVEUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "RAVE",
+   "status": "TRADING",
+   "onboardDate": 1765726200000
+  },
+  "RAYSOLUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "RAYSOL",
+   "status": "TRADING",
+   "onboardDate": 1733832000000
+  },
+  "RDNTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "RDNT",
+   "status": "TRADING",
+   "onboardDate": 1680566400000
+  },
+  "RECALLUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "RECALL",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1760531400000
+  },
+  "REDUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "RED",
+   "status": "TRADING",
+   "onboardDate": 1741266000000
+  },
+  "REEFUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "REEF",
+   "status": "SETTLING",
+   "onboardDate": 1611558000000
+  },
+  "REIUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "REI",
+   "status": "TRADING",
+   "onboardDate": 1727434800000
+  },
+  "RENDERUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "RENDER",
+   "status": "TRADING",
+   "onboardDate": 1721988000000
+  },
+  "RENUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [
+    "DEFI"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "REN",
+   "status": "SETTLING",
+   "onboardDate": 1569398400000
+  },
+  "RESOLVUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "RESOLV",
+   "status": "TRADING",
+   "onboardDate": 1749562200000
+  },
+  "REZUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "REZ",
+   "status": "TRADING",
+   "onboardDate": 1714485600000
+  },
+  "RIFUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "RIF",
+   "status": "TRADING",
+   "onboardDate": 1697891400000
+  },
+  "RIVERUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "RIVER",
+   "status": "TRADING",
+   "onboardDate": 1760712300000
+  },
+  "RLCUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "RLC",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "ROBOUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ROBO",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1772181900000
+  },
+  "RONINUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "RONIN",
+   "status": "TRADING",
+   "onboardDate": 1707193800000
+  },
+  "ROSEUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ROSE",
+   "status": "TRADING",
+   "onboardDate": 1640934000000
+  },
+  "RPLUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "RPL",
+   "status": "TRADING",
+   "onboardDate": 1725885000000
+  },
+  "RSRUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [
+    "DEFI"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "RSR",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "RUNEUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [
+    "DEFI"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "RUNE",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "RVNUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "RVN",
+   "status": "TRADING",
+   "onboardDate": 1614063600000
+  },
+  "RVVUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "RVV",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1760794200000
+  },
+  "SAFEUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "SAFE",
+   "status": "TRADING",
+   "onboardDate": 1729859400000
+  },
+  "SAGAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "SAGA",
+   "status": "TRADING",
+   "onboardDate": 1712658600000
+  },
+  "SAHARAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "SAHARA",
+   "status": "TRADING",
+   "onboardDate": 1750939200000
+  },
+  "SANDUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "SAND",
+   "status": "TRADING",
+   "onboardDate": 1610953200000
+  },
+  "SANTOSUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "SANTOS",
+   "status": "TRADING",
+   "onboardDate": 1730124000000
+  },
+  "SAPIENUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "SAPIEN",
+   "status": "TRADING",
+   "onboardDate": 1755711000000
+  },
+  "SCRTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "SCRT",
+   "status": "TRADING",
+   "onboardDate": 1732188600000
+  },
+  "SCRUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "SCR",
+   "status": "TRADING",
+   "onboardDate": 1729591200000
+  },
+  "SEIUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "SEI",
+   "status": "TRADING",
+   "onboardDate": 1692239400000
+  },
+  "SENTUSDT": {
+   "underlyingType": "PREMARKET",
+   "underlyingSubType": [
+    "Pre-Market"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "SENT",
+   "status": "TRADING",
+   "onboardDate": 1763125200000
+  },
+  "SFPUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [
+    "DEFI"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "SFP",
+   "status": "TRADING",
+   "onboardDate": 1614150000000
+  },
+  "SHELLUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "SHELL",
+   "status": "TRADING",
+   "onboardDate": 1739812500000
+  },
+  "SIGNUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "SIGN",
+   "status": "TRADING",
+   "onboardDate": 1745838000000
+  },
+  "SIRENUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "SIREN",
+   "status": "TRADING",
+   "onboardDate": 1742634000000
+  },
+  "SKATEUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "SKATE",
+   "status": "TRADING",
+   "onboardDate": 1667890800000
+  },
+  "SKLUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "SKL",
+   "status": "TRADING",
+   "onboardDate": 1598252400000
+  },
+  "SKRUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "SKR",
+   "status": "TRADING",
+   "onboardDate": 1769078700000
+  },
+  "SKYAIUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "SKYAI",
+   "status": "TRADING",
+   "onboardDate": 1747129500000
+  },
+  "SKYUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "SKY",
+   "status": "TRADING",
+   "onboardDate": 1757401200000
+  },
+  "SLERFUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "SLERF",
+   "status": "TRADING",
+   "onboardDate": 1732188600000
+  },
+  "SLPUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "SLP",
+   "status": "TRADING",
+   "onboardDate": 1753271100000
+  },
+  "SNTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "SNT",
+   "status": "SETTLING",
+   "onboardDate": 1698928200000
+  },
+  "SNXUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [
+    "DEFI"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "SNX",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "SOLUSDC": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDC",
+   "baseAsset": "SOL",
+   "status": "TRADING",
+   "onboardDate": 1704285900000
+  },
+  "SOLUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "SOL",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "SOLVUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "SOLV",
+   "status": "TRADING",
+   "onboardDate": 1737116100000
+  },
+  "SOMIUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [
+    "Pre-Market"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "SOMI",
+   "status": "SETTLING",
+   "onboardDate": 1756114200000
+  },
+  "SONICUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "SONIC",
+   "status": "TRADING",
+   "onboardDate": 1736319600000
+  },
+  "SOONUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "SOON",
+   "status": "TRADING",
+   "onboardDate": 1747989000000
+  },
+  "SOPHUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "SOPH",
+   "status": "TRADING",
+   "onboardDate": 1748437200000
+  },
+  "SPACEFAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "TRADIFI_PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "SPACEFA",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1779235200000
+  },
+  "SPACEFUSDT": {
+   "underlyingType": "PREMARKET",
+   "underlyingSubType": [
+    "TradFi"
+   ],
+   "contractType": "TRADIFI_PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "SPACEF",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1779235200000
+  },
+  "SPACEUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "SPACE",
+   "status": "TRADING",
+   "onboardDate": 1769168700000
+  },
+  "SPCXUSDT": {
+   "underlyingType": "PREMARKET",
+   "underlyingSubType": [
+    "TradFi"
+   ],
+   "contractType": "TRADIFI_PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "SPCX",
+   "status": "TRADING",
+   "onboardDate": 1779335100000
+  },
+  "SPELLUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [
+    "DEFI"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "SPELL",
+   "status": "TRADING",
+   "onboardDate": 1662361200000
+  },
+  "SPKUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "SPK",
+   "status": "TRADING",
+   "onboardDate": 1750150800000
+  },
+  "SPORTFUNUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "SPORTFUN",
+   "status": "TRADING",
+   "onboardDate": 1768571100000
+  },
+  "SPXUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "SPX",
+   "status": "TRADING",
+   "onboardDate": 1733834700000
+  },
+  "SPYUSDT": {
+   "underlyingType": "EQUITY",
+   "underlyingSubType": [
+    "TradFi"
+   ],
+   "contractType": "TRADIFI_PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "SPY",
+   "status": "TRADING",
+   "onboardDate": 1775482800000
+  },
+  "SQDUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "SQD",
+   "status": "TRADING",
+   "onboardDate": 1749645900000
+  },
+  "SSVUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "SSV",
+   "status": "TRADING",
+   "onboardDate": 1677135600000
+  },
+  "STABLEUSDT": {
+   "underlyingType": "PREMARKET",
+   "underlyingSubType": [
+    "Pre-Market"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "STABLE",
+   "status": "TRADING",
+   "onboardDate": 1762425000000
+  },
+  "STBLUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "STBL",
+   "status": "TRADING",
+   "onboardDate": 1758087900000
+  },
+  "STEEMUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "STEEM",
+   "status": "TRADING",
+   "onboardDate": 1699453800000
+  },
+  "STGUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "STG",
+   "status": "TRADING",
+   "onboardDate": 1661324400000
+  },
+  "STMXUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "STMX",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1615964400000
+  },
+  "STORJUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "STORJ",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "STOUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "STO",
+   "status": "TRADING",
+   "onboardDate": 1744469100000
+  },
+  "STPTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "STPT",
+   "status": "SETTLING",
+   "onboardDate": 1697639400000
+  },
+  "STRAXUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "STRAX",
+   "status": "SETTLING",
+   "onboardDate": 1696991400000
+  },
+  "STRKUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "STRK",
+   "status": "TRADING",
+   "onboardDate": 1708448400000
+  },
+  "STXUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "STX",
+   "status": "TRADING",
+   "onboardDate": 1676876400000
+  },
+  "SUIUSDC": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDC",
+   "baseAsset": "SUI",
+   "status": "TRADING",
+   "onboardDate": 1707375600000
+  },
+  "SUIUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "SUI",
+   "status": "TRADING",
+   "onboardDate": 1683072000000
+  },
+  "SUNUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "SUN",
+   "status": "TRADING",
+   "onboardDate": 1724331900000
+  },
+  "SUPERUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "SUPER",
+   "status": "TRADING",
+   "onboardDate": 1701003600000
+  },
+  "SUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "S",
+   "status": "TRADING",
+   "onboardDate": 1737021600000
+  },
+  "SUSHIUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [
+    "DEFI",
+    "HOT"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "SUSHI",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "SWARMSUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "SWARMS",
+   "status": "TRADING",
+   "onboardDate": 1736252100000
+  },
+  "SWELLUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "SWELL",
+   "status": "TRADING",
+   "onboardDate": 1731081600000
+  },
+  "SXPUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [
+    "DEFI",
+    "BSC"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "SXP",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "SXTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [
+    "PreMarket"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "SXT",
+   "status": "TRADING",
+   "onboardDate": 1746174600000
+  },
+  "SYNUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "SYN",
+   "status": "TRADING",
+   "onboardDate": 1723811400000
+  },
+  "SYRUPUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "SYRUP",
+   "status": "TRADING",
+   "onboardDate": 1746606600000
+  },
+  "SYSUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "SYS",
+   "status": "TRADING",
+   "onboardDate": 1724070600000
+  },
+  "TACUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "TAC",
+   "status": "TRADING",
+   "onboardDate": 1752575400000
+  },
+  "TAGUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "TAG",
+   "status": "TRADING",
+   "onboardDate": 1753528500000
+  },
+  "TAIKOUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "TAIKO",
+   "status": "TRADING",
+   "onboardDate": 1749645000000
+  },
+  "TAKEUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "TAKE",
+   "status": "TRADING",
+   "onboardDate": 1756898100000
+  },
+  "TANSSIUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "TANSSI",
+   "status": "SETTLING",
+   "onboardDate": 1752060600000
+  },
+  "TAOUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "TAO",
+   "status": "TRADING",
+   "onboardDate": 1712845800000
+  },
+  "TAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "TA",
+   "status": "TRADING",
+   "onboardDate": 1753083000000
+  },
+  "TENCENTUSDT": {
+   "underlyingType": "HK_EQUITY",
+   "underlyingSubType": [
+    "TradFi"
+   ],
+   "contractType": "TRADIFI_PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "TENCENT",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1784264400000
+  },
+  "THETAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "THETA",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "THEUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "THE",
+   "status": "TRADING",
+   "onboardDate": 1732709700000
+  },
+  "TIAUSDC": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDC",
+   "baseAsset": "TIA",
+   "status": "TRADING",
+   "onboardDate": 1714029300000
+  },
+  "TIAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "TIA",
+   "status": "TRADING",
+   "onboardDate": 1698769800000
+  },
+  "TNSRUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "TNSR",
+   "status": "TRADING",
+   "onboardDate": 1712595600000
+  },
+  "TOKENUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "TOKEN",
+   "status": "TRADING",
+   "onboardDate": 1699023600000
+  },
+  "TOMOUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [
+    "DEFI"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "TOMO",
+   "status": "SETTLING",
+   "onboardDate": 1569398400000
+  },
+  "TONUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "TON",
+   "status": "TRADING",
+   "onboardDate": 1709382600000
+  },
+  "TOSHIUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "TOSHI",
+   "status": "TRADING",
+   "onboardDate": 1758087000000
+  },
+  "TOWNSUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "TOWNS",
+   "status": "TRADING",
+   "onboardDate": 1754404200000
+  },
+  "TRADOORUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "TRADOOR",
+   "status": "TRADING",
+   "onboardDate": 1758285000000
+  },
+  "TRBUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [
+    "DEFI"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "TRB",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "TREEUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "TREE",
+   "status": "TRADING",
+   "onboardDate": 1753797600000
+  },
+  "TRIAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "TRIA",
+   "status": "TRADING",
+   "onboardDate": 1770380100000
+  },
+  "TROYUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "TROY",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1730379600000
+  },
+  "TRUMPUSDC": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDC",
+   "baseAsset": "TRUMP",
+   "status": "TRADING",
+   "onboardDate": 1741255200000
+  },
+  "TRUMPUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "TRUMP",
+   "status": "TRADING",
+   "onboardDate": 1737205200000
+  },
+  "TRUSTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "TRUST",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1762335000000
+  },
+  "TRUTHUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "TRUTH",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1759321800000
+  },
+  "TRUUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "TRU",
+   "status": "TRADING",
+   "onboardDate": 1680048000000
+  },
+  "TRXUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "TRX",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "TSLAUSDT": {
+   "underlyingType": "EQUITY",
+   "underlyingSubType": [
+    "TradFi"
+   ],
+   "contractType": "TRADIFI_PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "TSLA",
+   "status": "TRADING",
+   "onboardDate": 1769610600000
+  },
+  "TSTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "TST",
+   "status": "TRADING",
+   "onboardDate": 1739106000000
+  },
+  "TURBOUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "TURBO",
+   "status": "TRADING",
+   "onboardDate": 1717083000000
+  },
+  "TURTLEUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "TURTLE",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1761138000000
+  },
+  "TUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "T",
+   "status": "TRADING",
+   "onboardDate": 1675148400000
+  },
+  "TUTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "TUT",
+   "status": "TRADING",
+   "onboardDate": 1742461200000
+  },
+  "TWTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "TWT",
+   "status": "TRADING",
+   "onboardDate": 1703548800000
+  },
+  "UAIUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "UAI",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1762428600000
+  },
+  "UBUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "UB",
+   "status": "TRADING",
+   "onboardDate": 1757673000000
+  },
+  "UMAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "UMA",
+   "status": "TRADING",
+   "onboardDate": 1683590400000
+  },
+  "UNFIUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [
+    "DEFI",
+    "BSC"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "UNFI",
+   "status": "SETTLING",
+   "onboardDate": 1609138800000
+  },
+  "UNIUSDC": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDC",
+   "baseAsset": "UNI",
+   "status": "TRADING",
+   "onboardDate": 1750063500000
+  },
+  "UNIUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [
+    "DEFI",
+    "HOT"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "UNI",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "USDCUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "USDC",
+   "status": "TRADING",
+   "onboardDate": 1678579200000
+  },
+  "USELESSUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "USELESS",
+   "status": "TRADING",
+   "onboardDate": 1755260100000
+  },
+  "USTCUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "USTC",
+   "status": "TRADING",
+   "onboardDate": 1701088200000
+  },
+  "USUALUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "USUAL",
+   "status": "TRADING",
+   "onboardDate": 1734526800000
+  },
+  "USUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "US",
+   "status": "TRADING",
+   "onboardDate": 1765536300000
+  },
+  "UXLINKUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "UXLINK",
+   "status": "SETTLING",
+   "onboardDate": 1726412400000
+  },
+  "VANAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "VANA",
+   "status": "TRADING",
+   "onboardDate": 1734355800000
+  },
+  "VANRYUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "VANRY",
+   "status": "TRADING",
+   "onboardDate": 1710351000000
+  },
+  "VELODROMEUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "VELODROME",
+   "status": "TRADING",
+   "onboardDate": 1734106500000
+  },
+  "VELVETUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "VELVET",
+   "status": "TRADING",
+   "onboardDate": 1752570900000
+  },
+  "VETUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "VET",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "VFYUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "VFY",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1759233600000
+  },
+  "VICUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "VIC",
+   "status": "TRADING",
+   "onboardDate": 1741798800000
+  },
+  "VIDTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "VIDT",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1724405400000
+  },
+  "VINEUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "VINE",
+   "status": "TRADING",
+   "onboardDate": 1737712800000
+  },
+  "VIRTUALUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "VIRTUAL",
+   "status": "TRADING",
+   "onboardDate": 1733833800000
+  },
+  "VOXELUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "VOXEL",
+   "status": "TRADING",
+   "onboardDate": 1724149800000
+  },
+  "VTHOUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "VTHO",
+   "status": "TRADING",
+   "onboardDate": 1737538200000
+  },
+  "VVVUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "VVV",
+   "status": "TRADING",
+   "onboardDate": 1738138500000
+  },
+  "WALUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "WAL",
+   "status": "TRADING",
+   "onboardDate": 1743089400000
+  },
+  "WAVESUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "WAVES",
+   "status": "SETTLING",
+   "onboardDate": 1569398400000
+  },
+  "WAXPUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "WAXP",
+   "status": "TRADING",
+   "onboardDate": 1697639400000
+  },
+  "WCTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "WCT",
+   "status": "TRADING",
+   "onboardDate": 1744714800000
+  },
+  "WETUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "WET",
+   "status": "TRADING",
+   "onboardDate": 1765350000000
+  },
+  "WIFUSDC": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDC",
+   "baseAsset": "WIF",
+   "status": "TRADING",
+   "onboardDate": 1712214900000
+  },
+  "WIFUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "WIF",
+   "status": "TRADING",
+   "onboardDate": 1705536000000
+  },
+  "WLDUSDC": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDC",
+   "baseAsset": "WLD",
+   "status": "TRADING",
+   "onboardDate": 1710399600000
+  },
+  "WLDUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "WLD",
+   "status": "TRADING",
+   "onboardDate": 1690200000000
+  },
+  "WLFIUSDC": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDC",
+   "baseAsset": "WLFI",
+   "status": "TRADING",
+   "onboardDate": 1757320200000
+  },
+  "WLFIUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "WLFI",
+   "status": "TRADING",
+   "onboardDate": 1755907200000
+  },
+  "WOOUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "WOO",
+   "status": "TRADING",
+   "onboardDate": 1649314800000
+  },
+  "WUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "W",
+   "status": "TRADING",
+   "onboardDate": 1712158200000
+  },
+  "XAGUSDT": {
+   "underlyingType": "COMMODITY",
+   "underlyingSubType": [
+    "TradFi"
+   ],
+   "contractType": "TRADIFI_PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "XAG",
+   "status": "TRADING",
+   "onboardDate": 1767780000000
+  },
+  "XAIUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "XAI",
+   "status": "TRADING",
+   "onboardDate": 1704808800000
+  },
+  "XANUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "XAN",
+   "status": "TRADING",
+   "onboardDate": 1759141800000
+  },
+  "XAUUSDT": {
+   "underlyingType": "COMMODITY",
+   "underlyingSubType": [
+    "TradFi"
+   ],
+   "contractType": "TRADIFI_PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "XAU",
+   "status": "TRADING",
+   "onboardDate": 1765440300000
+  },
+  "XCNUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "XCN",
+   "status": "SETTLING",
+   "onboardDate": 1744385400000
+  },
+  "XEMUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "XEM",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1614668400000
+  },
+  "XLMUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "XLM",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "XMRUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "XMR",
+   "status": "TRADING",
+   "onboardDate": 1627628400000
+  },
+  "XNYUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "XNY",
+   "status": "TRADING",
+   "onboardDate": 1755085500000
+  },
+  "XPDUSDT": {
+   "underlyingType": "COMMODITY",
+   "underlyingSubType": [
+    "TradFi"
+   ],
+   "contractType": "TRADIFI_PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "XPD",
+   "status": "TRADING",
+   "onboardDate": 1769768100000
+  },
+  "XPINUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "XPIN",
+   "status": "TRADING",
+   "onboardDate": 1757664000000
+  },
+  "XPLUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [
+    "PreMarket"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "XPL",
+   "status": "TRADING",
+   "onboardDate": 1755855000000
+  },
+  "XPTUSDT": {
+   "underlyingType": "COMMODITY",
+   "underlyingSubType": [
+    "TradFi"
+   ],
+   "contractType": "TRADIFI_PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "XPT",
+   "status": "TRADING",
+   "onboardDate": 1769767200000
+  },
+  "XRPUSDC": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDC",
+   "baseAsset": "XRP",
+   "status": "TRADING",
+   "onboardDate": 1704286200000
+  },
+  "XRPUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "XRP",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "XTZUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "XTZ",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "XVGUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "XVG",
+   "status": "TRADING",
+   "onboardDate": 1688558400000
+  },
+  "XVSUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "XVS",
+   "status": "TRADING",
+   "onboardDate": 1681257600000
+  },
+  "XYZUSDT": {
+   "underlyingType": "PREMARKET",
+   "underlyingSubType": [
+    "Pre-IPO",
+    "TradFi"
+   ],
+   "contractType": "TRADIFI_PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "XYZ",
+   "status": "TRADING",
+   "onboardDate": 1779784200000
+  },
+  "YALAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "YALA",
+   "status": "TRADING",
+   "onboardDate": 1754584200000
+  },
+  "YBUSDT": {
+   "underlyingType": "PREMARKET",
+   "underlyingSubType": [
+    "Pre-Market"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "YB",
+   "status": "TRADING",
+   "onboardDate": 1760107500000
+  },
+  "YFIUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [
+    "DEFI"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "YFI",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "YGGUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "YGG",
+   "status": "TRADING",
+   "onboardDate": 1691206200000
+  },
+  "ZAMAUSDT": {
+   "underlyingType": "PREMARKET",
+   "underlyingSubType": [
+    "Pre-Market"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ZAMA",
+   "status": "TRADING",
+   "onboardDate": 1767945600000
+  },
+  "ZBTUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ZBT",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1760700600000
+  },
+  "ZECUSDC": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDC",
+   "baseAsset": "ZEC",
+   "status": "TRADING",
+   "onboardDate": 1763548200000
+  },
+  "ZECUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ZEC",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "ZENUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ZEN",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "ZEREBROUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ZEREBRO",
+   "status": "TRADING",
+   "onboardDate": 1735826400000
+  },
+  "ZETAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ZETA",
+   "status": "TRADING",
+   "onboardDate": 1706860800000
+  },
+  "ZHIPUUSDT": {
+   "underlyingType": "HK_EQUITY",
+   "underlyingSubType": [
+    "TradFi"
+   ],
+   "contractType": "TRADIFI_PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ZHIPU",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1784257500000
+  },
+  "ZILUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ZIL",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "ZKCUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ZKC",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1757944800000
+  },
+  "ZKJUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ZKJ",
+   "status": "TRADING",
+   "onboardDate": 1747128600000
+  },
+  "ZKPUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ZKP",
+   "status": "TRADING",
+   "onboardDate": 1766311200000
+  },
+  "ZKUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ZK",
+   "status": "TRADING",
+   "onboardDate": 1718622000000
+  },
+  "ZORAUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ZORA",
+   "status": "TRADING",
+   "onboardDate": 1753441200000
+  },
+  "ZRCUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ZRC",
+   "status": "TRADING",
+   "onboardDate": 1753782300000
+  },
+  "ZROUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ZRO",
+   "status": "TRADING",
+   "onboardDate": 1718893800000
+  },
+  "ZRXUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [
+    "DEFI"
+   ],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "ZRX",
+   "status": "TRADING",
+   "onboardDate": 1569398400000
+  },
+  "\u5e01\u5b89\u4eba\u751fUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "\u5e01\u5b89\u4eba\u751f",
+   "status": "TRADING",
+   "onboardDate": 1760958000000
+  },
+  "\u6211\u8e0f\u9a6c\u6765\u4e86USDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "\u6211\u8e0f\u9a6c\u6765\u4e86",
+   "status": "TRADING",
+   "onboardDate": 1769005800000
+  },
+  "\u6d4b\u8bd5\u6d4b\u8bd5USDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "\u6d4b\u8bd5\u6d4b\u8bd5",
+   "status": "TRADING",
+   "onboardDate": 1759150800000
+  },
+  "\u9f99\u867eUSDT": {
+   "underlyingType": "COIN",
+   "underlyingSubType": [],
+   "contractType": "PERPETUAL",
+   "quoteAsset": "USDT",
+   "baseAsset": "\u9f99\u867e",
+   "status": "PENDING_TRADING",
+   "onboardDate": 1773228600000
+  }
+ }
+}

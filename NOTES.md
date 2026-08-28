@@ -4946,3 +4946,182 @@ Two consequences, both recorded as known limitations under §46.5:
 - **Paper-phase book composition is not the composition of either the
   validated strategy or the current production universe.** It tests the
   machine, which is all §46.1 ever claimed for it.
+
+## 48. Stage 11 — THE CRYPTO-ONLY UNIVERSE AMENDMENT: pre-registered 2026-08-29
+
+**Recorded BEFORE any filter code exists.** No trials. Holdout **sealed**:
+nothing in this stage reads, runs, or touches 2025+ return data. Listing dates
+and exchangeInfo metadata are not return data. Budget stays **15 of 25**.
+
+### 48.0 First, a correction to §47.5 — my coverage number was wrong
+
+§47.5 reported **7 of 15** intended names present on testnet and said the eight
+absent ones were "precisely the eight non-crypto ones". Both halves are wrong,
+and the cause was a bug in `tools/testnet_symbols.py`, not in the data.
+
+The tool filtered `contractType == "PERPETUAL"`. Binance gives tokenised
+equity and commodity perps `contractType = "TRADIFI_PERPETUAL"`, so the tool
+counted them as **absent** when they are listed and trading. Actual presence:
+
+```
+  present on testnet (10):  BTCUSDT ETHUSDT SOLUSDT ZECUSDT XRPUSDT HYPEUSDT
+                            BANKUSDT  + XAUUSDT SPCXUSDT XAGUSDT  (TradFi)
+  genuinely absent    (5):  SNDKUSDT SKHYNIXUSDT SOXLUSDT MUUSDT CLUSDT
+```
+
+So testnet **does** list some tokenised commodity and pre-market perps. The
+corrected figure is **10 of 15**, and the reduced-N limitation in §47.5 rests
+on a count that must be recomputed (§48.7).
+
+**§47's finding itself is unaffected.** The drift into non-crypto was measured
+from the research store's 2026-07-31 universe, which never involved testnet.
+The listing dates, the eight non-crypto names, and every consequence in
+§47.2–§47.4 stand exactly as written. What was wrong was one downstream
+coverage count.
+
+### 48.1 The amendment
+
+The universe rule becomes:
+
+> **top 15 by point-in-time median quote volume, among crypto-asset
+> perpetuals.**
+
+Everything else is unchanged. `lookback=14`, `skip=0`, N=10, k=5,
+`vol_target=0.10`, `$800`, `rank_buffer=0`, 3x gross cap, beta-neutral, +1min
+fill, 5 bps — **no strategy parameter is touched.** Only universe *eligibility*
+is clarified.
+
+### 48.2 The grounds
+
+§47 found that the volume-rank operationalisation of "major cryptocurrencies"
+had drifted into tokenised equities, ETFs, commodities and pre-market
+instruments — 8 of the current top 15. The rule held formally while the market
+moved underneath it.
+
+Three properties make this amendment legitimate rather than a fit:
+
+1. **It rests on listing dates and instrument metadata**, both external to any
+   return series. Nothing about performance entered the decision.
+2. **It was discovered by a plumbing check** (Stage 10 §2.3 testnet coverage),
+   not by looking for a better universe.
+3. **It is registered before the holdout**, and §48.5 proves it inert on every
+   day where evidence already exists.
+
+### 48.3 The definition — and what the metadata actually contains
+
+§9 of the stage document forbids relying on the underlying-type metadata
+without first inspecting and documenting it. Inspected 2026-08-29 against
+testnet `exchangeInfo` (733 symbols), snapshotted to
+`data/underlying_classes.json` and committed so the classifier and its test are
+hermetic and do not depend on a network call:
+
+```
+  underlyingType     COIN 675 | PREMARKET 22 | EQUITY 21 | HK_EQUITY 6
+                     COMMODITY 5 | INDEX 4
+  contractType       PERPETUAL 677 | TRADIFI_PERPETUAL 40 | quarterly/weekly 16
+  underlyingSubType  [] 631 | ['TradFi'] 34 | ['DEFI'] 26 | ['Pre-Market'] 16
+                     | ['Pre-IPO','TradFi'] 5 | ...
+```
+
+Worked examples, exactly as returned:
+
+```
+  BTCUSDT    underlyingType COIN       subType []           contractType PERPETUAL
+  ETHUSDT    underlyingType COIN       subType []           contractType PERPETUAL
+  HYPEUSDT   underlyingType COIN       subType []           contractType PERPETUAL
+  XAUUSDT    underlyingType COMMODITY  subType ['TradFi']   contractType TRADIFI_PERPETUAL
+  XAGUSDT    underlyingType COMMODITY  subType ['TradFi']   contractType TRADIFI_PERPETUAL
+  SPCXUSDT   underlyingType PREMARKET  subType ['TradFi']   contractType TRADIFI_PERPETUAL
+```
+
+**The distinction is clean and machine-readable** — better than §2 of the stage
+document anticipated. A symbol is **eligible** iff all of:
+
+1. USDS-M perpetual, `status = TRADING`, `quoteAsset = USDT` (existing rules)
+2. `underlyingType == "COIN"`
+3. `contractType == "PERPETUAL"` (never `TRADIFI_PERPETUAL`)
+4. `underlyingSubType` contains none of `TradFi`, `Pre-IPO`, `Pre-Market`
+5. not on the seeded `EXCLUDED_SYMBOLS` list (from §47.1: SNDK, SKHYNIX, MU,
+   SPCX, SOXL, XAU, XAG, CL) — belt and braces, so the filter still bites if
+   Binance ever relabels
+
+**Ambiguity excludes.** A symbol present in the metadata whose
+`underlyingType` is a value not in the known set resolves to
+`underlying_ambiguous`, is excluded, and is logged. The default is
+conservative because *the next weird listing will not be as obvious as
+tokenised gold.*
+
+**Recency is not the test.** HYPE and BANK listed in 2025 and are `COIN`:
+they are **in**. Asset class was the problem, never novelty.
+
+### 48.4 One case the definition must handle, stated before it bites
+
+A symbol that **delisted before the metadata snapshot** does not appear in
+`exchangeInfo` at all. This is a different situation from ambiguity and is
+resolved differently, on purpose:
+
+- **Live universe building:** cannot arise. The live universe is built *from*
+  exchangeInfo, so an absent symbol is not tradeable and never a candidate.
+- **Historical replay (the §48.5 proof, and any future backtest):** an absent
+  symbol means "delisted before 2026-08-29". The seeded list and pattern
+  classes still apply; if neither fires, the symbol is treated as crypto and
+  the fallback is **counted and reported**, never silent.
+
+Treating absent-from-snapshot as ambiguous-and-excluded would retroactively
+delete legitimately-traded crypto symbols (LUNA among them) from the
+historical universe and would break the very equivalence §48.5 exists to
+prove. The count of such fallbacks is part of the proof output.
+
+### 48.5 The no-op proof — the load-bearing step, and the stop condition
+
+Point-in-time universe selection is re-run **with the filter** across
+**2020-01-01 → 2024-12-31**, and compared day by day against the unfiltered
+selection every logged run used — the full eligible ranking, not just the top
+slice.
+
+- **Zero diffs → the amendment is proven inert on train and validate.** The
+  filtered strategy and the tested strategy are the same strategy everywhere
+  evidence exists, so nothing needs revalidating.
+- **Any diff → STOP.** Report the day and the symbols. It would mean a
+  non-crypto instrument was in the historical universe after all, the premise
+  is false, and the amendment is no longer free. The decision returns to the
+  user before anything else happens.
+
+The expected reason it holds: the earliest non-crypto listing in §47.1 is
+**XAUUSDT on 2025-12-11**, and train ends 2023-12 with validate ending
+2024-12. The proof does not assume that — it checks it.
+
+Recorded as **Test 26**, permanent, so no future refactor can silently break
+the equivalence.
+
+### 48.6 The standing composition guard
+
+§47's deeper lesson is that **a pre-registered rule can be broken by the world
+while continuing to hold formally.** So the harness gains a guard that watches
+for it happening again:
+
+- every universe build logs each excluded symbol with its reason and its
+  unfiltered volume rank
+- an **alert** fires (daily report line, dashboard AMBER) when either an
+  `underlying_ambiguous` exclusion occurs, or excluded instruments would have
+  occupied **≥ 3 of the unfiltered top-15**
+- **the guard observes and alerts; it never auto-amends anything.** A rule that
+  edits itself in response to the market is the failure mode this project has
+  spent eleven stages avoiding.
+
+### 48.7 Scope, and what this amendment is NOT
+
+**Binds from 2025-12-11**, the first excluded instrument's listing date. Inert
+before that, proven not asserted (§48.5).
+
+- **Not a response to return data.** No 2025+ series was read, run, or touched
+  in this stage; the holdout is exactly as sealed after it as before.
+- **Not a performance choice.** No filtered-vs-unfiltered performance
+  comparison was computed, on any split, and none may be cited later. The
+  amendment would stand identically if it lowered returns.
+- **Not a holdout adjustment.** §29, §30 and §37.5 are unchanged. The holdout
+  will simply test the strategy those rules always intended.
+- **Not a revalidation trigger.** §48.5 proves nothing needs it.
+- **Not a strategy change.** Parameters untouched.
+
+The holdout decision remains **the user's**, unchanged and undecided.
