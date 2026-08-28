@@ -4333,3 +4333,204 @@ this project at which the holdout was contemplated had at least one of those
 three missing.
 
 **That decision is the user's, and is not taken here.**
+
+## 45. Stage 9 — the rank buffer: PRE-REGISTERED WIDTHS, RULE AND READING
+
+**Recorded 2026-08-29, BEFORE any buffer is implemented or run.** Committed in
+its own commit ahead of the code and of every number. Cost: **three trials,
+budget 12 → 15 of 25.** Holdout sealed throughout.
+
+The last open *strategy* question before the holdout. Fee drag on the frozen
+deployment config is **27% (USDC) to 37% (USDT) of price PnL** (§44.8) — the
+dominant friction since the project began — and §32.4 measured **67.9% of
+turnover as boundary-crossing**, names round-tripping at the rank-k edge. That
+is exactly what hysteresis softens. Tested now: after the config is otherwise
+frozen, before the holdout is spent, so that if the buffer improves the config
+then *it* becomes the deploy candidate.
+
+### 45.0 CORRECTION to §44.4 and §44.10 — recorded before this stage runs
+
+Setting up §45.5's baseline row surfaced an arithmetic error in Stage 8 that
+must be on the record before any Stage 9 number exists.
+
+**The 10%/$800 train row (§43.6) is Sharpe 0.835 real, 0.651 demeaned, drift
+22%.** `0.651` is the **drift-stripped** column, not the headline. §44.4 took
+0.651 as "train Sharpe" and applied the 22% drift haircut to it a second time
+(`0.651 × 0.78 ≈ 0.51`) to derive the 0.40–0.65 success band. The haircut was
+already in the number. Correctly derived, the drift-adjusted expectation for
+the 2024 headline Sharpe is **0.835 × 0.78 = 0.651**, and the band by the same
+±20% construction would have been roughly **0.55–0.85**.
+
+**§44's verdict does not change.** The three Tier 1 gates are unaffected — none
+of them references the band. 2024's Sharpe (0.619 USDT / 0.693 USDC) falls
+inside the band as recorded *and* inside the corrected one. The recorded band
+stays as recorded: it was pre-registered, the result was graded against it, and
+moving a threshold after seeing the result is the exact thing this project
+does not do.
+
+**What does change is §44.10's reading, and it becomes less flattering.**
+§44.10 compared 2024's demeaned Sharpe (0.464) against an "expectation" of
+0.51 and called it "marginally below". The correct like-for-like comparison is
+2024's demeaned **0.464** against train's demeaned **0.651** — the
+drift-stripped edge came in **29% below train out of sample**, not marginally
+below. Also void: §44.10's claim that the headline "exceeds the band because
+2024 drift came in richer". Against the corrected centre of 0.651, the headline
+did not exceed anything — USDT 0.619 is slightly *under* it and USDC 0.693
+slightly over.
+
+Two knock-on labels, corrected here: §44.1 called 0.651 and 0.882 the "train
+Sharpe" of 10% and 12%. Those are the **demeaned** Sharpes; the headline pair
+is 0.835 and 1.191. The override argument in §44.1 is unaffected — it ranks the
+two vols the same way either way, and it never rested on the level.
+
+Deterioration of roughly this size out of sample is ordinary and was expected
+in kind if not in amount; it is recorded plainly rather than smoothed. It does
+not re-open the §44.6 branch, which was decided on gates, drift fraction and
+floor behaviour — none of which this touches.
+
+### 45.1 The mechanism, and the construction details fixed in advance
+
+Current rule (b=0): a name is held while it is in the top-k (long) or bottom-k
+(short) by momentum rank, and exits the moment it leaves. A one-rank wobble at
+the boundary costs a full round trip.
+
+Buffer rule (hysteresis, width `b`): **enter** at rank ≤ k; **exit** only at
+rank > k + b. Symmetric on the short leg — enter in the bottom k, exit only
+once outside the bottom k + b. Selection/weighting step only: beta hedge, vol
+target, floor handling, the feasibility drop-loop and rescale-on-skip are all
+unchanged.
+
+Hysteresis needs the *held* book as an input, which the b=0 selection never
+used, so three construction details are degrees of freedom and are fixed here
+rather than after seeing results:
+
+1. **Retentions are resolved first, on both legs, then vacancies are filled.**
+   A held long with rank ≤ k+b is retained; a held short still inside the
+   bottom k+b is retained; remaining long slots are then filled from the
+   best-ranked unused names and remaining short slots from the worst-ranked
+   unused names. Resolving both legs' retentions before either fills keeps the
+   rule leg-symmetric — filling longs first would silently give the long leg
+   priority over a contested name.
+2. **No name may be used twice**, and a name is only ever retained on the side
+   it is actually held. This is what keeps b=3 well defined where the zones
+   touch (§45.2).
+3. **Leg order follows momentum rank, not hold status.** The long leg is
+   ordered best-first and the short leg worst-first before `rank_weights`
+   applies the [0.5x, 1.5x] ramp, so a retained name now at rank 7 takes the
+   smallest long weight rather than inheriting the weight it had. **The buffer
+   changes which names are held, never the weight profile.**
+
+A held name that has left the candidate set entirely — dropped by the
+liquidity cap, the funding-presence filter, a missing or misaligned bar, a
+delisting — is **not** retained at any `b`. Retention requires a current rank,
+and there is no imputing one.
+
+### 45.2 The three buffers, and the geometric ceiling
+
+`b` is chosen from universe geometry, **not** from which value performs best.
+B trades the top-15 PIT majors with N=10, so k=5.
+
+- **b = 1** — exit at rank > 6. Minimal hysteresis.
+- **b = 2** — exit at rank > 7. Moderate.
+- **b = 3** — exit at rank > 8. The §23 example from the original deferral.
+
+**The ceiling is arithmetic.** With M candidates the long hold-zone is ranks
+`1 … k+b` and the short hold-zone is ranks `M−k−b+1 … M`. They meet when
+`2(k+b) ≥ M+1`. At k=5, M=15 that is `b ≥ 3`: at **b=3 the two zones touch at
+exactly rank 8** — rank 8 from the top is rank 8 from the bottom in a 15-name
+universe — and at b=4 they overlap by three ranks, where a name could be
+"still a long" and "still a short" at once. **b ≤ 3 is a geometric constraint,
+not a tuning choice**, and b=3 already sits on its boundary. M falls below 15
+on days when names lack funding history or an aligned window, and there b=3
+overlaps rather than touches; §45.1's rules 1–2 resolve that deterministically,
+with no tie-break on performance.
+
+### 45.3 Trial accounting
+
+Three buffers = **three trials** (b=1, 2, 3), each reported at both fee
+schedules. Each is logged with `status: started` at a clean commit before it
+runs; an errored run still spends its trial.
+
+**The b=0 baseline is not a new trial** — it is the frozen §44 config, already
+logged, same config hash. It is nonetheless **re-run** here because the paired
+bootstrap needs its daily series on identical dates, and that re-run **must
+reproduce §43.6 exactly** (Sharpe 0.835, 1241 rebalances, skip 21.55%, maxDD
+17.03%). If it does not, **stop**: the buffer code has moved the b=0 path and
+every comparison would be against a shifted baseline.
+
+Budget **12 → 15 of 25.** Inside the expanded budget; no further expansion.
+
+### 45.4 The selection rule — all three conditions, fixed before running
+
+A buffer **wins** and becomes the new deploy candidate only if, on train:
+
+1. **Net Sharpe improves over b=0 by a paired-bootstrap margin whose 90% CI
+   excludes zero.** Buffer and baseline run on the same days, so the difference
+   series cancels common market noise; the two are never bootstrapped
+   independently and subtracted (§26). **A point-estimate improvement is not
+   enough.** Prior candidate improvements that could not clear a paired CI were
+   correctly not adopted. The comparison is on the **run's net Sharpe** —
+   b=0's is **0.835** (§45.0; the 0.651 quoted in the stage document is the
+   demeaned column).
+2. **Turnover actually falls, and the boundary-crossing share falls with it.**
+   The mechanism must do the thing it claims. A Sharpe gain with flat or rising
+   boundary-crossing turnover is not the buffer working.
+3. **The mechanism stays clean: drift fraction < 30% and demeaned Sharpe > 0.**
+   **This is the specific failure mode to watch.** A buffer holds names longer,
+   and §41 established that *holding* is how this book reverts to
+   drift-harvesting: the 14%/$400 config skipped 51.8% of its rebalances and
+   its Sharpe was 126% drift with a **negative** demeaned Sharpe. A buffer
+   could lift Sharpe the same way — by sitting on drifting names — and that is
+   not tradeable edge. **If drift rises toward the §41 pattern as `b`
+   increases, that is disqualifying regardless of Sharpe.**
+
+**If several buffers pass, take the SMALLEST `b` that does** — minimal
+intervention, least overfit surface. **Not the highest Sharpe.**
+
+**If none passes, b=0 stands** and the deployment config is unchanged.
+
+### 45.5 What is reported per buffer, against b=0 on train
+
+The b=0 reference is §43.6's 10% @ $800 train row: **Sharpe 0.835**, demeaned
+**0.651**, drift **22%**, max drawdown **17.03%**, skip rate **21.55%**,
+realised vol **9.28%**, **1241** rebalances, ann return **7.60%**.
+
+Per buffer:
+
+- Net Sharpe, price PnL, funding PnL, each with a **paired-bootstrap 90% CI
+  against b=0** on identically-dated days
+- Turnover multiple, and the **boundary-crossing / adjustment split**, against
+  b=0's own split measured on the same run (§32.4 measured 67.9% on the earlier
+  config; the b=0 figure for *this* config is computed here, not assumed)
+- Fee drag as a share of price PnL, both fee schedules
+- **Drift fraction and demeaned Sharpe** — the §41 disqualifier
+- Skip rate and realised vol — a buffer changes which names are held, which can
+  change the floor interaction; confirm it does not re-break
+- Max drawdown, against the **20% cap the vol was selected under** (§43.3).
+  Holding longer can deepen drawdowns.
+
+### 45.6 The reading — fixed before running
+
+| Outcome | Meaning |
+|---|---|
+| A buffer improves net Sharpe (paired CI excludes 0), turnover falls, drift < 30% | **A real improvement.** The smallest passing `b` becomes the deploy candidate — and then needs its own 2024 validate before the holdout, because a new config cannot inherit b=0's |
+| Buffer lifts Sharpe but drift rises toward the §41 pattern | The gain is drift-harvesting from holding, not a turnover saving. **Reject** — this is the trap §41 established |
+| Turnover falls but the net-Sharpe CI includes zero | The fee saving does not survive the noise. **b=0 stands**; the buffer is not worth the added parameter |
+| No buffer passes | **b=0 is the deployment config. The last strategy question is closed** |
+
+**Nothing in §45.2–§45.6 is adjusted after seeing results.**
+
+### 45.7 If a buffer wins — the consequence, stated now
+
+A winning buffer is a **new configuration** and **cannot inherit §44's 2024
+validation.** It would need its own single validate on 2024 (trial 15 → 16)
+before being holdout-eligible. **That validate is not run in this stage.**
+
+### 45.8 What this stage does not do
+
+- Does not choose `b` by which performs best — smallest that passes, or none
+- Does not adopt a buffer on a point estimate without the paired CI
+- Does not accept a Sharpe gain that arrives with rising drift
+- Does not exceed b=3 (§45.2 geometry)
+- Does not validate a winning buffer on 2024
+- Does not touch the holdout
