@@ -3147,3 +3147,76 @@ answered here and still gates live deployment.
 
 Budget **9 of 25**. Validate untouched, holdout sealed, frozen config
 unchanged.
+
+## 37. THE VALIDATE RULE FOR B — pre-registered 2026-08-28, before the run
+
+**Config under test:** B — top-15 point-in-time majors, `lookback=14`,
+`skip=0`, N=10, k=5, 20% vol target, 3x cap, beta-neutral, +1min fill, 5bps
+slippage, $400. Both fee schedules (USDT 0.0500%, USDC 0.0360%), reported
+together. **Window: 2024 only.** Cost: **one trial, budget 9 -> 10 of 25.**
+
+**Relationship to §30.** §30 is the validate rule written for config **A**
+(the uncapped frozen config) and it stands unmodified in the record. This
+stage validates **B** instead, so §37 governs this run. §30 is not deleted,
+not edited, and would still apply if A were ever validated. Saying so
+explicitly rather than silently swapping rules.
+
+### 37.1 The drift adjustment — the number that must not be forgotten
+
+§36.4 measured **41% of B's train Sharpe as drift**, which does not repeat
+out of sample. So even if B's real momentum holds *perfectly* into 2024:
+
+```
+  expected validate Sharpe  =  1.114 x (1 - 0.41)  ~  0.66     before any decay
+```
+
+**A validate Sharpe of 0.5-0.7 is therefore CONSISTENT WITH SUCCESS, not
+failure.** A threshold demanding ~1.0 would reject a working strategy. This
+is baked into the gates below and is not to be quietly dropped when the
+number arrives.
+
+### 37.2 Tier 1 — hard gates. Any one failing = refuted.
+
+| # | Test | REFUTED if | Why |
+|---|---|---|---|
+| **G1** | price PnL sign | 2024 price PnL **< 0** | B is 77% price. Negative price PnL means the momentum leg is gone, drift or no drift. The single most important gate |
+| **G2** | drawdown | max DD **> 30%** on the **USDT-fee** run | Breaches the pre-registered kill switch. **Not a failed test — the parked vol question answering itself:** B at 20% vol is too fragile to run. Decisive, not noise |
+| **G3** | Sharpe floor | Sharpe **< 0.30** at **USDC** fees | The project's standing stop threshold. Below it, even "not refuted" does not justify the holdout |
+
+### 37.3 Tier 2 — mechanism checks. Reported; they inform, they do not auto-refute.
+
+- **Structural invariants** against §30.1's train ranges: realised beta
+  within **±0.15**; realised gross leverage in a sane band; dollar-tilt
+  identity to **1e-9**; active-days fraction **>= 80%**. A breach means the
+  harness behaved differently out of sample — investigate before trusting
+  anything else.
+- **Price/funding split.** Train B was 77/23. **If 2024 flips to
+  funding-carried, B has become A** — noted explicitly if so.
+- **Drift check on 2024.** Demeaned decomposition on the 2024 result. If the
+  2024 drift fraction is far above train's 41%, the "momentum" that survived
+  is mostly artifact — a caveat on any positive read. Diagnostic, not a trial.
+
+### 37.4 The reading
+
+| Outcome | Meaning |
+|---|---|
+| all Tier 1 pass, Sharpe **0.5-0.7**, price-driven | **best realistic outcome** — consistent with momentum surviving; justifies the holdout, subject to §37.5 |
+| all Tier 1 pass, Sharpe **> 0.7** | stronger than the drift-adjusted expectation; genuinely encouraging, still **not confirmation** |
+| **G1 fails** (price PnL < 0) | momentum did not survive. **B refuted.** Do not proceed to holdout |
+| **G2 fails** (DD > 30%) | B at 20% vol is unrunnable. The vol question is answered: B needs lower vol, which is a **new config and a new validate** — the holdout stays sealed |
+| **G3 fails** (Sharpe < 0.3) | not refuted, but too weak to spend the holdout on |
+
+### 37.5 This stage ends at the report
+
+Whatever 2024 shows, **the holdout decision is deferred to the user** and is
+not taken in this session. Two reasons, recorded now so they are not
+rationalised away later:
+
+1. Even the best outcome here is **"not refuted"** (MDE ~1.65 on one year,
+   §28.4), and the parked vol/kill-switch question (§35.6) still gates live
+   deployment. A clean 2024 does not clear it.
+2. Chaining validate -> holdout in one session is exactly how a last look
+   gets spent in the momentum of a good number. **The holdout is one look,
+   ever.** It gets its own decision with a clear head.
+
+No threshold above is adjusted after seeing 2024.
