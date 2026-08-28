@@ -5125,3 +5125,178 @@ before that, proven not asserted (§48.5).
 - **Not a strategy change.** Parameters untouched.
 
 The holdout decision remains **the user's**, unchanged and undecided.
+
+### 48.8 The no-op proof FAILED on the first definition — 1,508 of 1,827 days
+
+The definition registered in §48.3 excluded three symbols that were in the
+historical universe:
+
+```
+  BTCDOMUSDT   underlyingType=INDEX
+  DEFIUSDT     underlyingType=INDEX
+  OMGUSDT      underlyingSubType=['Pre-IPO','TradFi']
+```
+
+Per §48.5 that is the STOP condition, and it stopped. The diagnosis matters
+more than the count:
+
+- **BTCDOM and DEFI are indices on CRYPTO assets** (BTC dominance; a DeFi
+  composite), both `contractType=PERPETUAL`. STAGE11 §2 excludes an *"index on
+  non-crypto assets"* — neither is one. §48.3 rule 3 excluded `INDEX`
+  wholesale, which is broader than the specification it was implementing.
+- **OMGUSDT is `underlyingType=COIN`, `contractType=PERPETUAL`** — OMG
+  Network, a genuine crypto token — that merely carries a `['Pre-IPO',
+  'TradFi']` subtype tag in Binance's metadata. SOMIUSDT (Somnia) is tagged
+  the same way. §48.3 rule 4 treated the subtype as a standalone signal; it
+  is not one.
+
+So the failure was **not** evidence that the §48.2 premise is false. It was
+evidence that my operationalisation was broader than the written definition.
+
+### 48.9 The correction, and the circularity it had to avoid
+
+The hazard here is precise and worth naming: **if the definition is edited
+repeatedly until the proof passes, the definition is being selected BY the
+historical universe, and the "no-op proof" proves nothing** — it becomes a
+tautology that says "crypto means whatever was in the universe during train".
+
+The correction is therefore justified by text that **predates the proof**, not
+by the diff the proof produced. STAGE11 §2, written before any of this,
+excludes "an equity, ETF, fund, commodity, index on **non-crypto** assets, or
+fiat-referenced instrument". Under that text BTCDOM, DEFI and OMG are all
+eligible, and §48.3's rules 3 and 4 were over-broad against it.
+
+**The corrected discriminator is a single field:**
+
+```
+  NON_CRYPTO  iff  contractType == "TRADIFI_PERPETUAL"   (or on the seeded list)
+```
+
+Binance's own label for a tokenised traditional-finance perpetual. Within the
+snapshot it captures the TradFi block exactly — EQUITY (21), HK_EQUITY (6),
+COMMODITY (5), and the pre-IPO subset of PREMARKET (6) — and nothing else.
+`underlyingType` and `underlyingSubType` are retained for **logging**, never
+as exclusion triggers.
+
+**Re-run: ZERO DIFFS across 1,827 days.**
+
+### 48.10 A claim I made and had to withdraw
+
+The first version of `universe_filter.py` described the seeded exclusion list
+as "belt and braces" behind the metadata test. **That was false and I checked
+it rather than leaving it standing.** Of §47.1's eight instruments, the
+metadata catches only **three** (XAU, XAG, SPCX); the other five (SNDK,
+SKHYNIX, MU, SOXL, CL) are absent from the snapshot entirely and are caught
+**only** by the seeded list.
+
+The reason is structural: **the metadata snapshot is taken from TESTNET**,
+which lists a subset of production instruments. The seeded list is
+load-bearing, not decorative.
+
+### 48.11 That structural gap is a real hole, and it was live
+
+If the snapshot cannot see an instrument, the §48.4 fallback admits it as
+crypto — raising **neither an exclusion nor an ambiguity**, so the §48.6
+composition guard would not fire on it either. A silent hole.
+
+`suspicious_absences()` was written for exactly that case: a symbol **still
+trading** but absent from the snapshot cannot be "delisted before the
+snapshot". Run against the current universe it immediately found **seven**:
+
+```
+  symbol         unfiltered rank   listed        what it is
+  BZUSDT              17          2026-04-01    Brent crude
+  DRAMUSDT            18          2026-05-18    DRAM / memory
+  EWYUSDT             20          2026-03-16    iShares MSCI South Korea ETF
+  SAMSUNGUSDT         27          2026-06-02    Samsung
+  MRVLUSDT            29          2026-05-15    Marvell Technology
+  AMDUSDT             48          2026-05-06    AMD
+  NBISUSDT            52          2026-05-26    Nebius
+```
+
+All seven were being classified **crypto**. Three of them (BZ, DRAM, EWY)
+entered the *crypto-only* top-15 once the seeded eight were removed — so the
+first "crypto-only" universe this stage produced had Brent crude at rank 9,
+DRAM at 10 and a South Korea ETF at 12.
+
+**The TradFi wave is therefore at least 15 instruments, not §47's eight.**
+§47.1 enumerated what was in the top-15 on one date; it was never the full
+population, and it should not be read as such.
+
+The fix applies STAGE11 §2.3's own conservative default — *ambiguity excludes
+and logs* — to this case: a symbol trading contemporaneously with the snapshot
+but missing from it is `underlying_ambiguous`, excluded, logged. The §48.4
+fallback now applies only where the question is unanswerable.
+
+### 48.12 The guard's own regression, and why the proof caught it
+
+Wiring the recency test into the historical proof **broke it again**: 1,556
+days, the first exclusion being **LENDUSDT** — Aave's predecessor LEND, an
+unambiguously crypto token that traded in 2020 and delisted years ago.
+
+Asked at a 2020 reference, "is this trading now but missing from a 2026
+snapshot?" flags **every symbol that was alive then and has since delisted**.
+A forward-looking guard had become a retroactive deletion of the past.
+
+The test is only *answerable* when the data and the metadata are
+contemporaneous, so it now goes inert when the reference predates the
+snapshot by more than `CONTEMPORANEOUS_MS` (90 days). **Re-run: zero diffs
+across 1,827 days**, with the recency test active throughout.
+
+**Three definitions were tried, and two were wrong.** Recorded in full,
+because the sequence is the evidence that the proof is load-bearing rather
+than decorative: each wrong definition was caught by the proof and by nothing
+else, and neither was corrected by reference to the diff.
+
+### 48.13 RESULT — the amendment is proven inert. Coverage is 100%.
+
+```
+  no-op proof   1,827 days, 2020-01-01 -> 2024-12-31   ZERO DIFFS
+  excluded in that window                              0 symbols
+  ambiguous in that window                             0 symbols
+  historical-fallback admissions                       26 symbols, all delisted
+  distinct symbols across all train/validate universes 346
+```
+
+**The filtered universe is bit-identical to the unfiltered one on every day of
+train and validate.** The filtered strategy IS the tested strategy; nothing
+needs revalidating. Recorded as **Test 26** (hermetic, runs off the committed
+346-symbol artifact) so no refactor can silently break it.
+
+**Refreshed testnet coverage (§5), crypto-only top-15 as of 2026-07-31:**
+
+```
+   1 BTCUSDT   2 ETHUSDT   3 SOLUSDT   4 ZECUSDT       5 XRPUSDT
+   6 HYPEUSDT  7 BANKUSDT  8 DOGEUSDT  9 BNBUSDT      10 LABUSDT
+  11 AKEUSDT  12 ADAUSDT  13 1000PEPEUSDT  14 WLDUSDT 15 NEARUSDT
+
+  coverage 15 of 15 (100%)   tradeable on testnet: 15
+```
+
+**The full frozen config runs on paper: N=10, k=5. The §47.5 reduced-N
+limitation is RETIRED**, and §46.5 is updated accordingly. Note the reason it
+retired is not that testnet gained symbols — it is that removing 8 TradFi
+names and 3 unclassifiable ones promoted 11 crypto names that testnet does
+list.
+
+**Budget 15 of 25. Holdout sealed and untouched** — `holdout_log.json` absent,
+zero holdout rows, and no 2025+ return series was read, run, or touched at any
+point in this stage. Suites 76/76.
+
+### 48.14 What remains open, and belongs to the user
+
+1. **The filter cannot be fully verified without production metadata.** The
+   snapshot comes from testnet by hard rule (no mainnet host may appear in
+   this codebase). Production-only instruments are caught by the recency guard
+   only once they reach a ranked universe. A production `exchangeInfo`
+   snapshot supplied out-of-band would close this properly, and would not
+   require the codebase to make a mainnet call.
+2. **§47.3 is unchanged by this stage.** The holdout window still contains the
+   TradFi transition. The amendment means a holdout run would now test the
+   crypto-only strategy — which is the strategy the research measured — but
+   the composition of the *unfiltered* market still shifted underneath the
+   window, and the seven newly-found instruments make that shift larger than
+   §47 described. Whether that changes the holdout decision is the user's call.
+3. **The exclusion list will need maintenance.** Seven instruments were found
+   by a guard written the same day. The guard alerts; it never auto-amends
+   (§48.6). Someone has to look.

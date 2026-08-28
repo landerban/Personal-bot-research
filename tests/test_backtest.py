@@ -9,6 +9,7 @@ PointInTimeStore/PITView machinery as production — no mocking of Stage 1.
 
 from __future__ import annotations
 
+import json
 import math
 import os
 import subprocess
@@ -1797,6 +1798,102 @@ def test_rank_buffer_selection():
             raise AssertionError(f"rank_buffer={bad} must be refused (NOTES 45.2)")
     print("PASS rank_buffer_selection (b=0 is the frozen rule; retention at "
           "k+b; entry and weight profile unchanged; ceiling enforced)")
+
+
+# ----------------------------------------------------------------- test 26
+
+def test_crypto_filter_is_inert_on_train_and_validate():
+    """Stage 11 3 / NOTES 48.5: the crypto-only filter must exclude NOTHING
+    that was in a train or validate universe -- that equivalence is what makes
+    the amendment free of revalidation, and no refactor may silently break it.
+
+    Hermetic: runs against the committed symbol artifact produced by
+    tools/prove_filter_noop.py, not against 1,827 days of the live store."""
+    from backtest.universe_filter import (
+        AMBIGUOUS, CRYPTO, EXCLUDED_SYMBOLS, NON_CRYPTO, classify,
+        filter_universe, suspicious_absences,
+    )
+    root = Path(__file__).resolve().parents[1]
+
+    art = root / "data" / "train_validate_universe_symbols.json"
+    assert art.exists(), (
+        "missing data/train_validate_universe_symbols.json -- regenerate with "
+        "tools/prove_filter_noop.py"
+    )
+    payload = json.loads(art.read_text(encoding="utf-8"))
+    syms = payload["symbols"]
+    assert payload["window"] == ["2020-01-01", "2024-12-31"], payload["window"]
+    assert len(syms) > 300, f"artifact looks truncated: {len(syms)} symbols"
+
+    kept, dropped = filter_universe(syms)
+    assert not dropped, (
+        f"the filter excludes {len(dropped)} symbol(s) that were in a "
+        f"train/validate universe -- the NOTES 48.5 equivalence is broken: "
+        f"{[(v.symbol, v.reason) for v in dropped[:10]]}"
+    )
+    assert kept == syms, "filter_universe must preserve order and membership"
+
+    # the eight instruments 47.1 flagged are excluded, and none of them is in
+    # the historical set (which is WHY the amendment is inert)
+    for s in EXCLUDED_SYMBOLS:
+        assert classify(s).klass == NON_CRYPTO, s
+        assert s not in set(syms), f"{s} in a historical universe -- 48.2 premise"
+
+    # the three that broke the first proof attempt (NOTES 48.8) stay crypto:
+    # crypto-underlying indices, and a COIN perp carrying a TradFi subtype tag
+    for s in ("BTCDOMUSDT", "DEFIUSDT", "OMGUSDT"):
+        v = classify(s)
+        assert v.klass == CRYPTO, (s, v.klass, v.reason)
+
+    # an unknown underlyingType excludes and says so, rather than guessing
+    fake = {"snapshot_ts": 1, "symbols": {
+        "WEIRDUSDT": {"underlyingType": "TOKENISED_LLAMA",
+                      "contractType": "PERPETUAL"},
+        "TRADFIUSDT": {"underlyingType": "EQUITY",
+                       "contractType": "TRADIFI_PERPETUAL"},
+        "OKUSDT": {"underlyingType": "COIN", "contractType": "PERPETUAL"},
+    }}
+    assert classify("WEIRDUSDT", fake).klass == AMBIGUOUS
+    assert classify("TRADFIUSDT", fake).klass == NON_CRYPTO
+    assert classify("OKUSDT", fake).klass == CRYPTO
+
+    # NOTES 48.11: a symbol still trading but absent from the snapshot cannot
+    # be "delisted before the snapshot" and must be reported, not absorbed.
+    # This is what caught Brent crude, DRAM, a South Korea ETF, AMD, Marvell,
+    # Nebius and Samsung being admitted as "crypto".
+    day = 86_400_000
+    now = 1_000 * day
+    fake = dict(fake, snapshot_ts=now)
+    assert suspicious_absences({"GHOSTUSDT": now}, fake, reference_ms=now) \
+        == ["GHOSTUSDT"]
+    # still trading, but IS in the snapshot -> not suspicious
+    assert suspicious_absences({"OKUSDT": now}, fake, reference_ms=now) == []
+    # absent AND long dead by the reference -> ordinary delisting, not suspicious
+    assert suspicious_absences({"GHOSTUSDT": now - 60 * day}, fake,
+                               reference_ms=now) == []
+
+    # ...and the guard must go INERT on historical replay. Asked at a
+    # reference years before the snapshot, "trading now but missing from the
+    # snapshot?" is unanswerable: every symbol alive then and delisted since
+    # would be flagged. LENDUSDT -- a real 2020 crypto token -- is the
+    # regression this pins (NOTES 48.12).
+    old = now - 900 * day
+    assert suspicious_absences({"LENDUSDT": old}, fake, reference_ms=old) == []
+
+    # filter_universe honours the recency test when given the data, and falls
+    # back to the 48.4 rule when not
+    keep_r, drop_r = filter_universe(
+        ["OKUSDT", "GHOSTUSDT"], fake,
+        last_bar_ms={"OKUSDT": now, "GHOSTUSDT": now}, reference_ms=now)
+    assert keep_r == ["OKUSDT"], keep_r
+    assert [v.symbol for v in drop_r] == ["GHOSTUSDT"]
+    assert drop_r[0].klass == AMBIGUOUS, drop_r[0]
+    keep_n, drop_n = filter_universe(["OKUSDT", "GHOSTUSDT"], fake)
+    assert keep_n == ["OKUSDT", "GHOSTUSDT"] and not drop_n
+
+    print(f"PASS crypto_filter_inert ({len(syms)} train/validate symbols, "
+          f"0 excluded; {len(EXCLUDED_SYMBOLS)} TradFi names excluded and none "
+          f"historical)")
 
 
 # ------------------------------------------------------- metrics sanity
