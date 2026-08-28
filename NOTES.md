@@ -3727,3 +3727,75 @@ deployment vol chosen on train does not survive its own mechanism checks out
 of sample, so a holdout look at 14% would be testing a contaminated config,
 while a holdout at 20% would be testing one already judged too fragile to
 deploy.
+
+## 42. Stage 7 — does the 14% config heal at $800? PRE-REGISTERED READING
+
+**Recorded 2026-08-28 BEFORE running.** Capital is a `Config` value:
+doubling it rescales position sizes without changing the signal, the
+universe, or which names rank, so this is the same risk-sizing diagnostic
+family as the vol sweep and consumes **no trial**. Budget stays **11 of 25**;
+2024 not touched; holdout sealed.
+
+**Why it gates everything.** The 14% config has never had a clean run at any
+capital. Every prior look was at $400, where §41.2 showed it skipped 51.8%
+of 2024's rebalances and §41.3 showed its return was 126% drift with a
+*negative* demeaned Sharpe. At $800 it is a different book — possibly one
+that trades every day. Whether it heals is the precondition for spending the
+holdout or any real money.
+
+### 42.1 The checks — mechanism repair, not performance
+
+Sharpe is **not** the test, and per §39.7 is not even comparable across
+sizes (the floor changes which days trade).
+
+| Check | Broken ($400/14%) | Pass if |
+|---|---|---|
+| skip rate | 27.81% train / 51.8% on 2024 | falls near the 20% config's ~20.7% train, not the $400/14% run's |
+| **drift fraction** | 126% on 2024, demeaned Sharpe **negative** | see §42.2 — the disqualifier |
+| realised vol vs target | ~1.1 pt short, floor-capped | reaches ~14%, i.e. the floor no longer caps size |
+| smallest position | min $3.00, sub-floor days | median and p05 clear $5 with margin |
+| rebalance count | 1142 train, non-monotonic in vol | traded on nearly all ~1380 scheduled days |
+
+To keep the comparison honest I will also compute the **$400/14% train drift
+fraction**, which has never been measured — comparing $800/14% against the
+$400/**20%** figure of 41% would confound capital with vol.
+
+### 42.2 The decisive check, stated as pass/fail
+
+**Drift fraction is the disqualifier.** A book that still shows drift as a
+majority of Sharpe is still mostly *holding* rather than trading, and $800
+has not fixed it.
+
+```
+  PASS  =  demeaned Sharpe > 0  AND  drift fraction < 50%
+          < 30%      clean
+          30 - 50%   healed-but-watch
+          >= 50%     UNHEALED
+```
+
+### 42.3 The outcome table
+
+| Outcome | Meaning |
+|---|---|
+| skip rate low, drift < 30%, realised vol ~14% | **$800 heals it** — deployment config confirmed on train; the holdout becomes worth spending on it |
+| drift 30–50%, skips moderate | **partially healed** — $800 is marginal; consider whether $1,000–1,200 is the real line before committing |
+| drift ≥ 50% or skips still high | **$800 does not heal it.** Report the capital at which the smallest position clears the floor with margin, as the revised target |
+
+### 42.4 What happens next in each case — stated, not executed
+
+**If it heals:** (1) one clean validate of the $800/14% config on 2024 — that
+is a **trial**, number 12 of 25, because the $400 validate measured a
+different, broken book and this would be the config's first honest
+out-of-sample look; (2) *then* the holdout decision, with a config finally
+both survivable and mechanically clean; (3) paper-trade at $800 for real fill
+rates before live, especially for USDC maker. **None of that is done in this
+stage.**
+
+**If it does not heal:** state the revised capital target computed from the
+floor, and stop. **No config is shrunk to force $800 to work** — that would
+re-enter the compression cycle §41.5 named. The honest finding becomes "the
+validated strategy needs ~$X to run at its survivable vol", where $X is
+computed, not guessed.
+
+The holdout remains the one irreplaceable look and is not spent by this
+stage.
