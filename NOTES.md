@@ -1654,3 +1654,40 @@ Interaction with §22.3, worth stating: the price alpha now looks alive in the
 liquid segment (2023 was its best year), while the funding income is a tail
 concentrated in deep-drawdown regimes. Those are two different return sources
 with two different regime dependencies, and the frozen config holds both.
+
+## 24. Stage 3c Part A — bootstrap the buckets: PRE-REGISTERED READING
+
+**Recorded 2026-08-28 BEFORE any confidence interval was computed**, per
+STAGE3C 3/7.1 and the 3a/3b precedent.
+
+Why this gates Part B: §23 reports twelve cells with **no error bars**, and
+its headline depends on a bug found mid-analysis (§23.3) whose fix moved
+2022 from −0.0049 to +0.0101 — exactly the difference between branch one
+failing and firing. A conclusion that fragile must survive resampling before
+it justifies a trial.
+
+**Method, fixed in advance.** Stationary (Politis–Romano geometric-block)
+bootstrap over the **daily** bucket PnL series — never over position-days,
+which are correlated within a day and would give intervals that are too
+tight. "Price PnL per position-day" is a *ratio*, so each resampled day
+carries both its PnL and its position-day count and the statistic is the
+ratio of the resampled sums. The per-year spread resamples both buckets on
+the *same* days so they stay aligned. Block length is reported with the
+measured autocorrelation that justifies it. 90% CIs, 2000 resamples.
+
+The reading:
+
+| If... | Then |
+|---|---|
+| pooled `101+` CI **entirely below zero** AND the top-30-minus-`101+` spread CI excludes zero in **at least 2 of the 3** years where both exist | dilution survives → **proceed to Part B** |
+| pooled `101+` CI **straddles zero**, or the spread excludes zero in **≤1** year | dilution not established → **STOP, do not run Part B** |
+| pooled `101+` below zero but the spread is significant **only in 2023** | weak, rests on one year → **STOP and report**; the decision moves to the user |
+
+Reported but **not** gating: whether 2021's top-30 cell (+0.0028/day) is
+distinguishable from zero, and whether `31-100` beating `1-30` in 2020–2022
+survives its own CI — §23.2 led with that caveat and it should be resolved
+rather than carried forward.
+
+Thresholds will not be adjusted after seeing the intervals. Part A spends no
+trial; budget stays 6 of 20 unless and until Part B is authorised by branch
+one.
