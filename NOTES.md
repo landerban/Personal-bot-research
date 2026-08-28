@@ -2619,3 +2619,106 @@ All six checks done. Branch one on the decisive one. Nothing backtested,
 no configuration changed, no margin asset switched, **no USDC klines
 ingested**. USDC funding lives in `usdc_funding.db`, separate from the frozen
 store. Trial budget **7 of 20**; validate untouched; holdout sealed.
+
+## 33. Stage 5 — majors reconstruction: PRE-REGISTERED READING and BUDGET EXPANSION
+
+**Recorded 2026-08-28 BEFORE any Stage 5 run**, per STAGE5 5.1/8.1.
+
+### 33.1 TRIAL BUDGET EXPANDED: 20 -> 25
+
+**Date:** 2026-08-28. **Instruction:** `STAGE5_MAJORS.md` §6, supplied by the
+user. **Reason:** the majors/venue question is a distinct strategy-family
+question the original 20-trial budget did not anticipate; it needs B1 and B2
+(2 trials) and the remaining 1 would leave nothing for validate.
+
+**New denominator stated before running: 25.** After this stage, **9 of 25**
+spent. This is a recorded decision, not silent drift.
+
+**Deflated Sharpe recomputed for every prior reported result at the new
+count.** The cross-trial variance is held at the value measured from the 7
+trials actually run (0.000301) — it is *not* padded with synthetic trials,
+because padding with the mean would shrink the variance and make the DSR
+rise, which is backwards. Only the expected-maximum term moves, from a
+daily 0.02407 at n=7 to 0.03466 at n=25:
+
+```
+ config                       sharpe   DSR@7   DSR@25
+ lb14/skip0 cap100 (trial 7)   1.178   0.919    0.842
+ lb28/skip0 uncapped           0.971   0.840    0.726
+ lb 7/skip0 uncapped           0.965   0.837    0.722
+ lb14/skip0 uncapped (FROZEN)  0.908   0.808    0.684
+ lb28/skip2 uncapped           0.897   0.802    0.676
+ lb 7/skip2 uncapped           0.483   0.518    0.364
+ lb14/skip2 uncapped           0.422   0.470    0.320
+```
+
+Every figure falls, as widening a search space must. **The frozen config's
+DSR at the honest new denominator is 0.684** (at 5bps it is lower still;
+these are the 0bps rows, which §18.1 already marks as a bound rather than a
+headline).
+
+### 33.2 The design, and the survivorship trap it must avoid
+
+Three configs on train 2020–2023: **A** = frozen (full USDT universe, USDT
+fees), **B1** = top-15 majors PIT, USDT fees, **B2** = the identical B1
+position series re-costed at USDC fees. A→B1 isolates the universe; B1→B2
+isolates the venue.
+
+**The trap (STAGE5 §1):** the USDC name list is defined by what has a USDC
+perp *today*. Dropping that list into 2020 would exclude every coin that
+pumped and died before 2024 — pure hindsight, and exactly what the
+point-in-time store exists to prevent.
+
+**How it is prevented here:** B's universe is `max_liquidity_rank = 15`,
+which selects the top 15 by **median quote volume over the trailing 30 bars,
+computed through `PITView` at each rebalance date** from the full ingested
+symbol list. No name list appears anywhere in the selection path. Delisted
+symbols are therefore selected on the dates they traded. "Has a USDC pair
+today" is used **only** in §32.2 to confirm the thing is buildable live, and
+touches no historical date. A test asserts a symbol that delisted mid-train
+is still selected on its live dates, which a today's-names filter could not
+do.
+
+### 33.3 The reading, fixed in advance
+
+| B1 − A (the universe effect, paired 90% CI) | Reading |
+|---|---|
+| CI **entirely above zero** | majors-only helps out of the noise → strong basis to validate B |
+| CI **straddles zero**, point estimate positive | consistent with helping, **not established** — the honest most-likely outcome given §28.4's MDE of 0.28 on this very comparison |
+| CI **entirely below zero** | majors-only *hurts* — concentration removed more signal than tail noise → do not validate B |
+
+Separately, and not gated on the CI: **does B's per-year price PnL avoid A's
++163 → +110 → +30 → −37 collapse?** If B's price PnL stays positive through
+2023 where A's went negative, that is the mechanism working even if the
+paired interval is wide.
+
+Sidedness: intervals are **two-sided at 90%**, and the one-sided reading is
+reported alongside, per §28.3.
+
+Thresholds will not be adjusted after seeing intervals.
+
+### 33.4 Fixed choices, recorded so they cannot drift
+
+- **k = 5 (N = 10), unchanged.** §24.1 showed ranks 6–11 flip sign by year,
+  so widening k adds a middle-rank bet deliberately not being made. If a
+  top-15 universe cannot support k=5 at the `MIN_NOTIONAL` floor, that is
+  **reported and the stage stops** — k is not silently shrunk.
+- **B1 and B2 are one position series costed twice**, not two backtests.
+  B2 holds the unit positions of B1 fixed and re-costs the fee line, so no
+  ordering or path difference can contaminate the fee comparison. The
+  simplification this makes — in reality different fees would change equity
+  and hence subsequent sizing — is stated wherever B2 appears.
+- **Fees:** B1 at USDT taker 0.0500%; B2 at USDC taker 0.0360% (Regular User
+  0.0400% with the 10% BNB discount — the discount is an assumption and is
+  labelled as one). **Maker is not used**: Stage 2e §4 stands, no maker
+  figure is reportable without a fill-probability model.
+- **Funding is a USDT proxy.** USDC funding did not exist in 2020–2023, so B
+  uses USDT funding for those names. §31.1 measured the USDC tail at 0.86x
+  USDT, so the proxy is if anything **generous** to funding. Labelled a proxy
+  everywhere; never presented as USDC funding.
+- **The reconstruction is generous on two axes** and a marginal B result is
+  therefore an **upper bound**: USDC-list membership still correlates with
+  having survived to 2024 even though selection is PIT, and the funding proxy
+  is slightly rich.
+
+Validate and holdout remain untouched.
