@@ -2169,3 +2169,114 @@ Any earlier figures in this project of **$15M volume or 25 BNB were wrong**
 and are struck. (They do not appear in these notes — they were stated in
 conversation only — but they are recorded as struck here so the corrected
 numbers are the ones on file.)
+
+## 29. THE VALIDATE RULE — pre-registered 2026-08-28, before any decision to run
+
+Written for the **uncapped frozen config** of §19.5: `lookback=14`,
+`skip=0`, capital $400, N=10, 20% vol target, 3x cap, taker-only, 5bps,
++1min, no liquidity cap.
+
+Written now **while it is still undecided whether validate will be run at
+all** — there is no result to fit it to and no decision riding on it. Once
+written it is not modified. If validate runs, it is scored against exactly
+this text.
+
+### 29.1 The seven criteria
+
+**1. Minimum validate Sharpe to justify spending the holdout: ≥ 0.30.**
+
+The project's pre-registered stop threshold of 0.3 (§ cost curve) applies
+here, and deliberately *not* something higher. §28.4 is the reason: the
+validate MDE is 1.65 two-sided, so a threshold above ~0.3 would be
+demanding a result the sample cannot produce even if the strategy works. A
+higher bar would not be more rigorous; it would be a coin flip dressed as
+rigour. 0.30 is therefore a **refutation** threshold — below it the
+strategy is behaving worse than the weakest version of itself worth
+trading — not a confirmation threshold.
+
+**2. Sign requirement on price PnL: validate price PnL must be > 0.**
+
+Uncapped train price PnL was already negative by 2023 (−$37). If it is
+negative again in 2024 that is two consecutive years of the momentum engine
+failing, which is the core claim of the strategy. Negative validate price
+PnL is a **fail on this criterion regardless of headline Sharpe**, because a
+positive Sharpe carried entirely by funding is the carry trade of §22.3 with
+a momentum label on it.
+
+**3. Composition tolerance: funding share of net PnL must be < 85%.**
+
+Uncapped train ran ~61% funding / 39% price. Validate may drift — §29.2
+expects funding to weaken, not strengthen. The tolerance is set on the
+side that matters: if funding exceeds 85% of net, the strategy is
+functionally pure carry and the momentum component is not contributing,
+which is a different mechanism from the one under test. A *low* funding
+share is not a failure.
+
+**4. Drawdown limit: a validate max drawdown > 30% is an automatic stop.**
+
+Train maxDD was 27.87% with 2.13 points of headroom (§22.2). The 30% kill
+switch is pre-registered elsewhere in this project and applies unchanged. A
+breach stops the project regardless of Sharpe — a strategy that would have
+been switched off mid-run has not produced a completable path.
+
+**5. Active-days floor: ≥ 80% of window days must be active.**
+
+Grid v2's discredited 1.65 came from 72 active days of 1,342 (5.4%). The
+uncapped frozen config runs 1,381 of 1,381 (100%) on train. Below 80%, the
+validate Sharpe describes a sliver and **is not interpretable at all** —
+neither pass nor fail, and the run must be reported as uninformative rather
+than scored.
+
+**6. What failure means: the project returns to research with the holdout
+UNSPENT.**
+
+Failure does not end the project and does not trigger the holdout look. The
+holdout is one look, ever; spending it to confirm a failure is the worst
+available use of it. On failure the frozen config is retired, the holdout
+stays sealed, and any future strategy inherits an unspent look. On pass, the
+holdout becomes available but is not thereby obligated.
+
+**7. Sidedness: ONE-SIDED at 90%, stated explicitly per §28.3.**
+
+Only "the strategy works" is of interest; a significantly *negative* result
+and a merely-not-positive one lead to the same action. All criteria above
+are evaluated one-sided at the 90% level, and confidence intervals are
+reported two-sided alongside so both readings are visible. This is stated
+before the run precisely because §28.3 showed sidedness silently decided the
+Stage 3d outcome.
+
+**All seven are evaluated. Criteria 2, 4 and 5 are hard gates — any one of
+them failing is a fail regardless of the others.** Criteria 1 and 3 are
+scored. Criterion 6 defines the consequence; criterion 7 the method.
+
+### 29.2 Expectations recorded before the run — context, not criteria
+
+These are written so the result is not over-read in either direction. They
+are **not** pass/fail conditions and must not be used to excuse a failure
+after the fact.
+
+- **Validate cannot confirm; it can only refute.** One year gives
+  `t ~ SR x sqrt(1)`, and §28.4 puts the MDE at 1.65 two-sided / 1.28
+  one-sided against a strategy whose train Sharpe is 0.796. A "pass" here
+  means "not refuted", nothing stronger, and must be reported in those
+  words.
+- **Expect the funding component to be weaker than train.** Documented carry
+  decayed from 2024 onward and the uncapped config is ~61% funding. A
+  weaker funding contribution is the *expected* outcome and is not on its
+  own a failure — criterion 3 is deliberately one-sided about this.
+- **Expect price PnL to be weak.** It was already negative in 2023. Note the
+  tension with criterion 2, which is intentional: the criterion asks the
+  strategy to do the one thing it had stopped doing, because if it cannot,
+  the momentum claim is finished irrespective of how the carry behaves.
+- **Both engines enter 2024 degraded.** A poor validate is the *expected*
+  outcome, not a surprise. This rule was written knowing that, which is why
+  criterion 1 sits at the floor rather than at anything resembling the
+  train figure.
+- 2022 got slightly worse under the cap (0.05 → −0.04) and the cap is not
+  part of this config anyway; no criterion here concerns the cap.
+
+### 29.3 Status
+
+Rule recorded. **Nothing has been run against it.** Validate remains
+untouched, the holdout remains sealed, and the trial budget stands at
+**7 of 20** with one unallocated trial.
