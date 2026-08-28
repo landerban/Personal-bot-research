@@ -4192,3 +4192,144 @@ chained into this session.
 Prohibited in this stage: framing the result as 10% vs 12% on 2024 (12% was
 declined on train, on the record); demanding a Sharpe near B@20%'s band;
 penalising the lower absolute return; touching the holdout.
+
+### 44.8 RESULT — all three gates pass, mechanism clean. NOT REFUTED.
+
+Trial 12 logged `status: started` at commit `bfb2cd1` on a clean tree
+**before** execution. **Budget 12 of 25.** Holdout untouched.
+
+```
+                            USDT fees      USDC fees
+  Sharpe                       +0.619         +0.693
+  Sharpe 90% CI          (-1.00, 2.20)  (-0.93, 2.28)
+  ann return                   +5.21%         +5.89%
+  ann vol                       8.84%          8.81%
+  max drawdown                  9.57%          9.26%    (2024-08-09)
+  net PnL $                    +41.70         +47.11
+  fees $                        19.33          13.92
+  price PnL $                  +52.33         +52.33
+  funding PnL $                 +8.70          +8.70
+  active days                 365/365        365/365
+```
+
+**Tier 1 gates (§44.3), all three pass:**
+
+| Gate | Threshold | Result | |
+|---|---|---|---|
+| G1 price PnL ≥ 0 | refuted if < 0 | **+52.33** | PASS |
+| G2 max DD ≤ 30% (USDT) | refuted if > 30% | **9.57%** (train 17.03%) | PASS |
+| G3 Sharpe ≥ 0.30 (USDC) | too weak if < 0.30 | **+0.693** | PASS |
+
+**Structural invariants (§44.5), all intact:** realised beta to BTC **+0.011**
+(band ±0.15), dollar-tilt **6.9e-17** (≤ 1e-9), active-days **100.0%** (floor
+80%), realised gross leverage median 0.24 / p95 0.38.
+
+### 44.9 The mechanism checks — both clean, and the skip result is the finding
+
+```
+                          skip rate   rebalances   drift   demeaned SR
+  10% / $800  2024 (this)     0.27%      364 / 1     25%       +0.464
+  10% / $800  train          21.55%     1241         22%       +0.651
+  14% / $400  2024 (41)      51.80%      176        126%       -0.441
+  20% / $400  2024 (38)       0.30%      364 / 1     24%          n/a
+```
+
+**Drift: 25% of the 2024 Sharpe.** Train at this config was 22%; the §44.5
+caveat fires above 40%; §41 disqualified the previous candidate at 126% with a
+*negative* demeaned Sharpe. **Here the demeaned Sharpe is +0.464** — strip
+every symbol's full-sample drift and the book still makes money out of sample.
+25% is inside the <30% clean band and 3 points from its own train value. This
+is the check that killed the previous deployment candidate, and it passes.
+
+**Skips: 1 of 365.** The floor did not bite in 2024. The comparison that makes
+this informative is §41: **the same year, at 14% / $400, skipped 189 of 365.**
+2024 is not a year that is easy on the floor — it destroyed the previous
+config. The difference is position size, and it is a cliff rather than a
+gradient (§39.7): train median notional $18.26 at 14%/$400 against $22.49 at
+10%/$800, a 23% size difference separating a 51.8% skip rate from a 0.27% one.
+
+**One number moved the wrong way, and it is small: the vol shortfall widened.**
+Realised 8.84% against the 10% target is **−1.16 points**, against train
+−0.72 at this config. Consistent with §43.7 finding 3 (the residual shortfall
+is the ex-ante vol estimate running high, not a structural cap), but it did not
+shrink out of sample.
+
+**Position sizing, and the operational headroom it implies:** median $18.52,
+p05 $7.86, min $5.04, **0 of 3,620 positions under the $5 floor.** Positions
+scale 1:1 with capital, so the p05 position reaches the floor at
+`5 / 7.86 = 0.636` of current capital — **the account can lose ~36% before the
+floor starts biting the bottom of the book again.** The 30% kill switch sits
+just inside that, which is the right order but not by much: a drawdown that
+trips the switch leaves roughly 6 points of margin before the mechanism that
+broke §41 re-engages.
+
+### 44.10 The Sharpe landed slightly ABOVE the pre-registered band. Do not over-read it.
+
+§44.4 set the success band at **0.40–0.65**. USDT Sharpe **0.619 is inside
+it**; USDC **0.693 is 0.043 above the top**.
+
+Above-band is not one of §44.6 failure branches, and it is not extra evidence
+of strength. Two reasons to hold it flat:
+
+1. **The band is narrower than the noise.** The band spans 0.25 points. The
+   90% bootstrap CI on the 2024 Sharpe spans **about 3.2 points** (−0.93 to
+   2.28). One year of daily returns cannot distinguish 0.51 from 0.69, which is
+   exactly why §44.4 called 0.40–0.65 *consistent with the edge surviving*
+   rather than a point prediction.
+2. **The drift-adjusted expectation was 0.51 and the drift-adjusted realisation
+   is 0.46** (the demeaned Sharpe). Measured on the quantity the band was
+   *derived* from, the result is marginally **below** expectation, not above.
+   The headline exceeds the band because 2024 drift came in slightly richer
+   (25%) than the 22% assumed — not because the edge was stronger.
+
+Recorded so that no later stage can cite "beat the band" as evidence.
+
+### 44.11 The branch that fired, and what it is not
+
+§44.6 row 1: **Tier 1 pass, drift ≤ ~30%, floor clean → the deployment config
+survives OOS cleanly.** That is the branch, on the terms fixed before the run.
+
+What it establishes: the honestly-derived config — vol re-selected on
+uncontaminated drawdowns (§43), capital chosen to clear the floor (§42),
+override to 10% recorded in advance (§44.1) — clears the same three gates the
+20% config cleared, with the mechanism intact where the 14% config mechanism
+was not. It is the first version of B whose out-of-sample evidence and whose
+deployment parameters are the *same configuration*.
+
+What it is not:
+
+- **Not proof.** "Not refuted" remains the best obtainable outcome. The CI
+  includes zero and a good deal below it.
+- **Not a vol comparison.** 12% was declined on train, on the record (§44.1).
+  Nothing here re-opens that, and no 10-vs-12 number was computed on 2024. Had
+  this result been weak, 12% would not have become available either.
+- **Not a fresh year.** 2024 has now been looked at three times (§38, §41, and
+  this). Each look was a pre-registered pass/fail on a config fixed beforehand,
+  and none selected a parameter from 2024 — but the power of the year to
+  surprise is spent, and that is the strongest argument for the holdout being
+  the next and last measurement rather than another 2024 variant.
+- **Not a licence to deploy.** Testnet-only paper evidence, an unmeasured
+  slippage assumption (5 bps from n=1), and a fee drag of 37% of price PnL at
+  USDT fees (27% at USDC) all still stand between this and live capital.
+
+**Composition note:** long leg **+71.46**, short leg **−19.13**. In a strongly
+up year for the majors, a dollar-neutral book losing money on the short leg is
+expected and is not a defect; the beta measurement (+0.011) confirms neutrality
+held while it happened. Funding contributed **+$8.70**, 21% of net. Turnover
+48.6× against §38 96.6× — the arithmetic of the lower leverage.
+
+### 44.12 Status — STOP. Holdout decision deferred to the user.
+
+Budget **12 of 25**. Holdout **sealed and untouched**: `holdout_log.json` does
+not exist, `trials.jsonl` contains **zero** holdout rows.
+
+Per §44.7 this stage ends at the report. The holdout is one look, ever, and
+gets its own decision. What has changed is only that the decision is now
+cleaner than it has ever been: a holdout look would test a config that is
+survivable (9.57% max DD against a 30% switch), mechanically clean (0.27%
+skips, 25% drift, positive demeaned Sharpe), and honestly derived (no parameter
+of it chosen on 2024 or on a contaminated measurement). Every previous point in
+this project at which the holdout was contemplated had at least one of those
+three missing.
+
+**That decision is the user's, and is not taken here.**
