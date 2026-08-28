@@ -77,7 +77,7 @@ def main() -> None:
                  max_liquidity_rank=15, vol_target=a.vol_target)
     start, end = runner.split_view_range("validate")
     assert d(end) == "2024-12-31", f"validate window is wrong: {d(end)}"
-    print(f"=== Stage 6: VALIDATE B on {d(start)} -> {d(end)} | ONE TRIAL ===")
+    print(f"=== VALIDATE B @ {cfg.vol_target:.0%} vol on {d(start)} -> {d(end)} | ONE TRIAL ===")
     print("    (holdout 2025-01 -> 2026-07 is not touched)\n")
 
     store = PointInTimeStore(a.db, read_only=True)
@@ -122,7 +122,7 @@ def main() -> None:
           f"{sc['active']:>7}/{sc['days']:<6}")
 
     # ---------------- TIER 1 GATES ----------------
-    print(f"\n=== TIER 1 GATES (NOTES 37.2, fixed before the run) ===")
+    print(f"\n=== TIER 1 GATES (pre-registered before the run) ===")
     # cast: numpy bools are not JSON serializable and this record is logged
     g1 = bool(price >= 0)
     g2 = bool(su["max_dd"] <= SWITCH)
@@ -200,7 +200,7 @@ def main() -> None:
         print("  --no-log-trial: trial row NOT appended (already logged)")
     else:
         runner.log_trial(cfg, "validate", a.purpose, runner.summarise(res))
-        print("  trial 10 result appended to trials.jsonl (budget 10 of 25)")
+        print(f"  trial result appended to trials.jsonl (purpose={a.purpose})")
 
     with open(runner.DIAGNOSTICS_PATH, "a", encoding="utf-8") as f:
         f.write(json.dumps({

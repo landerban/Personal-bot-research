@@ -3606,3 +3606,124 @@ Nothing adjusted after seeing 2024.
 (§37.5). A 14% pass does **not** auto-license it — it removes the §39.9
 tension (the deployment config would then have its own OOS evidence) and
 makes the holdout decision cleaner. Nothing more.
+
+## 41. RE-VALIDATE RESULT — B at 14% on 2024. Gates pass; both mechanism checks fail.
+
+Trial 11 logged `status: started` at commit `814e0d6` before execution.
+**Budget 11 of 25.** Holdout untouched.
+
+### 41.1 The result
+
+```
+                            USDT fees      USDC fees
+  Sharpe                       +1.721         +1.765
+  Sharpe 90% CI           (0.27, 3.20)   (0.32, 3.25)
+  ann return                  +22.17%        +22.76%
+  ann vol                      12.06%         12.03%
+  max drawdown                  7.95%          7.92%    (2024-03-13)
+  net PnL $                    +88.69         +91.03
+  price PnL $                  +91.72         +91.72
+  funding PnL $                 +5.34          +5.34
+```
+
+**Tier 1 gates — all pass on their own terms:**
+
+| Gate | Threshold | Result | |
+|---|---|---|---|
+| G1 price PnL ≥ 0 | refuted if < 0 | **+91.72** | PASS |
+| G2 max DD ≤ 30% | refuted if > 30% | **7.95%** | PASS |
+| G3 Sharpe ≥ 0.30 (USDC) | too weak if < 0.30 | **+1.765** | PASS |
+
+**Neither the headline Sharpe nor the gate results should be believed as
+evidence of edge.** Both mechanism checks §40.4 required fired, and they
+fired hard.
+
+### 41.2 The floor caveat fired overwhelmingly
+
+§40.4: *"If the 14% config skips materially more of 2024 than the 20% config
+did, the floor is distorting it OOS and that is a caveat on any pass."*
+
+```
+                 rebalances   skips   skip rate
+  B @ 20% (§38)         364       1       0.3%
+  B @ 14% (this)        176     189      51.8%
+```
+
+**The 14% config skipped 189 of 365 scheduled rebalances — 51.8%, against
+0.3% at 20%.** It traded on fewer than half the days the validated config
+traded on. That is not "materially more"; it is a different strategy. Held
+positions were carried across skips by rescale-on-skip, so turnover collapsed
+from 96.6x to **38.8x** and realised leverage fell to a 0.36 median (train
+0.52).
+
+§39.7 predicted exactly this mechanism on train — the floor flipping whole
+rebalances in and out of feasibility rather than cleanly rescaling — and 2024
+confirms it out of sample and worse.
+
+### 41.3 The drift check is the disqualifying one
+
+§40.4 / §37.3: *"If the 2024 drift fraction is far above train's 41%, the
+'momentum' that survived is mostly artifact."*
+
+```
+  Sharpe real  +1.721 | demeaned  -0.441 | drift +2.162  =  126% of total
+  train B: 41%   |   the 20% config on 2024: 24%   |   synthetic floor: ~18%
+```
+
+**Remove each symbol's full-sample drift and the 14% config LOSES MONEY in
+2024** (demeaned Sharpe −0.441). The drift component is 126% of the total —
+more than all of it. Against train's 41% and the 20% config's 24% on this
+same year, this is not a marginal deterioration; it is a categorical one.
+
+The two failures are the same failure. A book that skips 52% of its
+rebalances is a book that mostly *holds*, and holding is precisely how a
+strategy harvests persistent per-symbol drift rather than trend
+continuation. This is the same shape as the stale-book artifact that voided
+grid v1 (§13.1) — different mechanism (rescale-on-skip, not
+hold-without-rescaling) but the same economics.
+
+### 41.4 The reading, per §40.5
+
+The pre-registered branch is *"all Tier 1 pass but floor skips ≫ the 20% run
+→ passes, but the floor contaminates it OOS — deployment carries that
+limitation; record it."* That branch fires, and the drift result makes the
+limitation severe rather than cosmetic.
+
+**Stated plainly: the 14% config is not deployable on this evidence.** It
+clears the three hard gates, and I am not moving those gates after the fact —
+but the gates were designed to catch a dead signal, not a floor-mangled one,
+and both checks written specifically to catch the latter came back positive.
+
+**What must NOT be concluded.** §40.1 forbade a 14%-vs-20% comparison on
+2024, and that prohibition protects against the *opposite* error to the one
+that is tempting here. The 14% run's Sharpe of 1.765 against the 20% run's
+0.675 is **not** evidence that 14% is better — the two ran on different day
+sets (176 vs 364 rebalances). No such comparison is made or implied.
+
+### 41.5 What this leaves
+
+- **The 20% config remains the only version of B with clean out-of-sample
+  evidence**: §38's 24% drift fraction (better than train), 1 skip, 364
+  rebalances, all invariants intact. Its problem is §35's 0.27 points of
+  kill-switch headroom on train.
+- **The 14% config has the risk headroom and not the mechanism**: 7.95%
+  drawdown, but half its rebalances skipped and its return essentially all
+  drift.
+- **The $400 capital is the binding constraint underneath both.** §32.3
+  already established that `MIN_NOTIONAL` converts rank weighting into
+  truncation at this size; §39.7 and now §41.2 show it also converts the vol
+  knob into a day-selection knob. The dilemma is not vol — it is that $400
+  against a $5 floor cannot express a 14%-vol book on 15 majors.
+- **Not attempted here:** re-sizing capital, changing N, or any third vol.
+  Each is a new configuration and a new trial, and §40.1's discipline means
+  the choice cannot be made by trying them on 2024.
+
+### 41.6 Status
+
+Budget **11 of 25**. Holdout **sealed and untouched** — `holdout_log.json`
+absent, zero holdout rows. The holdout decision remains **deferred to the
+user** (§37.5/§40.6), and this result makes it harder rather than easier: the
+deployment vol chosen on train does not survive its own mechanism checks out
+of sample, so a holdout look at 14% would be testing a contaminated config,
+while a holdout at 20% would be testing one already judged too fragile to
+deploy.
