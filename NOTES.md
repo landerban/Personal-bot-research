@@ -2889,3 +2889,74 @@ Not adjusted after looking.
   read as one. The takeaway concerns the **vol target and the switch level**,
   not running without a switch. The switch remains in the strategy
   definition for every future run.
+
+### 35.4 Result — the switch never fired, and the drawdown never healed
+
+```
+1,382 days 2020-03-20 -> 2023-12-31   equity $400.00 -> $819.63   max DD 29.73%
+
+deepest drawdown 29.73%
+  peak     2022-03-25   $828.10
+  trough   2023-06-25   $581.90     457 days from peak
+  recovery DID NOT RECOVER within train -- still 1.02% below the peak at
+           2023-12-31 ($819.63 vs $828.10)
+  time underwater 646 days (21.2 months), still counting at train end
+
+excursions past -25%: TWELVE, from 2022-11-14 to 2023-09-11
+the 30% switch: NEVER REACHED -- worst 29.73%, 0.27 points of headroom
+```
+
+**The pre-registered table does not cleanly apply, and I am not going to
+force it to.** All three branches in §35.2 are conditioned on "after the
+−30% point". There is no −30% point: the switch never fired on train, so
+there is no post-switch path to inspect. The reading assumed a fact that
+turned out to be false, which is a limitation of the reading, not a result.
+
+**Closest branch is three (ambiguous — survivable but painful), and it
+understates it.** The drawdown did *not* deepen toward −40%, so branch two
+is wrong. It did *not* recover in 1–3 months, so branch one is wrong. It ran
+**21.2 months underwater and had still not recovered when train ended**,
+finishing 1.02% short of the 2022-03 peak — worse than branch three's "6+
+months" contemplates.
+
+For reference rather than as a branch reading, from the worst point
+(2023-06-25): +30d **+5.76%**, +60d **+2.00%**, +90d **+15.00%**. The
+recovery had begun but was slow and non-monotonic — the +60d figure is
+barely above the trough.
+
+### 35.5 The observation that matters more than the branch
+
+**Whether the kill switch fires depends on the fee schedule.** Same
+positions, same days:
+
+```
+ B1 (USDT taker 0.0500%)   max DD 29.73%   -- 0.27 points from the switch
+ B2 (USDC taker 0.0360%)   max DD 27.47%   -- 2.53 points from the switch
+```
+
+A **1.4 bps** difference in taker fee moves max drawdown by **2.26 points**
+and decides whether the strategy would have been shut down. That is not a
+comfortable place to sit: the operational survival of the config depends on
+a cost assumption that §28.5 flagged as resting on a 10% BNB discount and,
+before that, on a single synthetic testnet fill.
+
+Combined with **twelve separate excursions past −25%** between 2022-11 and
+2023-09, the honest characterisation of B1 is: *a strategy that spent the
+last third of train continuously within a few points of its own stop, and
+that a modestly worse cost assumption would have stopped.*
+
+### 35.6 What this changes
+
+- **Not** an argument for removing or loosening the switch (§35.3 stands, and
+  STAGE5A §4 forbids reading it that way).
+- It **is** an argument that B1's risk sits too close to its own limit at a
+  20% vol target. The lever §35.2 identified for branch one — *lower the vol
+  target rather than loosen the switch* — applies here for a different
+  reason: not to capture a forfeited rebound, but to buy headroom against a
+  stop that a fee assumption can trip.
+- Any such change is a **new configuration and costs a trial**. Nothing is
+  changed here. The frozen config remains §19.5; B remains a candidate.
+- This is **in-sample on train**. The worst real drawdown is out-of-sample
+  and unseen.
+
+Budget **9 of 25**, unchanged. Validate untouched, holdout sealed.
