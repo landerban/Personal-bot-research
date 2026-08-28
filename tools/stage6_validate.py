@@ -65,13 +65,16 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--db", default=str(ROOT / "xsmom.db"))
     ap.add_argument("--demeaned-db", default=str(ROOT / "xsmom_demeaned.db"))
+    ap.add_argument("--vol-target", type=float, default=0.20,
+                    help="vol target; 0.14 is the Stage 6a deployment vol")
+    ap.add_argument("--purpose", default="stage6-validate-B-2024")
     ap.add_argument("--no-log-trial", action="store_true",
                     help="re-run for diagnostics without appending a "
                          "second trial row (the trial is already spent)")
     a = ap.parse_args()
 
     cfg = Config(lookback=14, skip=0, slippage_bps_per_side=5.0,
-                 max_liquidity_rank=15)
+                 max_liquidity_rank=15, vol_target=a.vol_target)
     start, end = runner.split_view_range("validate")
     assert d(end) == "2024-12-31", f"validate window is wrong: {d(end)}"
     print(f"=== Stage 6: VALIDATE B on {d(start)} -> {d(end)} | ONE TRIAL ===")
@@ -196,13 +199,13 @@ def main() -> None:
     if a.no_log_trial:
         print("  --no-log-trial: trial row NOT appended (already logged)")
     else:
-        runner.log_trial(cfg, "validate", "stage6-validate-B-2024",
-                         runner.summarise(res))
+        runner.log_trial(cfg, "validate", a.purpose, runner.summarise(res))
         print("  trial 10 result appended to trials.jsonl (budget 10 of 25)")
 
     with open(runner.DIAGNOSTICS_PATH, "a", encoding="utf-8") as f:
         f.write(json.dumps({
             "ts": int(time.time()), "kind": "stage6_validate_B",
+            "vol_target": cfg.vol_target, "purpose": a.purpose,
             "git_commit": runner.git_state()[0], "dirty": runner.git_state()[1],
             "split": "validate", "usdt": su, "usdc": sc,
             "price_pnl": price, "funding_usdt": fund_u, "funding_usdc": fund_c,
