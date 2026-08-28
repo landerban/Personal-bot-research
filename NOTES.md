@@ -2398,3 +2398,46 @@ Rule recorded. **Nothing has been run against it.** Trial budget **7 of
 20**; validate untouched; holdout sealed. Running validate requires explicit
 user go-ahead and will be trial 8, in a separate session and commit from
 this one.
+
+## 31. Stage 4 — USDC funding feasibility: PRE-REGISTERED READING
+
+**Recorded 2026-08-28 BEFORE any USDC funding data was fetched or measured**,
+per STAGE4 1.2/7.1.
+
+The hypothesis under check (not under test): majors-only universe → rank
+weighting across it → smooth weight changes → USDC-margined perps at 0%
+maker. Each piece makes the next possible, and §28.5's objection that USDC
+has only 20 liquid names dissolves if the universe is already majors.
+
+**Why funding decides it.** Funding is **59.7% of net PnL** (§30.1), and
+§22.3 found it is **81% long-leg and tail-driven** — the +166 on the long
+leg comes from the 27% of settlements with negative rates, i.e. crowded
+leveraged *shorts* paying. That crowding lives where open interest and
+retail leverage are, which is USDT. USDC perps have far lower open interest
+and a different participant mix. The plausible failure mode is **fees near
+zero, funding income largely gone** — trading 60% of PnL for a fee saving.
+
+Measured per base asset with both a USDT and a USDC perp, over the longest
+common history: mean funding rate; **the negative tail** (5th percentile,
+1st percentile, and the fraction of settlements below −0.01%, which is the
+part that carries the PnL rather than the mean); per-asset correlation of
+the two funding series; and the funding-history start date per USDC symbol.
+
+The reading:
+
+| If... | Then |
+|---|---|
+| USDC negative tail is comparable to USDT — **within ~25% on the sub-−0.01% fraction** | funding survives the switch; the hypothesis stays alive |
+| USDC negative tail is **materially thinner** | the switch trades ~60% of PnL for a fee saving → **hypothesis likely dead in this form; record and stop** |
+| common history is **under ~2 years** | **not answerable on available data**; say so and do not extrapolate from USDT |
+
+Thresholds will not be adjusted after seeing the numbers. Comparison is on
+matched base assets over their common window only — never USDC's window
+against USDT's full history, which would confound the switch with the
+regime.
+
+**Scope limits fixed now:** no backtest, no configuration change, no margin
+switch, **no USDC kline ingestion** (that is backfill for a strategy not
+approved). USDC *funding* is fetched because §1 requires it, and into a
+separate file so the frozen `xsmom.db` is untouched. Budget stays **7 of
+20**; validate untouched; holdout sealed.
