@@ -14,3 +14,4 @@ paper_costs.jsonl
 # local duplicates dropped by the user (re-extracted Stage 1 zip; superseded root diagnose)
 /files/
 /diagnose.py
+usdc_funding.db*

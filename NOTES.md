@@ -2441,3 +2441,181 @@ switch, **no USDC kline ingestion** (that is backfill for a strategy not
 approved). USDC *funding* is fetched because §1 requires it, and into a
 separate file so the frozen `xsmom.db` is untouched. Budget stays **7 of
 20**; validate untouched; holdout sealed.
+
+### 31.1 THE DECISIVE CHECK — BRANCH ONE. USDC funding survives the switch.
+
+38 USDC perpetuals, all 38 with a USDT counterpart. 111,928 USDC funding
+rows fetched into a **separate** `usdc_funding.db`; `xsmom.db` untouched and
+**no USDC klines ingested**. Compared on matched base assets over their
+**common window only**.
+
+```
+pooled over 38 matched base assets
+  fraction of settlements below -0.01% (the tail that carries the PnL):
+    USDT mean 13.22%  |  USDC mean 11.31%   ->  USDC/USDT = 0.86
+  assets where the USDC tail is thinner: 26 of 38
+  median common history: 836 days (2.29 years)
+```
+
+Ratio **0.86** is inside the pre-registered ±25% band, and 2.29 years clears
+the ~2-year bar, so **branch one**: funding survives the switch and the
+hypothesis stays alive. Per-asset correlations run 0.21–0.99 (median ~0.80),
+i.e. the two funding series are largely the same signal.
+
+**Three things that weaken this more than the headline ratio suggests, and
+they belong next to it:**
+
+1. **26 of 38 assets have a thinner USDC tail.** The pooled 0.86 is a mean
+   over assets where the *direction* is consistently against USDC — it is
+   small, not absent. On the majors specifically: XRP 5.3% → 2.3%, ADA
+   11.5% → 3.2%, NEAR 8.5% → 3.6%, AVAX 14.7% → 9.3%. Several of the names
+   most likely to be in a majors universe show the largest thinning.
+2. **The comparison window is 2024-2026 and does not overlap train
+   (2020-2023).** USDC perps did not exist then. The test is internally
+   valid — matched pairs, identical window — and it answers "is USDC funding
+   like USDT funding?", which is the right question. It cannot answer what
+   USDC funding would have been during the period the strategy was fitted on,
+   and no extrapolation is offered.
+3. BTC and ETH — the two largest intended positions — sit at 0.4%/1.1%
+   sub-threshold fractions on both quotes. The funding tail lives in the
+   alts, so a majors-only universe already has less of it than the train
+   book did, independently of the margin asset.
+
+## 32. Stage 4 — the rest of the feasibility chain
+
+### 32.1 (§2) Spread and depth — the fee saving is not eaten
+
+Live order-book snapshot across the 16 largest USDC pairs. **A snapshot, not
+a history**, and labelled as such.
+
+```
+median USDT spread 0.90 bps  |  median USDC spread 1.91 bps
+median USDC-minus-USDT spread: +0.00 bps
+USDC wider on 8 of 16 | wider by MORE than 4 bps on 1 (UNI, +4.38)
+median depth within 10bps: USDT $288,695 | USDC $61,957  (ratio 0.21)
+```
+
+The §2 bar was "if USDC spreads are wider by more than ~4bps, the taker
+route saves nothing". The median difference is **0.00 bps** — on the majors
+the two books quote the same spread — so the 4bps taker saving survives.
+Depth is ~5x thinner on USDC, which is **irrelevant at $400** (positions are
+$5–25 against $62k of depth within 10bps) and would become the binding
+constraint long before capital reached six figures.
+
+### 32.2 (§3) Universe — the intended majors are all there
+
+20 of 38 USDC pairs clear $5M/24h. BTC, ETH, SOL, XRP all present and
+liquid. `MIN_NOTIONAL` is $5 for 18 of the 20, $20 for ETH, $50 for BTC —
+the same structure as USDT, so **BTC is untradeable at $400 on either
+quote** and that constraint does not change.
+
+Overlap with the §23 top-30 bucket: **138 distinct symbols held liquidity
+rank ≤30 at some point in train; 25 of them (18%) have a USDC perp today.**
+
+That 18% is the honest number but it is largely answering the wrong
+question, and the distinction matters:
+
+- The union over four years counts churn in the 2020-23 alt universe —
+  names like AGIX, ALICE, ANKR that were briefly top-30 and are now
+  irrelevant. It is not the overlap on any given day.
+- More to the point, §23's bucket is a **rank** bucket, not a name list. A
+  USDC universe of 20 liquid names *is* a top-liquidity universe by
+  construction. The fee advantage therefore applies to the right *segment*
+  even though it applies to few of the specific historical names.
+
+What the 18% does establish is that a USDC universe is **not** a superset of
+the segment that tested significant — it is a much narrower, more
+concentrated slice of it.
+
+### 32.3 (§4, §4.1) Rank weighting — the floor turns it into truncation
+
+**The weight function, stated as a formula** (§4.1 required this; "30% top-3
+/ 40% middle / 30% bottom-3" is ambiguous and would break dollar-neutrality
+if the middle names were not split by rank):
+
+```
+  z_i = (N+1)/2 - i                      centred momentum rank, i = 1..N
+  K   = {1..k} u {N-k+1..N}              symmetric kept set
+  w_i = g * z_i / sum_{j in K} |z_j|     for i in K,  else 0
+```
+
+`z` sums to zero over any symmetric `K`, so **the book is dollar-neutral by
+construction**; `w` is monotonic non-increasing in rank; and `k` is the
+single free integer, chosen as the largest `k <= floor(N/2)` for which every
+kept position clears `MIN_NOTIONAL`. It degenerates to the current strategy
+when the floor drives `k` to 5.
+
+**Pure linear across the whole universe is infeasible at $400** (g = 0.444
+median realised gross):
+
+```
+   N   min |w|   min notional @$400   # under $5   min capital for $5
+  15   0.01786          $3.17              2            $630
+  20   0.00500          $0.89              6          $2,250
+  30   0.00222          $0.40             12          $5,063
+```
+
+But with symmetric truncation it is feasible, and holds **more** names than
+the current book:
+
+```
+   N   feasible k   names held   smallest $   largest $   ratio
+  15        6           12          6.58        23.02      3.5x
+  20        7           14          6.83        18.54      2.7x
+  30        9           18          6.11        13.63      2.2x
+  38       11           22          5.08        11.06      2.2x
+```
+
+**The structural finding: `MIN_NOTIONAL` converts rank weighting into
+truncation.** At $400 you cannot spread weight across a whole universe —
+the floor forces you back to trading the extremes, and `k` is the only
+question. The hypothesis's piece (2), "rank-weighted allocation across the
+whole universe", is **not available at this capital**; what is available is
+truncation at 12–22 names instead of the current 10. That is more breadth,
+which is the one lever §A4 identified, but it is not the stated idea.
+
+### 32.4 (§5) Turnover — most of it is boundary-crossing
+
+From the existing train run, no simulation:
+
+```
+  boundary-crossing (entry/exit) : $172,709   67.9%
+  adjustment within the held set : $ 81,767   32.1%
+```
+
+**68% is the upper bound on what smoother weighting could save.** The §5
+worry — that most turnover is already adjustment, making the argument
+weaker than it looks — does **not** materialise. This is the most favourable
+result in Stage 4 for the hypothesis: fee drag runs 27–48% of gross PnL, and
+two-thirds of the turnover generating it comes from names crossing the rank-5
+boundary, which smooth weighting is precisely what would soften.
+
+### 32.5 (§6) What none of this establishes
+
+Recorded so the chain is not oversold:
+
+- **Better weighting of a decaying signal still decays.** Train price PnL ran
+  +163 → +110 → +30 → −37. Nothing in Stage 4 addresses that, and it is the
+  central problem.
+- **Truncation is optimal if only the extremes carry signal.** Spreading
+  weight across ranks assumes the payoff is roughly linear in rank. There is
+  **no data on middle-ranked names because they have never been held** — and
+  §24.1 found the one middle-ish bucket that was measured (`31-100`) beat the
+  top bucket in 2020 and lost in 2023, i.e. no stable linearity. If momentum
+  lives only in the tails, diluting into the middle costs.
+- **No maker-mode result is reportable until a fill-probability model
+  exists** (Stage 2e §4, unchanged). Rank weighting makes maker *plausible*
+  — an unfilled post-only order leaves you slightly mis-weighted rather than
+  missing a position — but plausible is not proven, and post-only fill rates
+  must be measured in paper trading first.
+- **Testing this needs train, validate and holdout against one remaining
+  trial.** It requires a deliberate budget expansion, logged with date and
+  reason and the Deflated Sharpe recomputed at the higher count. No such
+  expansion is made here.
+
+### 32.6 Status
+
+All six checks done. Branch one on the decisive one. Nothing backtested,
+no configuration changed, no margin asset switched, **no USDC klines
+ingested**. USDC funding lives in `usdc_funding.db`, separate from the frozen
+store. Trial budget **7 of 20**; validate untouched; holdout sealed.
