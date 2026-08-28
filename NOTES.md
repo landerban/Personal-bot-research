@@ -3006,3 +3006,144 @@ universe.
 
 Readings not adjusted after the numbers. No config is chosen in this stage —
 §5 assembles an evidence table, it does not decide.
+
+### 36.3 (§1) Per-year intervals — B does not rest on one year, but 2023 is not significant
+
+```
+ year    price$          90% CI      excl0 | funding$       90% CI      excl0 | sharpe      90% CI
+ 2020   +177.95  [ +28.50, +321.60]   yes  |  +19.05  [+11.13, +27.69]   yes  | +2.27  [+0.49, +4.08]
+ 2021   +174.53  [ +27.35, +334.67]   yes  |   +7.60  [ +1.18, +13.94]   yes  | +1.40  [+0.09, +2.66]
+ 2022    -40.35  [-215.89, +138.39]   no   |  -21.57  [-47.34,  -2.83]   yes  | -0.83  [-2.38, +0.62]
+ 2023   +137.12  [ -49.07, +316.72]   no   |  +89.78  [+45.26, +144.48]  yes  | +1.53  [-0.20, +3.15]
+```
+
+**Two of the three positive years (2020, 2021) have price-PnL intervals
+excluding zero.** So B's edge does *not* rest on a single window the way A's
+rested on 2023 funding — that part of §36.1's worry is answered favourably.
+
+**But 2023's price PnL is NOT individually significant** ([−49.07,
++316.72]). 2023 is the year that produced §34.3's headline — +137 against
+A's −37, "the collapse is avoided" — and on its own it cannot be
+distinguished from zero. The collapse-avoidance finding is real as a point
+estimate and weak as a single-year claim; what carries B statistically is
+2020–2021, the two years furthest from the present.
+
+2022's price PnL is also not significant (its CI spans zero), so B's bad
+year is no more established than its best one.
+
+### 36.4 (§2) Drift on B — the decisive check, and it went against B
+
+```
+  Sharpe (real)     : +1.114
+  Sharpe (demeaned) : +0.662
+  drift component   : +0.452   =  41% of total
+  A: 44%          synthetic zero-drift floor: ~18%
+```
+
+**41% against A's 44% is "comparable" — branch one of §36.2 fires: B's
+"cleaner momentum" is partly the same drift artifact, the mechanism story
+weakens, and any validate of B must carry this caveat explicitly.**
+
+This is the result that could have overturned Stage 5, and it substantially
+does qualify it. §34 read B as the more genuinely momentum-driven config
+because funding fell from 60% to 23% of net. That is still true of the
+*funding* split — but the price leg B relies on is drift-contaminated to
+essentially the same degree as A's. Concentrating into majors changed
+**which** return source dominates without changing **how much of the price
+leg is trend rather than persistent drift**.
+
+Per year:
+
+```
+ year  SR real  SR demean   drift   % of total
+ 2020    +2.27      +1.21   +1.06        47%
+ 2021    +1.40      +1.49   -0.09        -7%
+ 2022    -0.83      -1.06   +0.24       -29%   (ratio meaningless at SR<0)
+ 2023    +1.53      +0.96   +0.57        37%
+```
+
+Worth noting against §36.3: **2021 — one of the two statistically solid
+years — has essentially no drift (−7%)**, while 2020 and 2023 carry 47% and
+37%. So the drift contamination and the statistical significance sit in
+partly different years, which is the most favourable reading available, and
+it is not enough to move the branch.
+
+### 36.5 (§3) Turnover — the fee-drag advantage is a denominator effect
+
+```
+      annualised   boundary-crossing   adjustment   fee drag
+ A        109.3x              67.9%        32.1%     47.95%
+ B        104.0x              56.8%        43.2%     27.71%
+```
+
+The §3 hypothesis — that 15 names should cross the rank boundary less often
+than 800 — is **directionally right but small**: the crossing share falls
+67.9% → 56.8%, yet **total turnover barely moves (109.3x → 104.0x)**.
+
+So B's much better fee drag (47.95% → 27.71%) is **not** because it trades
+less. It is because it earns more: gross price PnL +449 against A's +267,
+against near-identical turnover. **That is a denominator effect, and it
+should not be entered in the ledger as a trading-cost advantage** — if B's
+edge does not survive out of sample, its fee drag reverts to A's.
+
+### 36.6 (§4) Who is paying, for B — re-derived, not inherited
+
+B's composition (price +449.26, fees 124.49, funding +94.86, net +419.63 —
+price is 107% of net because fees exceed funding) is a different animal from
+A's and needs its own answer.
+
+- **Price leg (dominant).** Long +604.10 against short −154.84: the profit
+  is made being long the strongest majors, and the short leg loses money on
+  price while hedging beta. The payer story is the conventional momentum one
+  — late entrants buying established moves in the most liquid, most
+  crowded-with-attention names, and leveraged holders liquidated into
+  weakness on the short side. In majors this story is *more* credible than
+  in the alt tail (there is a genuine crowd, with depth to be late into) and
+  *more* exposed to the literature's finding that momentum crowds out as
+  capital arrives. **This is the leg that decays with capital.**
+- **Funding leg (23%).** Long +46.63, short +48.23 — **balanced across
+  legs**, where A's was 81% long-leg and tail-driven (§22.3). 14.9% of B's
+  settlements sit below −0.01% against A's 13.2%, so the tail is not thinner
+  — it is simply not concentrated on one side. B collects ordinary two-sided
+  carry rather than A's crowded-short squeeze premium. That is a *steadier*
+  mechanism but a smaller one, and it is the piece the documented 2024–25
+  carry decay threatens.
+- **Decay exposure.** A's dominant source (long-leg funding tail) and B's
+  dominant source (majors momentum) both decay, for different reasons — A's
+  with the carry regime, B's with capital. Neither is a mechanism one would
+  expect to persist indefinitely, and B's is the one the published
+  literature is most explicit about.
+
+### 36.7 (§5) THE B-vs-A LEDGER — evidence, not a decision
+
+| Dimension | A (frozen §19.5) | B (top-15 majors) |
+|---|---|---|
+| Train Sharpe (90% CI) | 0.796 [−0.02, +1.57] | 1.114 [+0.36, +1.90] |
+| B−A paired | — | **+0.32 [−0.60, +1.24] straddles zero** |
+| Price / funding split | 60 / 40 | 77 / 23 |
+| 2023 price PnL | −37 | **+137, CI [−49, +317] — not significant** |
+| 2022 price PnL | +30 | −40, CI [−216, +138] — not significant |
+| Years with significant price PnL | — | **2 of 3 positive (2020, 2021)** |
+| Max drawdown | 27.87% | 29.73% (USDT) / 27.47% (USDC) |
+| Time underwater (worst) | — | **21.2 months, unrecovered at train end** |
+| **Drift fraction** | ~44% | **41% — comparable, not better** |
+| **Turnover** | 109.3x, 67.9% crossing | **104.0x, 56.8% crossing** |
+| Fee drag | 47.95% | 27.71% — but a *denominator* effect |
+| Carry-decay exposure | high | lower |
+| Capital-crowding exposure | lower | **higher (momentum in majors)** |
+| Kill-switch headroom | 2.13 pts | **0.27 pts (USDT) — parked** |
+
+**No config is chosen here.** Two cells that were expected to favour B did
+not: drift is comparable rather than better, and the turnover advantage is
+marginal with the fee-drag gap explained by higher gross profit instead.
+
+### 36.8 What none of this establishes
+
+All of it is in-sample on train. None of it confirms B's edge is real — only
+validate can refute that, and only weakly (MDE ~1.65, §28.4). Drift,
+turnover and payer analysis characterise **what B is**, not **whether it
+works out of sample**. The parked vol/kill-switch question (§35.6) is not
+answered here and still gates live deployment.
+
+Budget **9 of 25**. Validate untouched, holdout sealed, frozen config
+unchanged.
