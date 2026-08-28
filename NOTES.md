@@ -2960,3 +2960,49 @@ that a modestly worse cost assumption would have stopped.*
   and unseen.
 
 Budget **9 of 25**, unchanged. Validate untouched, holdout sealed.
+
+## 36. Stage 5b — free attribution on B: PRE-REGISTERED READINGS
+
+**Recorded 2026-08-28 BEFORE computing any of it**, per STAGE5B 7.1. Zero
+trials: every item is attribution or resampling of the **existing** B1 run.
+Budget stays 9 of 25; validate and holdout untouched.
+
+### 36.1 (§1) Per-year intervals — the reading
+
+§34.3 gave B's per-year price PnL as point estimates (+178, +175, −40, +137)
+with no intervals. Adding block-bootstrap 90% CIs per year, same method as
+§24.1 with the block length recomputed for B's own series.
+
+**The question is not whether 2022 is negative — it is.** It is whether the
+three *positive* years are individually distinguishable from zero, or
+whether B's whole edge rests on one or two years the way A's rested on 2023
+funding. If only one year clears its interval, B is the same
+single-window story A was, wearing a different universe.
+
+### 36.2 (§2) Drift decomposition on B — the one that can overturn Stage 5
+
+A's decomposition (§19.4 / §22) attributed **~44%** of Sharpe to persistent
+cross-sectional drift against an **~18%** synthetic zero-drift floor
+(`TEST_NOTES` obs. 2). **B has never had this run.** If B's apparent
+momentum is substantially the same finite-sample drift artifact, then B is
+not the cleaner momentum strategy §34 made it look like, and the validate
+decision changes.
+
+Method: `xsmom_demeaned.db` (per-symbol full-sample mean log return removed
+from every price column including the 1m execution bars) with the B1 config.
+Volumes are untouched in that build, so the point-in-time liquidity ranking
+— and therefore B's top-15 universe — is identical between the two stores
+(Test 13 asserts universe identity). The comparison isolates drift, not
+universe.
+
+| If B's drift fraction... | Then |
+|---|---|
+| comparable to A's **~44%** | B's "cleaner momentum" is partly the same drift artifact → mechanism story weakens; validate only with that caveat explicit |
+| materially **below** A's | B genuinely harvests more trend and less drift — the majors concentration removed drift-prone names → strengthens B |
+| near or below the **~18% floor** | B's edge is essentially all trend-continuation → strongest possible read for B |
+
+**DIAGNOSTIC ONLY — uses full-sample means, not runnable live.** Logged to
+`diagnostics.jsonl`, never `trials.jsonl`.
+
+Readings not adjusted after the numbers. No config is chosen in this stage —
+§5 assembles an evidence table, it does not decide.
