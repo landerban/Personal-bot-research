@@ -25,7 +25,7 @@ import math
 import subprocess
 import sys
 import time
-from dataclasses import asdict
+from dataclasses import MISSING, asdict, fields
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -274,7 +274,16 @@ def strategy_key(config: dict) -> str:
     # 5), so neither makes a run a distinct trial. Dropping delay merges
     # no existing rows: every logged row has delay=1.
     drop = ("slippage_bps_per_side", "execution_delay_minutes")
-    c = {k: v for k, v in config.items() if k not in drop}
+    # Fill fields the recorded config predates with today's DEFAULTS before
+    # hashing. Without this, adding a Config field silently splits the trial
+    # count: rows logged before `max_liquidity_rank` existed have no such key,
+    # rows logged after have it as null, and json.dumps makes them different
+    # strings -- so the SAME strategy counted twice and the Deflated Sharpe
+    # would have been deflated against a trial that never happened.
+    defaults = {f.name: f.default for f in fields(Config)
+                if f.default is not MISSING}
+    c = {**defaults, **config}
+    c = {k: v for k, v in c.items() if k not in drop}
     return json.dumps(c, sort_keys=True)
 
 

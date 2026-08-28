@@ -109,10 +109,12 @@ def main() -> None:
     ap.add_argument("--db", default=str(ROOT / "xsmom.db"))
     ap.add_argument("--demeaned-db", default=str(ROOT / "xsmom_demeaned.db"))
     ap.add_argument("--years", default="2020,2021,2022,2023")
+    ap.add_argument("--max-liquidity-rank", type=int, default=None)
     a = ap.parse_args()
 
     cfg = Config(lookback=a.lookback, skip=a.skip,
-                 slippage_bps_per_side=a.slippage_bps)
+                 slippage_bps_per_side=a.slippage_bps,
+                 max_liquidity_rank=a.max_liquidity_rank)
     years = [int(y) for y in a.years.split(",")]
     start, end = runner.split_view_range("train")
 

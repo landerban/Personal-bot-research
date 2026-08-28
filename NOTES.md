@@ -1795,3 +1795,125 @@ change merges no existing rows, since every logged row has delay=1). The
 trial is logged **before** execution; if it errors, it is still spent.
 
 **One trial remains after this.**
+
+### 25.1 Trial 7 result — Sharpe improves AND 2023 price PnL turns positive
+
+Trial logged **before** execution (`status: started`, commit `611d13b`), per
+STAGE3C 5. Four runs, slippage {0,5} × delay {0,1}, reported together as
+cost sensitivity and never selected between. **Budget 6 → 7. One remains.**
+
+```
+ slippage  delay   sharpe   90% CI (bootstrap)  ann_ret   maxDD   feedrag
+    5 bps  1 min    1.059   [+0.23, +1.85]      24.92%   25.64%    27.30%   <- BASELINE
+    5 bps  0 min    0.941   [+0.11, +1.73]      21.40%   28.28%    32.82%
+    0 bps  1 min    1.178   [+0.36, +1.95]      28.23%   23.55%    23.78%
+    0 bps  0 min    1.033   [+0.22, +1.81]      23.96%   24.17%    28.66%
+```
+
+At the pre-registered baseline (5bps, +1min), against the uncapped frozen
+config: **Sharpe 0.796 → 1.059**, annualised return 17.83% → 24.92%, max
+drawdown 27.87% → 25.64%, fee drag 47.95% → 27.30%, turnover essentially
+unchanged (109.3 → 107.7). Deflated Sharpe **0.878 at 7 trials**.
+
+**Per-year, directly comparable to §19.3** (uncapped in brackets):
+
+```
+ year  sharpe        price$      funding$        long$        short$
+ 2020  1.83 [1.83]  +163 [+163]   +24 [+24]   +361 [+361]   -191 [-191]
+ 2021  1.15 [0.91]  +148 [+110]   +17 [+17]   +391 [+359]   -235 [-241]
+ 2022 -0.04 [0.05]   +25  [+30]   -16  [-6]   -230 [-173]   +236 [+186]
+ 2023  1.50 [0.65]  +147  [-37]  +152 [+170]  +340 [+162]   -178 [-185]
+```
+
+```
+price PnL by year, uncapped: +163 -> +110 -> +30 -> -37   (monotonic decline)
+price PnL by year, capped  : +163 -> +148 -> +25 -> +147  (decline gone)
+```
+
+**§4.3 outcome: "Sharpe improves AND 2023 price PnL turns positive" →
+dilution confirmed and remediable.** 2020 is identical to four decimal
+places because the universe never reached rank 101 that year, so the cap
+binds nothing — an unplanned but clean control. 2022 remains flat
+(−0.04), so **the cap does not explain 2022**; that year stays what §22.2
+said it was, the bull-to-bear transition containing the sample's worst
+drawdown.
+
+**Bucket verification** (position-days by rank, capped vs uncapped share):
+
+```
+ year   101+ share capped   101+ share uncapped
+ 2020        n/a                  n/a
+ 2021        2.2%                 4.3%
+ 2022        2.8%                12.5%
+ 2023        2.6%                22.1%
+```
+
+### 25.2 The cap is weaker than its name — and that matters for reading it
+
+The residual `101+` exposure is not zero, and the reason is worth stating
+because it changes what was actually tested.
+
+The cap ranks within the **eligible** universe — post-`MIN_NOTIONAL`, and
+since Stage 2e §1 that filter uses the *realised* gross leverage
+(~0.44), which removes high-floor names. Stage 3b's attribution ranked
+within the **full liquid** universe. The two bases differ by a handful of
+names, so a name at attribution-rank 101 can sit inside the engine's top
+100. Verified directly: on 2021-05-22 the eligible universe is **96**
+names at `gross_hint=0.44` versus 102 unfiltered, so the rank-100 cap
+binds *nothing* that day and UNFIUSDT (attribution-rank 101) is traded.
+
+How often the cap actually binds:
+
+```
+ year  median eligible universe   max   % of decision days where the cap binds
+ 2020            24                57                    0.0%
+ 2021           107               125                   63.0%
+ 2022           131               140                   79.9%
+ 2023           163               204                  100.0%
+```
+
+So this trial did not test "exclude everything past rank 100 of the liquid
+universe". It tested **"exclude everything past rank 100 of the eligible
+universe, on the days there are more than 100 eligible names"** — inert in
+2020, partial in 2021–22, fully binding in 2023. That the largest effect
+(2023: −37 → +147) lands in the year the cap binds every day is consistent
+with the dilution mechanism rather than coincidental, but the cap is a
+weaker instrument than "rank 100" suggests.
+
+**No re-run to align the two bases.** STAGE3C 4.3/9 forbid a second cap
+value under any outcome, and re-running on a different ranking basis is a
+different cap. The discrepancy is recorded; it is not repaired by spending
+the last trial.
+
+### 25.3 Who is paying, and why would they keep paying?
+
+Composition at the capped baseline: gross price PnL **+482.81**, funding
+**+177.16**, fees 131.82 → net +528. So the cap **reverses the balance
+§18.2/§22.3 described**: price PnL is now 73% of gross profit and funding
+27%, where uncapped it was price +266.70 against funding +205.30 (roughly
+half each).
+
+- **The momentum payer** is the one the spec's §6 names: late trend-chasers
+  entering after moves are established, and holders liquidated into
+  weakness. The capped book earns this in the liquid segment, where the
+  published literature puts the effect and where there is enough depth for
+  a crowd to be late in.
+- **The funding payer** is unchanged from §22.3 and still the sharper risk:
+  81% long-leg, tail-driven, 72% of it arriving while BTC is >50% below its
+  peak. The cap reduces funding from +205 to +177 while roughly doubling
+  price PnL, so the strategy becomes *less* carry-dependent, which is the
+  direction that reduces exposure to the 2024–25 carry decay.
+
+Why they would keep paying: the momentum leg's counterparty story is
+behavioural and does not obviously exhaust, but it is also the leg the
+literature says decays with capital. The honest position is that this trial
+moved the return source from one with a documented decay (carry, negative
+in 2025) toward one with a behavioural story — **on train only**, and one
+train result at Sharpe 1.06 with a 90% CI of [+0.23, +1.85] does not
+establish an edge.
+
+### 25.4 Status
+
+Trial 7 spent. **One trial remains of twenty.** Validate and holdout
+untouched. Nothing re-run, no second cap tried, the §25 pre-registration
+unmodified since `2aa3424`.

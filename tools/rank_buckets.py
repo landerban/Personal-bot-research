@@ -71,10 +71,12 @@ def main() -> None:
     ap.add_argument("--lookback", type=int, default=14)
     ap.add_argument("--skip", type=int, default=0)
     ap.add_argument("--slippage-bps", type=float, default=5.0)
+    ap.add_argument("--max-liquidity-rank", type=int, default=None)
     a = ap.parse_args()
 
     cfg = Config(lookback=a.lookback, skip=a.skip,
-                 slippage_bps_per_side=a.slippage_bps)
+                 slippage_bps_per_side=a.slippage_bps,
+                 max_liquidity_rank=a.max_liquidity_rank)
     start, end = runner.split_view_range("train")
     store = PointInTimeStore(a.db, read_only=True)
     res = run_backtest(store, cfg, start, end)
