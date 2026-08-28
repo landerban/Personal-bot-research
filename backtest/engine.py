@@ -199,6 +199,10 @@ class BacktestResult:
     funding_notional_missing: float = 0.0    # ...over the ones with no rate
     missing_funding_rows: list[tuple[int, str, float, float, int]] = field(
         default_factory=list)                # (ts, symbol, units, notional, n_missing)
+    # Stage 3a 4: every applied settlement, so funding can be sliced by
+    # month, by leg, and by regime without re-deriving it from equity.
+    funding_rows: list[tuple[int, str, float, float, float]] = field(
+        default_factory=list)                # (ts, symbol, units, rate, amount)
     bankrupt: bool = False
     # Attribution trace: per-day {symbol: price PnL}, aligned with timestamps.
     pnl_by_symbol_day: list[dict[str, float]] = field(default_factory=list)
@@ -421,9 +425,9 @@ def run_backtest(
                     res.missing_funding_rows.append(
                         (t, sym, units, notional, n_miss))
                 for _, rate in settles:
-                    res.total_funding += costs.funding_cashflow(
-                        units, bar.open, rate
-                    )
+                    amt = costs.funding_cashflow(units, bar.open, rate)
+                    res.total_funding += amt
+                    res.funding_rows.append((t, sym, units, rate, amt))
 
         # 2. Mark held positions from yesterday's close to today's open.
         # A symbol inside a data gap has no bar: it keeps its last mark

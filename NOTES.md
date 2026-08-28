@@ -1004,12 +1004,13 @@ For the `skip=2` configs at 5bps, price PnL after fees is *negative* and
 funding alone keeps them above water. Even for the best config, 61% of net
 profit at the realistic slippage setting is funding, not price movement.
 
-The mechanism, and it is the one the spec's own calibration note names:
-the book is short the losers, losers in crypto are disproportionately
-crowded-long alts, and **positive funding means longs pay shorts**. The
-payer is identifiable -- leveraged retail longs -- and this is exactly the
-carry trade the STAGE2_PROMPT 6 reference describes (Sharpe 6.45 2020-2025,
-4.06 from 2024, negative in 2025 as capital arrived).
+The mechanism: **CORRECTED IN 22.3 -- read that instead.** This paragraph
+originally attributed the carry to being short crowded-long alts, with
+leveraged retail longs as the payer. Stage 3a measured it directly: 81% of
+funding income accrues on the **LONG** leg (long coins with negative
+funding, i.e. coins whose *shorts* are paying), and it is a tail rather
+than a yield -- the long leg's median rate is positive, so on a typical day
+it pays. The identifiable-payer conclusion survives; the direction did not.
 
 So: **a substantial majority of this strategy's profit is carry, not
 cross-sectional momentum.** That has direct consequences:
@@ -1281,3 +1282,189 @@ matters more than this one number.
 
 No threshold will be chosen from these results (STAGE3A 9). Nothing in
 STAGE3A 6 will be implemented. The config stays frozen; budget stays 6 of 20.
+
+### 22.1 (2) Dispersion — the pre-registered branch fires "regime", with a caveat that matters
+
+Computed through `PITView`, 14d trailing returns over the point-in-time
+universe, every rebalance date in train.
+
+```
+ year  days  universe |  sd mean   sd med |  decile mean  decile med | corr to BTC
+ 2020   288        29 |   15.17%   13.20% |       52.87%      46.98% |       0.639
+ 2021   365       104 |   30.29%   27.78% |       96.12%      88.42% |       0.555
+ 2022   365       129 |   13.03%   11.43% |       44.22%      40.73% |       0.711
+ 2023   365       166 |   13.13%   12.20% |       44.13%      41.05% |       0.605
+```
+
+Dispersion collapses in 2022 (30.29% → 13.03%) **and stays low in 2023**
+(13.13%). Under the reading fixed in §22 that is branch one: **regime
+explains both years; momentum is dormant, not dead.** I am not adjusting the
+rule — it selected this branch and that stands.
+
+**But the branch label is stronger than the evidence behind it, and the
+honest report has to say so.** The reading was written assuming 2020–21 were
+"normal" and 2022 "collapsed". What the data actually shows is that **2021
+was the outlier high** and the other three years are similar:
+
+```
+sd     : 15.17%  ->  30.29%  ->  13.03%  ->  13.13%
+price$ :   +163  ->    +110  ->     +30  ->     -37
+```
+
+2020 and 2023 have almost the same dispersion (15.2% vs 13.1%) and opposite
+price PnL (+163 vs −37). Dispersion therefore cannot be the whole story: if
+"momentum needs dispersion" were sufficient, 2020 should look like 2023, and
+2021 (dispersion doubled) should have been the best year rather than the
+second best. So the correct statement is: *dispersion did collapse after
+2021 and stayed collapsed, which is consistent with regime — but the same
+dispersion level supported a strongly positive 2020 and a negative 2023, so
+something else changed as well.* Neither hypothesis is cleanly established;
+regime is supported, decay is not excluded.
+
+Two further caveats, both flagged in advance by STAGE3A 2.1:
+
+- **Universe size grew 29 → 104 → 129 → 166.** A decile spread over 29 names
+  is not the same statistic as over 166, and the growth is monotonic in the
+  same direction as the PnL decline. This is a real confound and it is not
+  possible to remove it from these numbers.
+- **Correlation to BTC does not carry the story either**: 0.639 → 0.555 →
+  0.711 → 0.605. 2022 is the correlation spike, as expected, but 2023 (0.605)
+  is back near 2020 (0.639) — the year with the best price PnL.
+
+Crash months against the 2022 annual mean: 2022-05 (LUNA) sd 12.66% vs
+13.03%, decile 43.60% vs 44.22% — indistinguishable; 2022-11 (FTX) sd 18.47%,
+decile 56.41% — *above* the annual mean. The crashes did not suppress
+dispersion; if anything FTX raised it.
+
+### 22.2 (3) Drawdown timing — the kill switch never fired, but the trough is in 2022
+
+```
+ year   maxDD         peak       trough   eq peak  eq trough
+ 2020  12.11%   2020-07-08   2020-11-12    520.49     457.46
+ 2021  13.71%   2021-05-21   2021-06-28    661.33     570.66
+ 2022  18.94%   2022-01-06   2022-04-22    673.63     546.05
+ 2023  14.18%   2023-05-25   2023-08-10    684.58     587.48
+```
+
+**Global max drawdown 27.87%: peak 2021-11-25 ($757.01) → trough 2022-04-22
+($546.05).** Explicit answer to the question STAGE3A 3 says matters most:
+**the 30% kill switch would NEVER have fired** on the daily path — worst
+observed 27.87%, which is 2.1 points of headroom and no more.
+
+The trough does sit inside 2022, and the drawdown *spans the year boundary*
+(Nov 2021 → Apr 2022), so no single calendar year shows it: the worst
+per-year figure is 18.94%. "2022 was flat" (Sharpe 0.05) is true annually
+and **misleading operationally** — the strategy was in its deepest drawdown
+of the whole sample during that year, and per-year Sharpe conceals it.
+
+### 22.3 (4) Funding by regime — and a correction to §18.2
+
+**§18.2 said the carry comes from being short crowded-long alts, with
+leveraged retail longs as the payer. That was wrong about the direction.**
+
+```
+funding by leg: long +166.02 | short +39.28 | total +205.30
+```
+
+**81% of funding income accrues on the LONG leg**, not the short. A long
+position receives when the rate is negative, i.e. when *shorts* are the
+crowded side paying to stay short. So the strategy is predominantly long
+coins that shorts are paying to hold, not short coins that longs are paying
+to hold.
+
+Sharper still — it is a tail, not a steady stream:
+
+| | settlements | mean rate | median rate | % negative | funding |
+|---|---|---|---|---|---|
+| long positions | 20,701 | **−0.000144** | **+0.000100** | 27.1% | **+166.02** |
+| short positions | 20,725 | +0.000082 | +0.000100 | 18.4% | +39.28 |
+
+The long leg's *median* rate is positive: on a typical settlement the long
+leg **pays**. The +166 comes entirely from the 27% of settlements with
+negative rates, some violently so — squeezes in names the momentum signal
+had already selected as winners.
+
+Concentration, three ways, all pointing the same direction:
+
+- **By BTC drawdown depth**: `>50%` bucket contributes **+148.39 of +205.30
+  (72%)**, against +16.92 in the `0–10%` bucket over a comparable number of
+  settlements. Funding income is overwhelmingly a deep-bear-market
+  phenomenon.
+- **By month**: 2023-08 (+42.9) and 2023-09 (+52.7) alone are **+95.6, or
+  47% of the entire four-year funding total.**
+- **By sign**: the short leg paid on 388 days and received on 992 (28.1% of
+  days paying).
+
+This is the sharpest risk finding in the project so far. The dominant return
+source is not a steady carry yield; it is a **tail payoff concentrated in
+deep drawdown regimes and, within those, in two months.** The holdout window
+(2025-01 → 2026-07) is a period in which BTC made new highs — the `>50%`
+drawdown bucket that produced 72% of train funding would largely not exist
+there. That is independent of, and additional to, the documented carry decay.
+
+### 22.4 (5) Crash resilience — a genuinely positive result
+
+```
+ year  lev med  lev p95  realised beta  rebal  skips
+ 2020     0.62     1.27         +0.007    250    115
+ 2021     0.28     0.47         -0.002    335     30
+ 2022     0.48     0.75         -0.023    332     33
+ 2023     0.47     0.77         +0.045    365      0
+```
+
+STAGE3A 5 asked for this to be stated as a positive if it held, and it held:
+
+- **Realised beta to BTC never exceeded ±0.05 in any year** — including 2022,
+  when cross-sectional correlation to BTC spiked to 0.711. The hedge did not
+  break under the correlation spike.
+- **Leverage stayed low throughout**: median 0.28–0.62, p95 never above 1.27,
+  against a 3.0 cap.
+- **The harness stayed functional through the crash**: 33 skips in all of
+  2022 (23 `universe_too_small`, 6 `below_min_notional_post_hedge`, 3
+  `missing_fill_bar`, 1 `insufficient_candidates`).
+- **Closest approach to liquidation**: worst-case intraday equity / close
+  equity = 0.843 on 2022-06-07; minimum implied equity $366.62, i.e. 92% of
+  starting capital. Nowhere near a margin event.
+
+**The risk design works.** That is a separate question from whether the alpha
+works, and it should not be used to argue the latter.
+
+### 22.5 Which hypothesis the evidence supports, and what would change it
+
+**Verdict: regime is supported but not established; decay is not excluded.**
+The pre-registered rule selects regime, and I am reporting that as it stands.
+The qualification is that 2020 and 2023 share a dispersion level and have
+opposite price PnL, so dispersion alone does not explain the decline, and the
+monotonic growth of the universe (29 → 166) is confounded with it.
+
+What would change this conclusion:
+
+- **Toward decay**: a validate run (2024) showing price PnL still negative
+  while dispersion recovered. Costs a trial.
+- **Toward regime**: dispersion recovering in 2024–25 *and* price PnL
+  recovering with it. Also costs a trial, and the holdout is the wrong
+  instrument for it (1.58 years, resolves nothing below Sharpe ~1.6).
+- **Neither, cheaply**: nothing further. The train window is exhausted as an
+  information source on this question — every remaining discriminator needs
+  out-of-sample data, which means a trial.
+
+The practical consequence for the two remaining trials: the §18.2 correction
+above **strengthens** the case for Option A (pure carry benchmark), because
+the funding mechanism is now known to be (a) the dominant return source, (b)
+long-leg dominant rather than short-leg, and (c) a tail concentrated in deep
+drawdowns. A carry benchmark tests whether the momentum ranking selects those
+tail episodes better than a direct funding signal would — which is precisely
+the open question.
+
+### 22.6 (6) Candidates arising — none implemented
+
+| Candidate | Status after 3a |
+|---|---|
+| Dispersion/correlation filter | **Weakened.** 2020 and 2023 share a dispersion level with opposite outcomes, so a threshold fitted to "low dispersion" would not have separated them. Still costs a trial; now with less motivation than before 3a |
+| Funding-sign filter | **Changed shape, not implemented.** The income is long-leg and tail-driven, so a sign filter is really a "be long the squeezed names" filter. Costs a trial |
+| Per-name stop loss | Still unmotivated: kill switch never fired, closest liquidation approach 0.843 |
+| Correlation-regime vol target | Overlaps the dispersion filter; both weakened by 22.1 |
+| **NEW: drawdown-regime exposure scaling** | Arises from 22.3 (72% of funding in `>50%` BTC drawdown). Explicitly NOT implemented: it is a strategy change, costs a trial, and choosing the depth threshold from these numbers is exactly the fitting STAGE3A 9 forbids |
+
+Nothing above was implemented. The config remains frozen at `lookback=14,
+skip=0`; budget remains **6 of 20**; validate and holdout untouched.
