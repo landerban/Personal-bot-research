@@ -50,14 +50,15 @@ ENV_SECRET = "BINANCE_TESTNET_API_SECRET"
 ENV_KEY_ALIASES = ("BINANCE_TESTNET_KEY", ENV_KEY)
 ENV_SECRET_ALIASES = ("BINANCE_TESTNET_SECRET", ENV_SECRET)
 
-# Stage 10 2.2: the base URL is a switch, and the switch is asserted. Hosts
-# that serve real money -- listed ONLY so they can be refused. No code path
-# builds a request to one; every one of these is a hard error at construction.
-MAINNET_HOSTS = frozenset({
-    "fapi.binance.com", "fapi1.binance.com", "fapi2.binance.com",
-    "fapi3.binance.com", "dapi.binance.com", "api.binance.com",
-    "www.binance.com", "binance.com", "api.binance.us",
-})
+# Stage 10 2.2: the base URL is a switch, and the switch is asserted.
+#
+# This is an ALLOW-LIST, deliberately, and it is the only list in this file.
+# A deny-list of production hosts would have to NAME them, which breaks the
+# standing B1/B7 rule that no mainnet host string appears in live/ at all
+# (test_no_mainnet_anywhere_in_live) -- and a deny-list is weaker anyway: it
+# misses whatever host you forgot. Refusing everything that is not a known
+# testnet host refuses every production venue without naming any of them,
+# including ones that do not exist yet.
 TESTNET_HOSTS = frozenset({
     "testnet.binancefuture.com", "fstream.binancefuture.com",
     "testnet.binance.vision",
@@ -75,26 +76,26 @@ def env_credentials() -> tuple[str, str]:
 
 def assert_testnet_url(url: str, testnet: bool = True) -> str:
     """
-    Stage 10 2.2, in both directions: with testnet=True the URL must be a
-    known testnet host and must NOT be a mainnet host; with testnet=False
-    this client refuses outright, because it has no business speaking to a
-    venue that settles real money.
+    Stage 10 2.2, in both directions: with testnet=True the URL must be one of
+    the known testnet hosts, so every other host -- production venues included
+    -- is refused by exclusion; with testnet=False this client refuses
+    outright, because it has no business speaking to a venue that settles real
+    money.
 
     One assertion, at construction, before any request exists. It prevents the
     worst category of accident this project can have.
     """
-    host = urllib.parse.urlsplit(url).hostname or ""
-    host = host.lower()
+    host = (urllib.parse.urlsplit(url).hostname or "").lower()
     if not testnet:
         raise ValueError(
             "TestnetClient refuses testnet=False: this codebase is testnet-only "
             "(NOTES 46.8). Real-money trading is not a flag away."
         )
-    if host in MAINNET_HOSTS:
-        raise ValueError(f"refusing a MAINNET host with testnet=True: {host}")
     if host not in TESTNET_HOSTS:
         raise ValueError(
-            f"unrecognised host {host!r}: expected one of {sorted(TESTNET_HOSTS)}"
+            f"refusing host {host!r}: not a known testnet host. Expected one "
+            f"of {sorted(TESTNET_HOSTS)}. Anything else -- production venues "
+            f"included -- is refused here, by construction."
         )
     return url
 
