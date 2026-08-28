@@ -3964,3 +3964,104 @@ relaxed to manufacture a winner.
   weight-band-vs-scale interaction), but it is **not chased here**.
 - No vol is validated on 2024 in this stage; that is the next step and a
   trial. Holdout untouched.
+
+### 43.6 Result — OUTCOME A. Deployment vol = 12% @ $800.
+
+**Determinism check passed first:** the 14% row reproduces §42 exactly
+(skip 17.26%, 1309 rebalances, maxDD 24.79%, realised vol 12.88%, drift
+14.71% against §42's rounded 15%).
+
+```
+  vol   maxDD      DD date    skip  rebal  realised   short   drift  demean SR  sharpe
+   8%   8.25%   2022-09-13  27.94%   1140     7.38%  +0.62%      1%     +0.967  +0.977
+  10%  17.03%   2023-06-28  21.55%   1241     9.28%  +0.72%     22%     +0.651  +0.835
+  11%  14.44%   2023-06-28  21.11%   1248    10.15%  +0.85%     31%     +0.684  +0.991
+  12%  19.47%   2023-06-25  19.85%   1268    11.07%  +0.93%     26%     +0.882  +1.191
+  14%  24.79%   2023-08-28  17.26%   1309    12.88%  +1.12%     15%     +0.867  +1.017
+
+  vol  notional med      p05      min   under $5       of
+   8%       $18.72    $7.26    $3.08         15   11,317
+  10%       $22.49    $8.43    $3.10          9   12,360
+  11%       $25.41    $9.33    $3.40          6   12,432
+  12%       $31.06   $11.21    $4.45          1   12,622
+  14%       $36.95   $13.07    $5.00          0   13,026
+```
+
+Applying §43.3's three conditions simultaneously:
+
+```
+    8%  DD ok   drift ok   skip NO (27.94% > 22.26%)
+   10%  DD ok   drift ok   skip ok        -> ALL THREE
+   11%  DD ok   drift NO (31%)  skip ok
+   12%  DD ok   drift ok   skip ok        -> ALL THREE
+   14%  DD NO (24.79%)  drift ok  skip ok
+```
+
+**Highest vol satisfying all three: 12%.** maxDD 19.47%, drift 26%, demeaned
+Sharpe +0.882, skip 19.85%, realised vol 11.07%, 1 of 12,622 positions under
+the floor.
+
+### 43.7 Three qualifications on that verdict
+
+**1. The qualifying set is non-monotonic, and that is a warning about
+precision.** 10% and 12% both pass; **11% between them fails on drift (31%
+against a 30% cap)**. Adjacent vols should not straddle a criterion like
+that. It is the same floor discreteness §39.7 identified — small size changes
+flip whole rebalances, and the drift measure moves ±5 points between adjacent
+vols as a result.
+
+So **12%'s "26% drift" carries an error bar comparable to its distance from
+the 30% cap.** The rule selected it correctly on the numbers, but those
+numbers are not smooth in vol, and a slightly different grid could have
+returned a different answer.
+
+**2. 12% sits 0.53 points under the drawdown cap** (19.47% vs 20%). That is
+the same boundary-hugging that made the original 14% choice fragile — §39
+picked 14% at 14.78% against a 20% cap and it turned out to be an artifact.
+This time the drawdown is uncontaminated, so the number is trustworthy in a
+way the earlier one was not, but the margin is thin.
+
+**10% is the qualifying alternative with real headroom**: maxDD 17.03%
+(3 points of margin), drift 22%, skip 21.55%. The pre-registered rule takes
+the *highest* qualifying vol, so 12% is the answer, and I am not re-opening
+the rule to prefer 10%. Recording that 10% exists and is materially safer is
+part of reporting honestly, not a re-selection.
+
+**3. §42.6's finding-3 suspicion is contradicted, informatively.** The vol
+shortfall does **not** worsen as vol drops — it shrinks monotonically:
+1.12 → 0.93 → 0.85 → 0.72 → 0.62 points at 14/12/11/10/8%. §7A.6 asked
+whether it would worsen (which would confirm a weight-band-vs-scale
+interaction). It does the opposite, so that hypothesis is wrong. The residual
+shortfall is more likely the ex-ante vol estimate running slightly high
+against realised, which is ordinary estimation error, not a structural cap.
+
+### 43.8 What the sweep settles
+
+- **The §39 circularity is gone.** 14%'s selection rested on a contaminated
+  14.78% drawdown; the honest number at $800 is 24.79% and 14% **fails** the
+  unchanged 20% cap. The rule that produced 14% has now been applied to clean
+  data and produces **12%**.
+- **$800 does support a cap-satisfying book** — Outcome B (insufficient
+  capital) and Outcome C (headroom-vs-mechanism tension) both did not fire.
+  Two vols satisfy all three conditions at once.
+- **No condition was relaxed and nothing was shrunk.** N stays 10, k stays 5,
+  the 20% drawdown cap is the same one §39 used, and the drift and skip
+  conditions were fixed before the numbers.
+
+### 43.9 Next step — a decision, not a run
+
+Per §43.4 Outcome A, the next step is **one validate of the $800/12% config
+on 2024 — trial 12 of 25.** That is the config's first honest out-of-sample
+look: every prior validate measured either a different vol (§38, 20% @ $400)
+or a floor-broken book (§41, 14% @ $400).
+
+**Not run here.** §7A.7 ends this stage at the verdict, and §9 forbids
+validating any vol on 2024 in this stage. Budget stays **11 of 25**; 2024 not
+re-run; holdout **sealed and untouched**.
+
+One thing worth putting in front of the user before that trial is spent:
+given §43.7's non-monotonicity, 12% and 10% are close enough on the evidence
+that which one gets validated is a judgement about risk appetite — 12% for
+return, 10% for 3 points of drawdown margin — rather than something the data
+resolves. The rule says 12%; the choice of whether to spend the trial on the
+rule's answer or on the safer neighbour is the user's.
