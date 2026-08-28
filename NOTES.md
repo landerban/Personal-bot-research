@@ -4813,3 +4813,136 @@ The keys were transmitted in plain text through a chat transcript that is
 stored on disk, so they must be treated as **already disclosed** and rotated
 when the paper phase ends — or sooner. They grant access to a testnet account
 holding no real value, which is why this is a hygiene item and not an incident.
+
+## 47. THE UNIVERSE HAS DRIFTED OUT OF CRYPTO — found 2026-08-29, before the holdout
+
+Surfaced by the Stage 10 §2.3 testnet coverage check, which is a plumbing
+task. It is not a plumbing finding. **It bears directly on the holdout
+decision and on what "deploy the frozen config" would mean today**, so it is
+recorded here in full rather than as a footnote to the paper phase.
+
+### 47.1 What the check found
+
+The top-15 PIT majors **as of 2026-07-31** — the universe the frozen config
+would trade if started today — are:
+
+```
+rank  symbol         median quote vol (30d)   first bar    on testnet
+   1  BTCUSDT              9,019,746,862     2020-01-01      YES
+   2  ETHUSDT              7,116,172,903     2020-01-01      YES
+   3  SNDKUSDT             2,452,567,209     2026-04-07      MISSING
+   4  SKHYNIXUSDT          1,742,499,203     2026-06-02      MISSING
+   5  SOXLUSDT             1,675,930,829     2026-05-15      MISSING
+   6  SOLUSDT              1,249,992,982                     YES
+   7  MUUSDT               1,217,500,347     2026-04-07      MISSING
+   8  XAUUSDT              1,186,286,558     2025-12-11      MISSING
+   9  SPCXUSDT               811,032,874     2026-05-21      MISSING
+  10  XAGUSDT                731,563,138     2026-01-07      MISSING
+  11  CLUSDT                 552,747,965     2026-04-01      MISSING
+  12  ZECUSDT                492,370,869     2020-02-05      YES
+  13  XRPUSDT                456,238,486                     YES
+  14  HYPEUSDT               445,559,880     2025-05-30      YES
+  15  BANKUSDT               289,827,132     2025-04-18      YES
+```
+
+**Eight of the fifteen are not crypto assets.** SNDK (SanDisk), SKHYNIX,
+MU (Micron) and SOXL (a leveraged semiconductor ETF) are equities; SPCX is a
+private-company proxy; XAU, XAG and CL are gold, silver and crude oil. They
+are tokenised equity and commodity perpetuals, and they now occupy **53% of
+the deployment universe by rank and roughly 45% of its quote volume.**
+
+Every one of them first listed between **2025-12-11 and 2026-06-02**. None
+existed during train (2019-09 → 2023-12). None existed during validate (2024).
+**All of them appeared inside the holdout window (2025-01 → 2026-07).**
+
+### 47.2 Why this is not a small thing
+
+The universe rule — "top 15 by point-in-time median quote volume" — was
+pre-registered in §33 and has never been changed, and it is behaving exactly
+as written. The rule did not drift. **The market underneath it did.** The rule
+selects the most-traded instruments on Binance USDS-M futures, and in 2026
+those are increasingly not cryptocurrencies.
+
+That breaks three things the validated result rested on:
+
+1. **The strategy is no longer the one that was validated.** Cross-sectional
+   momentum across {BTC, ETH, SOL, XRP, ZEC, HYPE, BANK} is one strategy.
+   Cross-sectional momentum across {BTC, ETH, gold, silver, crude, Micron,
+   SanDisk, SpaceX} is a different one — different factor structure, different
+   correlation matrix, different reasons a cross-sectional spread would pay.
+   Every number in §34 through §46 was measured on the first.
+2. **The beta hedge loses its meaning.** BTC is the market proxy (§weights,
+   `BTC = "BTCUSDT"`), and the book is hedged to zero BTC beta. Hedging a gold
+   or crude-oil position against BTC does not neutralise its market risk; it
+   adds an unrelated leg. A "beta-neutral" book that is half commodities is
+   beta-neutral to the wrong market.
+3. **The calendar assumption is now questionable.** `ANNUALISATION = 365` is
+   justified by "perps trade every calendar day". The tokenised instruments
+   trade continuously but their *underlyings* do not — equities and futures
+   have weekends, holidays and settlement halts. Whether that produces gap
+   behaviour the backtester models correctly is **not established**, and this
+   project has never tested it.
+
+### 47.3 What it means for the holdout — the decision this most affects
+
+The holdout is 2025-01 → 2026-07. **These instruments listed inside it.** So a
+holdout run would measure a strategy whose universe composition transforms
+partway through the window: crypto-only at the start, roughly half non-crypto
+by the end.
+
+That does not make the holdout worthless, but it does change what a holdout
+number would *mean*, and it changes it in a way that was not known when the
+holdout rules (§29, §30, §37.5) were written:
+
+- A **pass** would be a pass on a blend of the validated strategy and a
+  different one, with no way to attribute which part produced it — and the one
+  look, once spent, cannot be re-run to separate them.
+- A **fail** would be uninterpretable in the same way: the edge decaying, or
+  the universe changing under it, are not distinguishable from one number.
+
+**Nothing about the holdout has been run, looked at, or touched.**
+`holdout_log.json` still does not exist and `trials.jsonl` still contains zero
+holdout rows. This is stated from listing dates and from the 2026-07-31
+universe snapshot, both of which are outside the holdout's return data and
+neither of which required running anything on it.
+
+### 47.4 The options, none of which is taken here
+
+Recorded so the choice is visible, and left to the user:
+
+1. **Add an asset-class filter to the universe rule** (crypto-only), making
+   the deployed strategy the validated one. It is a change to a
+   pre-registered rule and would need its own pre-registration and, arguably,
+   its own validate — but it is the change that makes deployment mean what the
+   research says it means.
+2. **Accept the drifted universe** and treat the validated evidence as
+   applying to a strategy that no longer exists. Not defensible on the record
+   as it stands.
+3. **Split the holdout** — measure crypto-only and full-universe variants. The
+   holdout is **one look, ever**; two variants is two looks, and §29's rule has
+   no provision for it. Would need an explicit, deliberate amendment, and the
+   temptation to report whichever looks better is exactly what the one-look
+   rule exists to prevent.
+4. **Re-derive the universe rule from asset class rather than volume rank.**
+   The largest piece of work, and the only one that addresses the cause rather
+   than the symptom.
+
+**No option is selected and no rule is changed here.** Selecting one is a
+research decision, not a paper-phase decision, and it belongs to the user.
+
+### 47.5 Effect on the paper phase (Stage 10)
+
+Testnet lists **7 of the 15** intended names (47% coverage), and the eight it
+lacks are precisely the eight non-crypto ones — testnet carries crypto perps.
+So the paper book is **crypto-only by accident**, which resembles the
+validated universe more closely than production does today.
+
+Two consequences, both recorded as known limitations under §46.5:
+
+- **7 available names cannot support N=10** (5 long + 5 short needs 10
+  candidates). The paper phase runs a reduced N with `MIN_LEG_NAMES = 3`
+  respected. This is a venue constraint, not a tuning decision, and no paper
+  observation may be used to justify a strategy parameter (§46.7).
+- **Paper-phase book composition is not the composition of either the
+  validated strategy or the current production universe.** It tests the
+  machine, which is all §46.1 ever claimed for it.

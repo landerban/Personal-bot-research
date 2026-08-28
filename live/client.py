@@ -44,6 +44,59 @@ WS_BASE = "wss://fstream.binancefuture.com"
 
 ENV_KEY = "BINANCE_TESTNET_API_KEY"
 ENV_SECRET = "BINANCE_TESTNET_API_SECRET"
+# Stage 10 2.1 names the variables without the API_ infix. Both are accepted so
+# the documented names work and the already-tested ones do not break; the
+# Stage 10 spelling wins when both are set.
+ENV_KEY_ALIASES = ("BINANCE_TESTNET_KEY", ENV_KEY)
+ENV_SECRET_ALIASES = ("BINANCE_TESTNET_SECRET", ENV_SECRET)
+
+# Stage 10 2.2: the base URL is a switch, and the switch is asserted. Hosts
+# that serve real money -- listed ONLY so they can be refused. No code path
+# builds a request to one; every one of these is a hard error at construction.
+MAINNET_HOSTS = frozenset({
+    "fapi.binance.com", "fapi1.binance.com", "fapi2.binance.com",
+    "fapi3.binance.com", "dapi.binance.com", "api.binance.com",
+    "www.binance.com", "binance.com", "api.binance.us",
+})
+TESTNET_HOSTS = frozenset({
+    "testnet.binancefuture.com", "fstream.binancefuture.com",
+    "testnet.binance.vision",
+})
+
+
+def env_credentials() -> tuple[str, str]:
+    """(key, secret) from the environment, first alias that is set. Returns
+    empty strings when absent -- the caller decides whether that is fatal, and
+    NOTHING here ever logs or echoes a value."""
+    key = next((os.environ[n] for n in ENV_KEY_ALIASES if os.environ.get(n)), "")
+    sec = next((os.environ[n] for n in ENV_SECRET_ALIASES if os.environ.get(n)), "")
+    return key, sec
+
+
+def assert_testnet_url(url: str, testnet: bool = True) -> str:
+    """
+    Stage 10 2.2, in both directions: with testnet=True the URL must be a
+    known testnet host and must NOT be a mainnet host; with testnet=False
+    this client refuses outright, because it has no business speaking to a
+    venue that settles real money.
+
+    One assertion, at construction, before any request exists. It prevents the
+    worst category of accident this project can have.
+    """
+    host = urllib.parse.urlsplit(url).hostname or ""
+    host = host.lower()
+    if not testnet:
+        raise ValueError(
+            "TestnetClient refuses testnet=False: this codebase is testnet-only "
+            "(NOTES 46.8). Real-money trading is not a flag away."
+        )
+    if host in MAINNET_HOSTS:
+        raise ValueError(f"refusing a MAINNET host with testnet=True: {host}")
+    if host not in TESTNET_HOSTS:
+        raise ValueError(
+            f"unrecognised host {host!r}: expected one of {sorted(TESTNET_HOSTS)}"
+        )
+    return url
 
 # Binance error codes we handle by name. Anything else is a hard error.
 CODE_TIMESTAMP = -1021          # timestamp outside recvWindow
@@ -145,9 +198,15 @@ class TestnetClient:
         clock: Callable[[], float] = time.time,
         recv_window_ms: int = 5000,
         max_retries: int = 5,
+        base_url: str = REST_BASE,
+        testnet: bool = True,
     ):
-        self._key = api_key if api_key is not None else os.environ.get(ENV_KEY, "")
-        self._secret = api_secret if api_secret is not None else os.environ.get(ENV_SECRET, "")
+        # Stage 10 2.2: assert the venue BEFORE anything else exists.
+        self.base_url = assert_testnet_url(base_url, testnet)
+        self.testnet = True
+        env_key, env_secret = env_credentials()
+        self._key = api_key if api_key is not None else env_key
+        self._secret = api_secret if api_secret is not None else env_secret
         self._transport = transport or self._http_transport
         self._sleep = sleeper
         self._clock = clock
@@ -172,7 +231,7 @@ class TestnetClient:
         headers = {"X-MBX-APIKEY": self._key} if self._key else {}
         try:
             r = self._session.request(
-                method, REST_BASE + path, params=params, headers=headers, timeout=15
+                method, self.base_url + path, params=params, headers=headers, timeout=15
             )
         except requests.RequestException as e:
             raise NetworkError(f"network: {type(e).__name__}: {e}") from None
