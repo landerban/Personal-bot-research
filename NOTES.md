@@ -1960,3 +1960,76 @@ it.
 
 Thresholds will not be adjusted after seeing the intervals. Part A spends no
 trial; budget stays 7 of 20.
+
+### 26.1 Part A result — BRANCH TWO. The cap's improvement is NOT established.
+
+Aligned on **1,381 identical daily observations** (2020-03-21 → 2023-12-31);
+dates matched exactly. The difference series has lag-1 autocorrelation
+**+0.0822** against the level series' −0.0076 — recomputing it mattered, as
+§26 required, though `n^(1/3)` still sets the 11.1-day block. The cap is
+**inert on 34.3% of days** (908 of 1,381 have a non-zero difference), so the
+effective sample is smaller than the day count.
+
+```
+ window                 capped   uncapped   Sharpe diff        90% CI          verdict
+ FULL 2020-2023         +1.059     +0.796      +0.2624   [-0.0095, +0.5455]   straddles 0
+ 2021-22 (excl. 2023)   +0.485     +0.418      +0.0672   [-0.1799, +0.3071]   straddles 0
+ 2023 alone             +1.503     +0.651      +0.8523   [-0.0710, +1.7249]   straddles 0
+```
+
+**None of the three intervals excludes zero**, so the pre-registered branch
+is two: *not established — stop, do not spend the last trial validating the
+cap.* Part B (§27, the validate rule) is gated on branch one and is
+therefore **not written**. No trial spent; budget stays **7 of 20**.
+
+**The honest characterisation, including how close it came.** The
+full-window lower bound is **−0.0095** — a hair below zero. It would be easy
+to write "essentially significant" and proceed. The rule was fixed in
+advance precisely to make that unavailable, and §26 says thresholds are not
+adjusted after seeing intervals. A 90% interval that includes zero does not
+establish an effect, and the margin being small is not evidence; it is the
+same evidence, described more favourably.
+
+Note also that **2023 alone does not clear the bar either** (CI
+[−0.0710, +1.7249]). The single year carrying ~89% of the improvement is
+itself not statistically distinguishable from noise on a paired basis. So
+this is not the familiar "rests on one year" pattern — it is weaker than
+that: no window supports the effect individually.
+
+**What this does and does not overturn:**
+
+- **Stands:** the `101+` bucket loses money. §24.1's pooled CI
+  [−0.2437, −0.0603] is unaffected — that is an attribution of where PnL
+  came from, and it remains significant.
+- **Does not stand:** that *excluding* the tail produces a measurably better
+  strategy. §25.1's 0.796 → 1.059 is a real point estimate on train, but the
+  paired test says it is within what shared noise can produce.
+- These are compatible. The tail is a losing sliver of position-days (2.2 to
+  22.1% by year, and the cap only binds on 66% of days), and removing a
+  losing sliver need not move the aggregate detectably. The attribution was
+  right about the sign and could not, on its own, establish the magnitude.
+
+**Why the paired test was the right one.** The standalone capped interval
+[+0.23, +1.85] contains 0.796, so it never could have rejected the null; the
+paired test removes shared market noise and is much tighter (width 0.56 vs
+1.62) — and it *still* includes zero. The tighter, better-powered test is
+the one that says no.
+
+### 26.2 Where this leaves the project
+
+**One trial of twenty remains, and it is now unallocated.** The candidates
+in §22.6 are unchanged and none has been implemented. What Stage 3d
+establishes is narrower than it looks: the case for spending the last trial
+on *validating the cap specifically* has failed its own pre-registered gate.
+
+Recorded for whoever decides next, without recommending a spend:
+
+- The frozen uncapped config (§19.5) remains the baseline; the cap is not
+  part of it and was never merged into the freeze.
+- STAGE3_POSTGRID §5 Option A (pure carry benchmark) has not been run and
+  is untouched by this result.
+- The budget can be expanded deliberately, logged with a date and reason and
+  the Deflated Sharpe recomputed at the higher count (STAGE3_POSTGRID §5) —
+  that is the honest path if more than one question remains worth asking.
+- Validate and holdout remain untouched, in that order, with the holdout
+  still one look, ever.
