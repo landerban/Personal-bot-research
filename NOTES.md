@@ -4065,3 +4065,130 @@ that which one gets validated is a judgement about risk appetite — 12% for
 return, 10% for 3 points of drawdown margin — rather than something the data
 resolves. The rule says 12%; the choice of whether to spend the trial on the
 rule's answer or on the safer neighbour is the user's.
+
+## 44. Stage 8 — VALIDATE B at 10% / $800 on 2024: PRE-REGISTERED RULE + RULE OVERRIDE
+
+**Recorded 2026-08-29, BEFORE the run and before 2024 is seen at this
+config.** Committed in its own commit ahead of any execution. Cost: **one
+trial, budget 11 → 12 of 25.** Holdout (2025-01 → 2026-07) stays sealed.
+
+### 44.1 The override: deploying 10%, not the 12% the §43 rule selected
+
+§43.3's pre-registered rule took *the highest vol satisfying all three
+conditions*, and §43.6 applied it correctly: **12%**. The config being
+validated here is **10%**, one step below. That is a deliberate override of a
+pre-registered rule, and an override is exactly the move that lets fitting in
+through the back door. It is legitimate here only for reasons recorded
+**before** the result, so it can be audited later. Four, all of which hold
+now:
+
+**1. The override goes toward LESS return, not more.** Train Sharpe at 10% is
+0.651 against 12%'s 0.882; realised vol 9.28% against 11.07%; annualised
+return correspondingly smaller. Fitting always reaches for *more* — a rule
+broken in the direction of lower profit for more safety margin is the
+opposite failure mode from the one pre-registration exists to prevent.
+
+**2. The ground is measurement instability the sweep itself surfaced, not a
+result.** §43.7 qualification 1: drift is **non-monotonic in vol** — 22% at
+10%, **31% at 11%**, 26% at 12%, against a 30% cap. Adjacent vols straddle
+the criterion, so the drift measure carries roughly ±5 points of floor
+discreteness noise. 12%'s two qualifying margins are **inside that noise**:
+drawdown 19.47% against a 20% cap (0.53 points) and drift 26% against 30%
+(4 points). On a different day-set 12% could fail its own criteria. 10%
+clears both caps by 3–4 points — outside the noise.
+
+**3. It is recorded now, before 2024 at this config is seen.** Not selected
+after a result. If 2024 later favours 12%, that is not retrievable: the
+choice is spent here, on the record, in advance.
+
+**4. It avoids repeating a failure this project has already made once.** §39
+picked 14% at $400 as the highest vol under a 20% drawdown cap, measured
+14.78%, hugged the boundary — and §41 showed it passed the gates on paper
+and failed both mechanism checks out of sample, its "drawdown headroom"
+being a floor artifact. 12% hugs two boundaries. The entire vol
+investigation (§42, §43) existed to escape boundary-hugging; deploying
+another cap-hugger would repeat the same error with open eyes.
+
+**Explicitly on the record: 12% is the aggressive alternative and it was NOT
+chosen.** It is the rule's answer, it has the higher train Sharpe, and it was
+declined on train — before 2024 — for the four reasons above. No part of this
+decision is licensed to be revisited by looking at 2024.
+
+### 44.2 The config and the cost
+
+B at **10% vol target, $800 capital**: top-15 PIT majors, `lookback=14`,
+`skip=0`, N=10, k=5, 3× gross cap, beta-neutral, +1min fill, 5 bps/side
+slippage. Both fee schedules (USDT taker 5.0 bps, USDC taker 3.6 bps),
+reported together. **Window: 2024 only.**
+
+The trial row is logged with `status: started` at a clean commit **before**
+execution: an errored run still spends the trial. Budget **11 → 12 of 25**.
+
+### 44.3 Tier 1 — hard gates. Any one failing = refuted.
+
+Identical thresholds to §37 and §40. Nothing re-tuned for this config.
+
+| # | Test | Refuted if |
+|---|---|---|
+| **G1** | price PnL sign | 2024 price PnL **< 0** |
+| **G2** | drawdown | max DD **> 30%** (USDT run). Train at 10%/$800 was 17.03%, so a large breach signals a bug, not a risk finding |
+| **G3** | Sharpe floor | Sharpe **< 0.30** at USDC fees |
+
+### 44.4 The success band: **0.4 – 0.65**, and why it is lower
+
+The drift-stripped train number is the real-edge estimate. At 10%/$800 train
+Sharpe is 0.651 with a 22% drift fraction:
+
+```
+  0.651 x (1 - 0.22)  ~  0.51     drift-adjusted expectation
+  success band: 2024 Sharpe ~0.40 - 0.65
+```
+
+This is **lower** than B@20%'s 0.5–0.7 band (§37.1) and that is by
+construction: 10% vol sizes smaller and earns less both absolutely and, once
+drift is removed, in risk-adjusted terms.
+
+**Judge Sharpe, not return.** The absolute 2024 return will be visibly
+smaller than any prior config's — arithmetic, not weakness. A 2024 Sharpe in
+0.40–0.65 is a **PASS consistent with the edge surviving**. More is not
+demanded, and a lower absolute return is not a mark against it.
+
+### 44.5 The mechanism checks — this config's specific risks
+
+§41 and §42 established that the floor can pass all three hard gates while
+corrupting the mechanism underneath. Both checks that caught it run here.
+
+| Check | Train reference at 10%/$800 | Reading |
+|---|---|---|
+| **drift fraction on 2024** | **22%** | far above train (say **> 40%**) means the OOS edge is mostly artifact — this was the §41 disqualifier |
+| **skip rate on 2024** | **21.55%** | a large jump means the floor bit harder out of sample |
+| realised vol vs 10% target | 9.28% (−0.72) | is the floor capping size again |
+| active-days fraction | floor **≥ 80%** | |
+| realised beta to BTC | band **±0.15** | structural invariant |
+| dollar-tilt identity | **≤ 1e-9** | structural invariant |
+
+### 44.6 The reading — fixed before the run
+
+| Outcome | Meaning |
+|---|---|
+| Tier 1 pass, Sharpe 0.40–0.65, drift ≤ ~30%, floor clean | **the deployment config survives OOS cleanly.** The holdout becomes worth spending on a config that is survivable, mechanically clean, and honestly derived |
+| Tier 1 pass but drift > 40% or skips ≫ train | passes the gates, floor-contaminated OOS — the same trap as §41. A serious caveat; **not holdout-ready** |
+| **G1 fails** (price PnL < 0) | momentum did not survive at this size. **Refuted** |
+| **G2 fails** (DD > 30%) | contradicts the train sizing — **investigate for a bug** before accepting |
+| **G3 fails** (Sharpe < 0.30) | too weak to carry to the holdout |
+
+**Nothing in §44.3–§44.6 is adjusted after seeing 2024.** No threshold, no
+band, no branch.
+
+### 44.7 After the result — stop
+
+Whatever 2024 shows, this stage **stops at the report**. The holdout is one
+look, ever, and gets its own decision with a clear head (§37.5). A clean 2024
+here would mean the holdout finally tests a config validated *at its own vol
+and its own capital* — the cleanest holdout setup the project has been able
+to offer — but that decision is the user's, made separately. It is not
+chained into this session.
+
+Prohibited in this stage: framing the result as 10% vs 12% on 2024 (12% was
+declined on train, on the record); demanding a Sharpe near B@20%'s band;
+penalising the lower absolute return; touching the holdout.
