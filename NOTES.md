@@ -2033,3 +2033,139 @@ Recorded for whoever decides next, without recommending a spend:
   that is the honest path if more than one question remains worth asking.
 - Validate and holdout remain untouched, in that order, with the holdout
   still one look, ever.
+
+## 28. Stage 3e — why the cap's effect was small, and what this project can detect
+
+Zero trials. Budget stays **7 of 20**.
+
+### 28.1 The cap tested a substitution, not a deletion
+
+§26.1 said the tail losing money and the cap not helping are compatible
+because the tail is a small sliver. True, but there is a sharper structural
+reason, and it was knowable before any data was seen.
+
+Pooled `101+` loss is **−0.1516/position-day × 1,828 position-days ≈ −$277**.
+Capping improved price PnL by only **+$217**, and not significantly.
+
+**Because `N=10` is fixed.** The cap does not *delete* those positions — it
+*replaces* them with the next-best eligible candidate. The expected gain is
+the margin between the 5th and 6th ranked name, not the full loss of the
+5th. One noisy outcome is swapped for another.
+
+The design lesson, which generalises past this experiment: **removing
+candidates from a fixed-N selection tests a marginal substitution, not a
+deletion, and the effect size is bounded by the rank-adjacent margin.** Any
+future universe-restriction test carries the same ceiling, and that ceiling
+should be estimated *before* the test is thought worth running.
+
+### 28.2 Underpowered, not refuted
+
+"Not established" and "no effect" are different claims, and the difference
+governs what is worth trying next:
+
+| | |
+|---|---|
+| paired point estimate | **+0.2624** Sharpe |
+| implied SE | **0.169** |
+| t | **1.56** |
+| two-sided p | **0.120** |
+| one-sided p | **0.060** |
+| effective sample | cap inert on 34.3% of days → **908 of 1,381** days carry information |
+
+A true effect of +0.26 Sharpe is entirely consistent with what was observed.
+The finding is that **this sample cannot establish it** — not that it is
+absent.
+
+### 28.3 A methodological lesson, NOT grounds to reopen
+
+A 90% interval is two-sided by convention. A **one-sided** test at the same
+level would have passed (p = 0.060 < 0.10), and one-sided is arguably the
+natural framing here, since only "the cap helps" was ever of interest.
+
+**The branch-two decision stands.** Reversing it now is exactly the fudge
+§26.1 refused, and §26 fixed the thresholds before the numbers.
+
+The lesson is forward-looking and belongs on the pre-registration checklist:
+**every future pre-registration must state one-sided or two-sided
+explicitly.** It is decisive, and invisible until the moment it decides
+something. §29 below states it.
+
+### 28.4 What this project can actually detect (minimum detectable effect, 90%)
+
+Never computed before, and it governs what the last trial is worth spending
+on. MDE = the smallest true effect whose 90% interval would exclude zero.
+
+```
+ comparison                                          SE   MDE 2-sided   MDE 1-sided
+ 1. paired, two configs on train (the 3c/3d shape) 0.169        0.28          0.22
+ 2. standalone Sharpe, validate 2024 (1.00y)       1.001        1.65          1.28
+ 3. standalone Sharpe, holdout (1.58y)             0.796        1.31          1.02
+ 4. paired, two configs on validate (1.00y)        0.328        0.54          0.42
+```
+
+**This is the most important number in the document.** The frozen uncapped
+config's train Sharpe is **0.796**. The validate MDE is **1.65** two-sided
+(1.28 one-sided), and the holdout MDE is **1.31** (1.02 one-sided).
+
+So: **no standalone out-of-sample test available to this project can
+establish this strategy.** Validate and holdout can *refute* — a sufficiently
+bad result is informative — but neither can confirm an edge of the size this
+strategy plausibly has. That is a property of 1.0 and 1.58 years of daily
+data, not of the strategy, and no amount of care in the harness changes it.
+
+Against the §22.6 candidates: a paired train comparison detects ~0.28
+Sharpe, and the one candidate actually measured (the rank cap) came in at
++0.26 — i.e. **the best-motivated idea on the list sits just under the
+detection threshold of the best-powered test available.** Nothing else on
+that list has an obvious reason to be larger. Stated plainly: on the current
+sample, the remaining candidates are mostly not distinguishable from noise
+even if they work.
+
+### 28.5 USDC-margined universe — feasibility fact, nothing switched
+
+`exchangeInfo` query only; no backtest, no trial, nothing modelled.
+
+```
+TRADING perpetuals   567   |  USDT-quoted 524  |  USDC-quoted 38
+USDC base assets     38, and ALL 38 also exist as USDT pairs (zero unique names)
+MIN_NOTIONAL         USDC: $5 x36, $20 x1 (ETH), $50 x1 (BTC)  -- same structure as USDT
+24h quote volume     USDC median $6.0M, 20 of 38 clear $5M
+                     USDT median $2.5M, 173 of 524 clear $5M
+already ingested     0 of 38
+```
+
+Fee context: USDC-margined futures are **0.0000% maker / 0.0400% taker** at
+Regular User (0.0360% with the BNB discount) versus USDT's 0.0200% /
+0.0500%. USDC at Regular User equals USDT at VIP 2, with no holding
+requirement. Taker cost is ~20% lower, which is material against a fee drag
+that runs 27–48% of gross PnL.
+
+The observation worth recording, per STAGE3E 4: **a USDC universe's boundary
+would be set by Binance's listing decisions rather than chosen by us** —
+which sidesteps the parameterisation problem that made the rank cap
+unfalsifiable-by-construction in STAGE3C §4.1. That is a genuine structural
+advantage over any threshold we could pick.
+
+Against it, unprompted but it belongs next to the observation: **20 liquid
+names means N=10 trades the top and bottom 25% of the universe**, against
+~3% today. `IR ≈ IC × √breadth` — the fee saving would be bought with a
+large breadth loss, and A4 of Stage 2b argued breadth is the only lever on
+achievable Sharpe. Nothing here says the trade is favourable; it says the
+boundary problem is different, not that the result would be better.
+
+**Nothing switched, nothing modelled, no data ingested.**
+
+### 28.6 BNB fee discount and the corrected VIP criteria
+
+Hold enough BNB in the futures wallet to cover fees: **10% off futures fees
+immediately**, no strategy change, no VIP threshold involved. Keep the
+balance to roughly what fees require — it is an unhedged directional
+position inside a market-neutral strategy and should not be stockpiled.
+
+**VIP criteria, corrected for the record.** VIP 1 is **5 BNB + ($1M spot /
+$5M futures / $100k wallet / $100k net borrowing)**, and **VIP 1 does not
+improve the futures taker rate at all** (0.0500% at both Regular and VIP 1).
+Any earlier figures in this project of **$15M volume or 25 BNB were wrong**
+and are struck. (They do not appear in these notes — they were stated in
+conversation only — but they are recorded as struck here so the corrected
+numbers are the ones on file.)
