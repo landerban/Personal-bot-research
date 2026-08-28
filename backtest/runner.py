@@ -597,6 +597,12 @@ def main(argv: list[str] | None = None) -> None:
                    help=f"initial capital in USDT (default {DEFAULT_CAPITAL:.0f})")
     r.add_argument("--slippage-bps", type=float, default=0.0,
                    help="adverse slippage per side in bps (Stage 2c 4: run 0 and 5 as a pair)")
+    r.add_argument("--execution-delay-minutes", type=int, default=None,
+                   help="minutes after the daily open at which orders fill "
+                        "(Stage 2e 2; default from Config, run 0 and 1 as a pair)")
+    r.add_argument("--max-liquidity-rank", type=int, default=None,
+                   help="exclude names below this point-in-time liquidity rank "
+                        "from candidacy (Stage 3c Part B; default uncapped)")
     r.add_argument("--purpose", default="manual")
     r.add_argument("--i-understand-this-is-the-only-look",
                    action="store_true")
@@ -643,10 +649,16 @@ def main(argv: list[str] | None = None) -> None:
     store = PointInTimeStore(db, read_only=True)
     try:
         if args.cmd == "run":
+            extra = {}
+            if args.execution_delay_minutes is not None:
+                extra["execution_delay_minutes"] = args.execution_delay_minutes
+            if args.max_liquidity_rank is not None:
+                extra["max_liquidity_rank"] = args.max_liquidity_rank
             cfg = Config(lookback=args.lookback, skip=args.skip,
                          fee_mode=args.fee_mode,
                          initial_capital=args.capital,
-                         slippage_bps_per_side=args.slippage_bps)
+                         slippage_bps_per_side=args.slippage_bps,
+                         **extra)
             ensure_data_covers(store, args.split)  # before the look is spent
             if args.split == "holdout":
                 check_holdout_guard(args, cfg)
