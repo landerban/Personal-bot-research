@@ -2841,3 +2841,51 @@ first set was never reported as a result.
 Budget **9 of 25**. Validate untouched, holdout sealed. The frozen config of
 §19.5 is unchanged — B is a candidate, not a new freeze, and nothing in
 §30's validate rule has been rewritten to accommodate it.
+
+## 35. Stage 5a — un-truncated drawdown path: PRE-REGISTERED READING
+
+**Recorded 2026-08-28 BEFORE looking at B1's drawdown path**, per STAGE5A
+3/5.1. Train-only diagnostic. **No trial; budget stays 9 of 25.** Validate
+and holdout untouched.
+
+### 35.1 No flag was needed — the path was never truncated
+
+STAGE5A anticipated a kill-switch-disabled flag and set a hard rule around
+it (never in `Config` defaults, never in a logged trial, never on a
+validate/holdout path). **That flag was not necessary and does not exist.**
+
+The 30% kill switch has never been implemented in the engine. It is a
+pre-registered *operational* criterion — §30 Tier 1 scores a validate run
+against it, and §22.2 asked whether it *would* have fired — but the backtest
+never truncated on it. The engine's only early exit is bankruptcy
+(`equity <= 0`), which B1 never approaches. B1's recorded equity path is
+therefore **already the un-truncated path**, and this diagnostic is pure
+analysis of a series that already exists.
+
+That is the strongest available compliance with STAGE5A §0: the flag cannot
+leak into validate or holdout because it was never created.
+
+### 35.2 The reading, fixed before looking
+
+The question: B1's max drawdown is 29.73% against a 30% switch (§34.4). If
+the strategy had not been stopped there, would it have recovered or kept
+falling?
+
+| If, after the −30% point... | Then |
+|---|---|
+| equity recovers within **~1–3 months** | the 30% switch is **too tight** — it would stop at the bottom and forfeit the rebound. Argues for a **lower vol target** (staying under the switch), not a looser switch |
+| equity keeps falling toward **−40% or worse** | the switch is **correctly protective**. B needs the vol reduction to survive, not switch removal |
+| recovers but **slowly (6+ months underwater)** | ambiguous — survivable but painful. A judgement call for the user, not an automatic reading |
+
+Not adjusted after looking.
+
+### 35.3 What this cannot tell anyone
+
+- It is **in-sample on train**. The worst real drawdown is out-of-sample and
+  unseen; a train path that recovers is not a promise the holdout path will.
+- It says **nothing about whether B's edge is real** — that is the validate
+  question, untouched.
+- **Removing the kill switch is not a strategy improvement** and must not be
+  read as one. The takeaway concerns the **vol target and the switch level**,
+  not running without a switch. The switch remains in the strategy
+  definition for every future run.
