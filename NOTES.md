@@ -3349,3 +3349,74 @@ Budget **10 of 25**. Validate **spent**. Holdout **sealed and untouched** —
 `holdout_log.json` absent, zero holdout rows in `trials.jsonl`. Frozen
 config §19.5 unchanged; B remains a candidate that has now survived one
 out-of-sample year without being refuted.
+
+## 39. Stage 6a — vol sweep for B: PRE-REGISTERED SELECTION RULE
+
+**Recorded 2026-08-28 BEFORE running any sweep**, per STAGE6A 5.1. **Zero
+trials** — vol targeting rescales identical positions without changing the
+signal, the universe, or which names are selected, and Sharpe is
+theoretically vol-invariant, so there is no edge being searched for. Budget
+stays **10 of 25**; 2024 is not re-run; holdout sealed.
+
+### 39.1 The selection rule
+
+**Deploy the highest vol target whose MEASURED max drawdown ≤ 20%.**
+
+- The cap is **20% drawdown**, for headroom. B's train drawdown at 20% vol
+  was 29.73% — 0.27 points from the kill switch (§35). A 20% cap roughly
+  halves the distance-to-death and leaves ~10 points of buffer.
+- **Measured, not estimated.** The arithmetic (29.73% × v/20 ≤ 20% → v ≈
+  13.4%) predicts ~13% wins, but the `MIN_NOTIONAL` floor may distort the
+  drawdown/vol relationship at low vol. The rule uses the drawdown each vol
+  *actually produces*.
+- **Highest qualifying vol, not the best Sharpe.** Sharpe is vol-invariant;
+  selecting on it selects on noise. The tie-break is return — higher vol
+  gives higher return at the same Sharpe — which is why "highest qualifying"
+  is the rule.
+- If **no vol** produces measured drawdown ≤ 20%, report that and **stop**:
+  the answer becomes "B needs vol below 12%", which reopens the floor
+  question rather than resolving it, and is the user's decision.
+
+The 20% cap is not adjusted after seeing the drawdowns.
+
+### 39.2 The floor is the real output, not Sharpe
+
+Every swept target is below 20% vol, so positions shrink and more of them
+risk falling under the $5 `MIN_NOTIONAL`. Reported at each vol: skip rate by
+reason; names dropped under the floor per rebalance; **realised** vol against
+target; median and p95 position notional; measured max drawdown with date;
+and Sharpe (reported, never selected on — if Sharpe moves a lot with vol,
+something non-linear, i.e. the floor, is interfering).
+
+### 39.3 The disqualifier, fixed in advance
+
+A vol target is **disqualified regardless of drawdown** if either:
+
+1. its **skip rate exceeds the 20%-vol run's by more than ~10 points**, or
+2. its **realised vol falls more than ~2 points short of target**.
+
+Either means the floor is *distorting* the strategy rather than merely
+resizing it. A vol that only "works" by skipping half its rebalances is not
+runnable at any Sharpe.
+
+### 39.4 Why choose the vol now rather than after the holdout
+
+Stage 6 validated B at 20% vol and it passed with an 18.52% drawdown, so
+**2024 did not need the lower vol**. But the holdout window contains the deep
+2025 drawdown (§22.3's correction: BTC peaked 2025-10-06 then fell ~47%),
+where the headroom matters far more than it did in a mild year.
+
+Choosing the deployment vol **now, on train**, means any eventual holdout
+look tests the config actually intended for live use rather than the 20%
+version that happened to survive one benign year. Recording that reasoning
+here so the vol choice cannot later be mistaken for post-hoc fitting to a
+holdout result that does not yet exist.
+
+### 39.5 What this settles and what it does not
+
+- **Settles:** B's deployment vol, and whether §35's fragility is fixable by
+  sizing.
+- **Does not settle:** whether B's edge is real. That was Stage 6 and is not
+  reopened; this sweep *assumes* the edge and sizes risk around it.
+- **Does not re-touch 2024.** Whether to re-validate B at the new vol, or
+  proceed to holdout at it, is the next decision and is deferred to the user.
