@@ -1691,3 +1691,107 @@ rather than carried forward.
 Thresholds will not be adjusted after seeing the intervals. Part A spends no
 trial; budget stays 6 of 20 unless and until Part B is authorised by branch
 one.
+
+### 24.1 Part A result — BRANCH ONE, dilution survives
+
+Stationary bootstrap, 2,000 resamples, 90% CIs, over **daily** series with
+ratio-of-sums statistics. Lag-1 autocorrelation of daily strategy PnL is
+**−0.0136** (essentially none), so the block length is set by the
+`n^(1/3)` rule at **11.7 days** rather than by measured dependence; both
+figures are reported so the choice is auditable.
+
+```
+ year   bucket      point                90% CI  excl 0  pos-days
+ 2020     1-30    +0.0330   [ -0.0122, +0.0814]      no      3026
+ 2020   31-100    +0.1832   [ +0.0419, +0.2924]     yes       345
+ 2020     101+        n/a                   n/a       -         0
+ 2021     1-30    +0.0028   [ -0.0675, +0.0776]      no      1780
+ 2021   31-100    +0.0625   [ -0.0081, +0.1242]      no      2637
+ 2021     101+    -0.3019   [ -0.5496, -0.0739]     yes       197
+ 2022     1-30    +0.0101   [ -0.0736, +0.0986]      no      1367
+ 2022   31-100    +0.0123   [ -0.0675, +0.1238]      no      2661
+ 2022     101+    -0.0284   [ -0.1771, +0.1390]      no       575
+ 2023     1-30    +0.1411   [ +0.0512, +0.2299]     yes      1446
+ 2023   31-100    -0.0176   [ -0.0860, +0.0595]      no      2266
+ 2023     101+    -0.1906   [ -0.3048, -0.0674]     yes      1056
+```
+
+**The gating quantities:**
+
+| | point | 90% CI | |
+|---|---|---|---|
+| pooled `101+` (3 years) | −0.1516 | [−0.2437, −0.0603] | **entirely below zero** |
+| pooled top-30 (4 years) | +0.0424 | [+0.0084, +0.0793] | excludes zero |
+| spread 2021 | +0.3048 | [+0.0313, +0.5391] | **significant** |
+| spread 2022 | +0.0385 | [−0.1511, +0.2179] | not significant |
+| spread 2023 | +0.3317 | [+0.1810, +0.4803] | **significant** |
+
+Pooled `101+` below zero **and** the spread significant in **2 of 3** years
+→ **branch one**, exactly as written in §24. Part B is authorised.
+
+Only 3 of the 12 individual cells are individually significant, which is the
+expected shape: single cells are thin, and pooling is what the reading was
+designed around.
+
+**The §23.2 caveats, now resolved against intervals:**
+
+- **2021's top-30 (+0.0028) is NOT distinguishable from zero** (CI
+  [−0.0675, +0.0776]). §23.2 was right to flag it; it is noise, not a weak
+  positive.
+- **`31-100` beating `1-30` survives only in 2020** (+0.1502, [+0.0134,
+  +0.2591]); 2021 and 2022 are **not** significant. And 2023 reverses
+  significantly the other way (−0.1587, [−0.2815, −0.0264]). So the picture
+  is not "mid beats top": it is 2020 mid, 2023 top, and noise in between —
+  which is direct support for the competing hypothesis STAGE3C §4.2 raises,
+  that **the profitable segment migrates with regime**. What is stable is
+  only the negative bottom bucket.
+
+## 25. Stage 3c Part B — universe cap: PRE-REGISTRATION (trial 7)
+
+**Recorded 2026-08-28 BEFORE the capped configuration was run**, per
+STAGE3C 4/7.5.
+
+**The cap: exclude names of liquidity rank 101+ from candidacy.** Everything
+else identical to frozen: `lookback=14`, `skip=0`, capital $400, N=10, 20%
+vol target, 3× cap, taker-only, 5bps, +1min.
+
+**Why 100, and why that is not fitting.** The boundaries `1-30 / 31-100 /
+101+` were pre-registered in §23 *before any bucket number existed*. Using
+one of them as a cap therefore inherits that pre-registration rather than
+being chosen from the result. Rejected alternatives, recorded so the choice
+can be audited:
+
+| Cap | Why not |
+|---|---|
+| rank 30 | fitted to 2023, the only year `1-30` beat `31-100` — and §24.1 shows that ordering reverses significantly between 2020 and 2023 |
+| top 2% by market cap (literature) | 2% of 166 names is three. Not a portfolio |
+| a new dollar liquidity threshold | any figure chosen now is chosen knowing the answer |
+
+**The competing hypothesis, stated before the run.** §24.1 shows the
+profitable segment *migrates*: mid-caps significantly better in 2020,
+majors significantly better in 2023, noise between. If the segment moves,
+a fixed cap freezes a boundary that does not hold still. What is stable
+across all years is only the negative bottom bucket — a **floor**, not a
+cap. So this trial tests **"exclude the tail"**, NOT "trade only the
+majors", and must not be reported as the latter.
+
+**What counts as success — fixed now:**
+
+| Outcome | Reading |
+|---|---|
+| Sharpe improves **and** 2023 price PnL turns positive | dilution confirmed and remediable |
+| Sharpe improves but 2023 price PnL stays negative | something else drives 2023; the cap helps for another reason |
+| Sharpe roughly unchanged | the tail was noise, not drag — the attribution was misleading |
+| Sharpe worsens | the tail carried diversification the attribution missed |
+
+**No re-run at a different cap under any outcome. One trial, one cap.**
+
+**Trial accounting: 6 → 7.** Four runs are executed — slippage {0, 5} ×
+execution delay {0, 1} — as cost sensitivity, reported together and never
+selected between. Both are cost *assumptions*, not strategy parameters, so
+`strategy_key` excludes both from the Deflated Sharpe trial count (it
+already excluded slippage; delay is added on the same reasoning and the
+change merges no existing rows, since every logged row has delay=1). The
+trial is logged **before** execution; if it errors, it is still spent.
+
+**One trial remains after this.**
