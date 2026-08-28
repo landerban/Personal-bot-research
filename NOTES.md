@@ -1468,3 +1468,52 @@ the open question.
 
 Nothing above was implemented. The config remains frozen at `lookback=14,
 skip=0`; budget remains **6 of 20**; validate and holdout untouched.
+
+## 23. Stage 3b — rank-bucket attribution: PRE-REGISTERED READING
+
+**Recorded 2026-08-28 BEFORE any rank or bucket number was computed**, per
+STAGE3B 3/6.1 and the Stage 3a precedent.
+
+The hypothesis: §22.1 showed dispersion does not explain the price-PnL
+decline, and I flagged universe growth as a confound. Universe growth fits
+better than dispersion because it is monotonic in the same direction:
+
+```
+universe  :   29  ->  104  ->  129  ->  166      (monotonic)
+price$    : +163  ->  +110  ->  +30  ->   -37    (monotonic)
+dispersion: 15.2  ->  30.3  ->  13.0 ->  13.1    (NOT monotonic)
+```
+
+Mechanism proposed: published research puts momentum in roughly the top 2%
+of coins by market cap, with the other 98% showing *negative* average
+momentum payoffs. In 2020 only large caps had perpetual listings, so a
+29-name universe was effectively majors-only; by 2023 the strategy ranked
+166 names dominated by mid/small caps. If true, **the alpha did not decay —
+it was progressively diluted by the universe it was permitted to trade.**
+
+The reading, fixed in advance:
+
+| If... | Then |
+|---|---|
+| top-30 price PnL per position-day stays **positive across all four years**, while `101+` is negative and its share of position-days rises | **DILUTION.** The alpha survives where it always lived; the universe grew into the negative-payoff segment |
+| top-30 price PnL per position-day **declines across years like the aggregate** | **DECAY.** The alpha weakened where it was strongest; universe growth is coincidental |
+| **no consistent rank pattern** | **NEITHER.** Something else drives the decline and this axis is exhausted too |
+
+Method, also fixed in advance: liquidity rank computed **point-in-time
+through `PITView`** at each rebalance date, using the same measure
+`universe()` uses (median daily quote volume over the trailing 30 bars),
+1 = most liquid. Buckets `1-30`, `31-100`, `101+`, **boundaries fixed now
+and not to be changed after seeing results**. Input is the existing
+per-symbol daily PnL trace, which reconciles to `gross_pnl` exactly; bucket
+sums must reconcile to per-year price PnL or the run stops and reports.
+
+Structural limit, acknowledged in advance: the 2020 universe peaked at 29
+names, so the lower buckets are empty or near-empty that year. Within-year
+bucket comparison is impossible for 2020, so **the test is across years
+within a bucket**, and bucket availability is reported per year so an empty
+cell is never read as a zero result.
+
+Nothing will be implemented from this (STAGE3B 5): if "dilution" fires, the
+implied universe restriction is a configuration change costing a trial, and
+its cap cannot be parameterised from this attribution without fitting it to
+the result that motivated it. Config stays frozen; budget stays 6 of 20.
