@@ -1917,3 +1917,46 @@ establish an edge.
 Trial 7 spent. **One trial remains of twenty.** Validate and holdout
 untouched. Nothing re-run, no second cap tried, the §25 pre-registration
 unmodified since `2aa3424`.
+
+## 26. Stage 3d Part A — paired bootstrap: PRE-REGISTERED READING
+
+**Recorded 2026-08-28 BEFORE any paired interval was computed**, per
+STAGE3D 2/7.1.
+
+Why this test and not the one already done: §25.1 reports capped Sharpe
+1.059 with a 90% CI of [+0.23, +1.85], and the uncapped 0.796 **sits
+comfortably inside it**. The standalone interval therefore cannot reject
+"the cap did nothing". But capped and uncapped ran on the *same days*, so
+the market noise they share cancels in the difference — a paired bootstrap
+on the difference series is far tighter because it removes common variance.
+
+**Method, fixed in advance.** Align the two daily series over the identical
+train window and **assert the dates match exactly**; a mismatch stops the
+run. Form `d_t = capped(t) − uncapped(t)` and stationary-bootstrap **the
+difference series directly** — never two independent bootstraps subtracted,
+which would put back the common noise this test exists to remove. Block
+length is recomputed from the *difference* series' own lag-1
+autocorrelation, not reused from §24.1's −0.0136. Report 90% CIs on mean
+daily difference, annualised return difference, and Sharpe difference.
+
+The reading:
+
+| If... | Then |
+|---|---|
+| Sharpe-difference CI **entirely above zero** | the cap's effect is established → **proceed to Part B** |
+| CI **straddles zero** | not established → **STOP**, do not spend the last trial validating the cap |
+| CI above zero **only with 2023 included**, and the 2021–22 subset straddles zero | weak, rests on one year → **STOP and report**; decision moves to the user |
+
+Also reported: the 2021–22 subset alone, 2023 alone, and the fraction of
+days on which `d_t ≠ 0` — the cap binds on 0/63/80/100% of days by year, so
+a large share of days contribute nothing and the effective sample is smaller
+than the day count suggests.
+
+**Confound to state alongside the result, not to test around:** the cap
+binds on 100% of 2023 days *and* 2023 has the largest `101+` share (22.1%).
+Removing the tail necessarily helps most where the tail is largest, so
+2023's dominance is the mechanism restated, not independent evidence for
+it.
+
+Thresholds will not be adjusted after seeing the intervals. Part A spends no
+trial; budget stays 7 of 20.
