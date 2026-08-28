@@ -2280,3 +2280,121 @@ after the fact.
 Rule recorded. **Nothing has been run against it.** Validate remains
 untouched, the holdout remains sealed, and the trial budget stands at
 **7 of 20** with one unallocated trial.
+
+## 30. THE VALIDATE RULE, AMENDED — pre-registered 2026-08-28, nothing run
+
+**§29 is not edited and stands in the record as written.** This section
+supersedes it where the two conflict, and says so explicitly at each point.
+
+### 30.0 Why amending is legitimate here
+
+§28.4 put the validate MDE at 1.65 two-sided against a train Sharpe of
+0.796. Extending that arithmetic: validate can barely *refute* either. A
+validate Sharpe of **−0.50** — a visibly bad year — sits only 1.29 SE below
+train (one-sided p ≈ 0.098); 0.00 sits 0.80 SE below (p ≈ 0.213); +0.30 sits
+0.50 SE below (p ≈ 0.310). **A rule resting mainly on a minimum Sharpe rests
+on the least powerful statistic available** and would return "inconclusive"
+for almost any outcome.
+
+The amendment is motivated by a power analysis of the **sample** (§28.4),
+not by any outcome. Verified before writing: `trials.jsonl` contains **0
+validate rows**, `diagnostics.jsonl` **0 validate records**, no
+`holdout_log.json`. **No validate result exists**, so there is nothing to
+fit to, and the ordering is checkable in git: this section is committed
+before any validate run.
+
+The insight §28.4 implies: conditioning away common market noise is what
+made the Stage 3d paired bootstrap tighter than either standalone CI (width
+0.56 vs 1.62). The same applies out of sample — so the rule is built on
+per-observation and structural quantities, not on a whole-window aggregate.
+
+### 30.1 Train reference, measured (uncapped frozen config, 5bps, +1min)
+
+```
+ year     beta  lev med  lev p95   maxDD  active  skip rate  rebal
+ 2020   +0.007     0.62     1.27  12.11%  100.0%      31.5%    250
+ 2021   -0.002     0.28     0.47  13.71%  100.0%       8.2%    335
+ 2022   -0.023     0.48     0.75  18.94%  100.0%       9.0%    332
+ 2023   +0.045     0.47     0.77  14.18%  100.0%       0.0%    365
+```
+
+Whole window: max drawdown **27.87%**, active days **1,381 of 1,381**,
+dollar-tilt identity worst deviation **1.39e-16**, funding **59.7% of net**
+(price +266.70, fees 127.87, funding +205.30, net +344.13).
+
+**2020's 31.5% skip rate is excluded from the band below** and the ceiling is
+set from the mature years (2021–23: 8.2%, 9.0%, 0.0%). 2020 is the warm-up
+year in which the universe grew from 29 names, so `universe_too_small`
+dominates; 2024 has a mature universe and is not comparable to it. Stating
+the exclusion rather than quietly widening the band to 31.5%.
+
+### 30.2 TIER 1 — structural invariants. Any breach is an automatic stop.
+
+These have expected values from **design**, not from market outcome, so a
+breach means something is broken regardless of PnL.
+
+| # | Invariant | Train | **Breach if** |
+|---|---|---|---|
+| T1.1 | realised beta to BTC | [−0.023, +0.045] | **\|beta\| > 0.15** — the project's own pre-registered hedge tolerance (Test 5). Train ran ~3x tighter; the looser design bound is used deliberately so a regime-driven wobble is not scored as a break |
+| T1.2 | realised gross leverage, median | [0.28, 0.62] | **outside [0.15, 1.00]** — vol targeting sets this against realised market vol, so it moves with regime; above 1.00 would mean the targeting is behaving differently, not merely meeting a different market |
+| T1.3 | dollar-tilt identity `\|sum(w) − k(1−s)\|` | 1.39e-16 | **> 1e-9** — exact by construction (Test 12); any deviation is a code fault |
+| T1.4 | max drawdown (whole window) | 27.87% | **> 30%** — the pre-registered kill switch, unchanged |
+| T1.5 | active-days fraction | 100% | **< 80%** — carried unchanged from §29 item 5; below it the Sharpe describes a sliver and is **uninterpretable**, reported as such rather than scored |
+| T1.6 | skip rate | 8.2/9.0/0.0% (mature) | **> 25%** — well above every mature train year, so only a real malfunction trips it |
+
+### 30.3 TIER 2 — the substantive test. One-sided at 90%.
+
+| # | Quantity | Train 90% CI | **Breach if** |
+|---|---|---|---|
+| T2.1 | pooled top-30 price PnL per position-day | +0.0424 [+0.0084, +0.0793] | **< 0.0000**. Falling into [0, +0.0084] is *weaker than train but not a breach* — the claim is that the liquid segment still earns, not that it earns as much |
+| T2.2 | pooled `101+` price PnL per position-day | −0.1516 [−0.2437, −0.0603] | **> 0.0000**. This is the one finding that survived Stage 3d, so it is the strongest single claim available to test; if the tail stops losing money the dilution attribution does not replicate |
+| T2.3 | aggregate price PnL | +266.70 over train | **≤ 0** — carried from §29 item 2, unchanged and still a hard gate. A positive Sharpe carried entirely by funding is the §22.3 carry trade with a momentum label |
+| T2.4 | funding share of net PnL | 59.7% | **> 85%** — carried from §29 item 3. One-sided on purpose: a *lower* funding share is not a failure, it is the §25.3 direction |
+
+Validate's own bootstrap CIs are reported for T2.1/T2.2 alongside the point
+estimates, and whether each sits inside train's interval — but **the breach
+tests above are on the point estimates**, because with one year the CIs will
+be wide enough to overlap almost anything.
+
+### 30.4 TIER 3 — headline Sharpe. Reported, never deciding.
+
+Minimum: **≥ 0.30**, the project's existing stop threshold. **Per §28.4 this
+cannot decide the outcome alone** — the validate MDE is 1.65 two-sided, so
+this figure is a floor for refutation, not evidence of an edge.
+
+**§30 supersedes §29 item 1**, which made Sharpe ≥ 0.30 the gate on spending
+the holdout. Sharpe ≥ 0.30 is now **necessary but not sufficient**.
+
+Decided now, per STAGE3F 3.3 — **if Tier 1 and Tier 2 all pass but Sharpe is
+below 0.30**: the outcome is recorded as *"not refuted, mechanism intact,
+headline weak"*, the **holdout is NOT spent**, and the project returns to
+research. A mechanism that survives with a headline below the project's own
+stop threshold does not justify spending the single remaining look; keeping
+the look is worth more than confirming an ambiguity.
+
+### 30.5 Carried unchanged from §29
+
+- **Item 6 — what failure means:** the project returns to research with the
+  **holdout UNSPENT**. Failure does not trigger the look; spending it to
+  confirm a failure is the worst available use of it.
+- **Item 7 — sidedness: ONE-SIDED at 90%**, per §28.3, with two-sided CIs
+  reported alongside so both readings are visible.
+
+Everything in §29 not explicitly superseded above (items 2, 3, 4, 5, 6, 7)
+carries forward. Only item 1 is superseded, and §30.4 says so.
+
+### 30.6 Expectations — context, not criteria
+
+Unchanged from §29.2 and repeated because they govern how the result is
+read, not whether it passes: validate **cannot confirm, only refute**;
+funding is *expected* to be weaker than train (carry decayed from 2024);
+price PnL is *expected* to be weak (already negative in 2023, which is
+exactly the tension T2.3 is meant to resolve); a poor validate is the
+expected outcome, not a surprise.
+
+### 30.7 Status
+
+Rule recorded. **Nothing has been run against it.** Trial budget **7 of
+20**; validate untouched; holdout sealed. Running validate requires explicit
+user go-ahead and will be trial 8, in a separate session and commit from
+this one.
