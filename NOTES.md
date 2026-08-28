@@ -4678,3 +4678,138 @@ before live capital is not strategy work: measured slippage (the 5 bps is an
 n=1 synthetic figure, not a measurement), the testnet paper harness, and the
 holdout — which remains one look, ever, and remains the user's decision to
 spend or not.
+
+## 46. Stage 10 — the paper phase: PRE-REGISTERED SUCCESS CRITERIA
+
+**Recorded 2026-08-29, BEFORE day one of paper trading.** Committed in its own
+commit ahead of the first paper day and ahead of any operational result.
+
+**No trials are consumed** — paper is not a backtest. Budget stays **15 of
+25**. Holdout **sealed**. The frozen config is not modified by anything in this
+phase.
+
+### 46.1 What this phase can and cannot establish
+
+**CAN:** that the live code path faithfully implements the strategy that was
+validated; that orders place, fill and reconcile; that funding is recorded
+correctly; that the watchdog, kill switch and crash recovery work; that the
+cost-measurement pipeline produces data.
+
+**CANNOT:** fill quality or slippage (testnet books are thin and synthetic),
+real fee rates, or anything about strategy performance. Four weeks of PnL has
+t ≈ 0.2. **A paper phase "making money" means nothing and "losing money" means
+nothing.** Success here is operational and is defined in §46.2 before it
+starts, so that no operational result can be reinterpreted after the fact.
+
+### 46.2 The six criteria — the phase PASSES after ≥ 28 consecutive calendar days in which
+
+1. **Shadow reconciliation matched every trading day.** Zero unexplained
+   decision mismatches between the live path and the backtester run on the same
+   inputs; any explained mismatch fixed and re-verified.
+2. **Funding accounting reconciles** to the exchange's income history within
+   **$0.01 cumulative**.
+3. **No unrecovered crash.** Every failure — including at least one
+   *deliberately induced* kill of the process mid-cycle — recovered to a
+   correct book through `reconcile` with no manual repair.
+4. **All four §46.4 fixes demonstrated** with induced-condition tests, each
+   logged with evidence.
+5. **Kill switch and watchdog verified armed.** A heartbeat-gap test fires the
+   alert, and drawdown is computed on the **re-baselined** equity series
+   (§46.5).
+6. **Zero silent errors.** Every exception surfaced in the daily report.
+
+**PnL is explicitly NOT a criterion** and will not be reported as a headline
+(§21 standing rule). If all six hold for 28 days, the machine is validated —
+the strategy is not, and never can be, by this phase.
+
+**The clock restarts only on a criterion-1 or criterion-3 failure.** Lesser
+issues are fixed and noted without restarting. Fixed now so that a bad day
+cannot later be argued into or out of a restart.
+
+### 46.3 The shadow reconciliation — the real product of this phase
+
+Every day, after the live decision executes, the **backtester** runs on the
+same inputs (the same universe snapshot and the same bars the live path
+fetched) and the two decisions are compared on:
+
+- selected names, long and short
+- target weight per name, to **1e-6**
+- computed betas, ex-ante vol estimate, gross leverage
+
+**A mismatch is a same-day stop-and-diagnose**, logged with both decision
+vectors. The reason it outranks everything else here: if the live path and the
+research path implement different strategies, then every backtest conclusion in
+this document is about a strategy that is not the one trading. This phase's
+deliverable is the proof that the thing validated and the thing running are the
+same thing.
+
+### 46.4 The four Phase-2 fixes — due now (deferred at §2e 10 to "before live")
+
+None is optional before real money, and each needs an induced-condition test on
+testnet, not just an implementation:
+
+1. **Multi-leg atomicity.** After each rebalance, compute residual beta and
+   tracking error of the *actually filled* book against target. Beyond
+   tolerance (|beta| > 0.15, or tracking error > 20% of gross) repair
+   immediately or flatten. Induced test: deliberately reject/undersize one leg
+   and verify the repair fires.
+2. **Stop-execution cascade.** A stop fill triggers an immediate reconcile and
+   re-hedge/flatten — not a log line. Induced test: a tight stop that fires.
+3. **Funding reconstruction.** `record_day()` reconstructs the position held at
+   each settlement from fill history, never from the current book. Verify on a
+   day containing a rebalance shortly after a settlement.
+4. **POST retry idempotency.** On timeout or 5xx after an order POST, query by
+   `newClientOrderId` before any resubmit. Induced test: drop the response in a
+   wrapper and verify the query-first path runs.
+
+### 46.5 Testnet quirks the harness must survive, and the reset rule
+
+- **Balance resets.** Testnet wipes balances periodically. If equity jumps in a
+  way inconsistent with positions and recorded PnL, log `testnet_reset`,
+  **re-baseline the paper equity series, and do NOT fire the kill switch.** A
+  reset must never masquerade as a 100% drawdown or a windfall; the kill switch
+  keys off the re-baselined series. Recorded before the phase so a reset cannot
+  later be confused with a real drawdown.
+- **Thin books.** Wide testnet spreads may reject or badly fill orders. All of
+  it is recorded in the costlog and **none of it is tuned around** (§46.7).
+- **Symbol gaps.** Testnet lists fewer symbols than production. Paper trades
+  the reduced set and the gap is recorded as a **known limitation**, stated and
+  not silently absorbed.
+
+### 46.6 The cost pipeline — building the dataset that replaces the n=1 figure
+
+Every fill records: decision price (the price the sizing assumed), submitted
+price, fill price, fee paid, and the timestamp deltas decision → submit → ack →
+fill. Stored with a **`venue=testnet` tag** so testnet rows can never
+contaminate a future real-cost estimate.
+
+**The numbers are not trustworthy as market measurements — the pipeline being
+exercised is the deliverable.** When small real orders eventually run, the same
+pipeline produces the measured slippage that replaces the 5 bps assumption
+(which remains an n=1 synthetic figure until then).
+
+### 46.7 What passing paper does and does not license
+
+- **Does:** the machine is trustworthy; the project is ready for the holdout
+  decision, and after it, small real orders to measure true costs.
+- **Does NOT:** validate strategy performance (testnet PnL is noise), justify
+  skipping or shortcutting the holdout, or replace the slippage measurement.
+
+**Prohibited for the duration:** treating testnet PnL, fills or slippage as
+evidence about the strategy; tuning any strategy parameter on paper behaviour;
+letting a testnet balance reset fire the kill switch; logging testnet costs
+without the venue tag; touching the holdout.
+
+### 46.8 Credential handling — recorded because it is a standing hazard
+
+Keys are **futures-testnet only**, verified by a signed call to the testnet
+account endpoint (which a mainnet key cannot satisfy). They live in
+environment variables sourced from a file **outside the repository**
+(`~/.binance_testnet.env`), never in the repo, never in a log line, never in a
+committed file. `tools/scan_secrets.py` enforces the repo half of that on
+every run and in the test suite.
+
+The keys were transmitted in plain text through a chat transcript that is
+stored on disk, so they must be treated as **already disclosed** and rotated
+when the paper phase ends — or sooner. They grant access to a testnet account
+holding no real value, which is why this is a hygiene item and not an incident.
