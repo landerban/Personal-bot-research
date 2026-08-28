@@ -3897,3 +3897,70 @@ k stays 5, the vol target was not adjusted after seeing these numbers.
 Budget **11 of 25** — no trial spent, capital being a risk-sizing input.
 2024 not re-run. Holdout **sealed and untouched**. The next step is a
 decision, not a run: validate $800 @ 14%, or re-derive the vol at $800 first.
+
+## 43. Stage 7a — the honest vol sweep at $800: PRE-REGISTERED RULE
+
+**Recorded 2026-08-28 BEFORE running.** Risk sizing on train, same class as
+§39 and §42: **no trial.** Budget stays **11 of 25**; 2024 untouched;
+holdout sealed.
+
+### 43.1 The circularity this removes
+
+§39 picked 14% as "the highest vol with measured drawdown ≤ 20%" — but that
+14.78% was a **$400 floor artifact**: the book was skipping 27.81% of
+rebalances, i.e. sitting out the very days it would have lost on. At $800,
+with the floor no longer skipping, the same vol produces **24.79%** (§42.6).
+**14% was chosen from a number its own contamination produced.** Validating
+it would spend a trial on a config whose defining parameter is a known
+artifact. This sweep removes that for free, before the trial.
+
+### 43.2 The coupling the sweep must expose
+
+Capital and vol are **coupled through the floor**. Lowering vol shrinks
+positions; far enough down they fall back under $5 and the floor re-breaks
+the book — re-introducing the skips and drift $800 just healed.
+
+The honest drawdown/vol ratio at $800 is **24.79 / 12.88 ≈ 1.92**, not the
+1.49 the contaminated data implied. Under 1.92 the 20% cap points to roughly
+**10% vol** — but ~10% vol at $800 may itself re-break the floor. So the vol
+cannot be re-derived from the ratio alone; **skip and drift must be
+re-measured at every vol**, because a vol that satisfies the cap on paper is
+worthless if the floor mangles it.
+
+### 43.3 The selection rule — all three at once
+
+**Deploy the highest vol satisfying ALL THREE simultaneously:**
+
+1. **measured max drawdown ≤ 20%** — the cap is unchanged from §39, not
+   re-tuned;
+2. **drift fraction < 30% AND demeaned Sharpe > 0** — the clean band from
+   §42.2;
+3. **skip rate ≤ 17.26% + 5 points = 22.26%** (the §42 $800/14% rate) **AND
+   realised vol within 2 points of target.**
+
+Conditions 2 and 3 are exactly what §39 lacked and what let the circularity
+through. Sharpe is reported and **never selected on** — §39.7's invariance
+failure means it is not comparable across vols, and the floor makes that
+worse at low vol.
+
+**If no vol satisfies all three, that is the finding.** No condition will be
+relaxed to manufacture a winner.
+
+### 43.4 The three outcomes, fixed before the numbers
+
+| Outcome | Meaning | Next |
+|---|---|---|
+| **A clean vol exists** (all three hold) | that is the deployment config, derived honestly | validate **that** vol on 2024 — one trial, spent right |
+| **The floor re-breaks below 14%** (the cap wants ~10%, but ~10% skips or drifts) | $800 heals 14% but cannot support the vol the cap requires — **$800 is not enough for a cap-satisfying book** | report the capital at which the cap-satisfying vol *also* clears the floor: the true joint target |
+| **14% is the lowest floor-clean vol and it breaches the cap** (24.79%) | genuine tension — at $800 you may have drawdown headroom **or** a floor-clean mechanism, not both | a knowing risk decision, **deferred to the user** with both numbers on the table |
+
+### 43.5 Scope limits
+
+- **N stays 10, k stays 5.** Only vol is swept.
+- 14% must **reproduce §42's numbers exactly** — a determinism check; if it
+  does not, stop.
+- The persistent ~1.1-point vol shortfall (§42.6 finding 3) is **reported per
+  vol**, and whether it worsens as vol drops is noted (that would confirm the
+  weight-band-vs-scale interaction), but it is **not chased here**.
+- No vol is validated on 2024 in this stage; that is the next step and a
+  trial. Holdout untouched.
