@@ -3220,3 +3220,132 @@ rationalised away later:
    ever.** It gets its own decision with a clear head.
 
 No threshold above is adjusted after seeing 2024.
+
+## 38. VALIDATE RESULT — B on 2024. All three gates pass. NOT REFUTED.
+
+**The first out-of-sample look.** Trial 10 logged `status: started` at commit
+`8ac7ec4` — the same commit that fixed §37's rule — before execution.
+**Budget 10 of 25.** Holdout untouched.
+
+### 38.1 The result
+
+```
+                            USDT fees      USDC fees
+  Sharpe                       +0.603         +0.675
+  Sharpe 90% CI          (-1.02, 2.19)  (-0.95, 2.26)
+  ann return                   +9.54%        +10.87%
+  ann vol                      17.70%         17.58%
+  max drawdown                 18.52%         17.91%    (2024-08-09)
+  net PnL $                    +38.16         +43.49
+  fees $                        19.04          13.71
+  price PnL $                  +48.47         +48.47
+  funding PnL $                 +8.73          +8.73
+  active days                 365/365        365/365
+```
+
+### 38.2 Tier 1 gates — all pass
+
+| Gate | Threshold | Result | |
+|---|---|---|---|
+| **G1** price PnL ≥ 0 | refuted if < 0 | **+48.47** | **PASS** |
+| **G2** max DD ≤ 30% (USDT) | refuted if > 30% | **18.52%** | **PASS** |
+| **G3** Sharpe ≥ 0.30 (USDC) | too weak if < 0.30 | **+0.675** | **PASS** |
+
+**Sharpe +0.675 sits inside the 0.5–0.7 drift-adjusted success band** that
+§37.1 fixed before the run (1.114 × 0.59 ≈ 0.66). This is the outcome §37.4
+called "best realistic": **consistent with momentum surviving out of
+sample.**
+
+**It is NOT proof.** The 90% CI is (−0.95, +2.26) — one year cannot confirm
+anything (MDE ~1.65, §28.4). "Not refuted" is the strongest claim available
+and the only one being made.
+
+**G2 is the more interesting pass.** §35 left the vol/kill-switch question
+parked because B's train max drawdown was 29.73%, 0.27 points from the stop,
+and §37.2 pre-registered a breach as *decisive* — the parked question
+answering itself. It did not breach: **18.52%, with 11.5 points of
+headroom**, and realised vol came in at 17.70% against the 20% target. On
+2024 evidence the fragility that worried §35.6 did not materialise. One year
+is not a guarantee, but the pre-registered decisive failure did not happen.
+
+### 38.3 Tier 2 mechanism checks — the harness behaved
+
+```
+  realised beta to BTC     +0.022    (band +/-0.15)     ok
+  realised gross leverage  median 0.49, p95 0.76        (train 0.52 / 0.97)
+  dollar-tilt identity     1.39e-16  (<= 1e-9)          ok
+  active-days fraction     100.0%    (floor 80%)        ok
+  turnover                 96.6x | rebalances 364 | skips 1
+```
+
+Every structural invariant holds out of sample, and leverage tracks train
+closely. Nothing suggests the harness behaved differently on unseen data.
+
+**Price/funding split: 127% price / 23% funding.** Price PnL (+48.47)
+exceeds net (+38.16) because fees (19.04) outweigh funding (+8.73). Against
+train B's 77/23 this is *more* price-driven, not less — **B did not become
+A.** §37.3's explicit check on that is answered: the momentum leg carried
+2024, and funding contributed a fifth of what it did in train proportionally.
+
+Long/short price split: **long +69.44, short −20.96** — the same shape as
+train B (long +604, short −155). The profit comes from being long the
+strongest majors; the short leg costs money on price while doing its hedging
+job.
+
+### 38.4 The 2024 drift check — better than train
+
+```
+  Sharpe real +0.603 | demeaned +0.461 | drift +0.142  =  24% of total
+  train B: 41%      synthetic zero-drift floor: ~18%
+```
+
+§37.3 flagged the risk that 2024's drift fraction would come in *far above*
+train's 41%, which would mean the surviving "momentum" was mostly artifact.
+**The opposite happened: 24%, well below train's 41% and much closer to the
+~18% synthetic floor.**
+
+So the out-of-sample year is *less* drift-contaminated than the in-sample
+years. That is the most encouraging single number in this stage — it means
+the part of B that survived into 2024 is disproportionately the
+trend-continuation part, not the persistent-drift part. Worth stating
+plainly: this is one year, and the drift estimate itself uses full-sample
+means and is **DIAGNOSTIC ONLY, not runnable live**.
+
+### 38.5 Who is paying, for 2024
+
+The §36.6 momentum-payer story **held**, and the composition moved further
+in its direction rather than reverting.
+
+- **Price leg (dominant, +48.47 against +38.16 net).** Long +69.44 / short
+  −20.96. Same mechanism argued in §36.6: late entrants buying established
+  moves in the most liquid majors, and leveraged holders liquidated into
+  weakness on the short side. In 2024 — a year with a documented retail bid
+  in majors — this is the story one would expect to work, and it did.
+- **Funding leg (+8.73, a fifth of train's proportional contribution).**
+  Documented carry decayed from 2024 onward, and §37.4/§29.2 said to *expect*
+  a weaker funding component and not to read it as failure. That is exactly
+  what appeared. The strategy did not need it.
+- **The decay exposure is unchanged and is B's real risk.** The leg that
+  carried 2024 is majors momentum, which is the leg the literature says
+  crowds out as capital arrives. A good 2024 does not answer that; it is the
+  mechanism most likely to erode precisely because it worked.
+
+### 38.6 What this does and does not license
+
+- **Does not confirm an edge.** One year, MDE ~1.65, CI (−0.95, +2.26).
+  "Not refuted" is the ceiling of what 2024 could have delivered.
+- **Does clear every pre-registered refutation condition**, including the one
+  (G2) that §35 parked as potentially decisive against B.
+- **Does not clear live deployment.** §35.6's vol question is *softened* by
+  18.52% out of sample but the paper-trading fill-rate work (Stage 2b B5,
+  Stage 2e §4) is untouched, and no maker figure is reportable.
+- **The holdout decision is DEFERRED TO THE USER** per §37.5, fixed before
+  the run precisely so a good number could not carry it. The holdout is one
+  look, ever, and it gets its own decision.
+
+### 38.7 Status
+
+Budget **10 of 25**. Validate **spent**. Holdout **sealed and untouched** —
+`holdout_log.json` absent, zero holdout rows in `trials.jsonl`. Frozen
+config §19.5 unchanged; B remains a candidate that has now survived one
+out-of-sample year without being refuted.
