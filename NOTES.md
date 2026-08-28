@@ -3799,3 +3799,101 @@ computed, not guessed.
 
 The holdout remains the one irreplaceable look and is not spent by this
 stage.
+
+### 42.5 Result — HEALED at $800, on every mechanism check
+
+```
+config                          skip  rebal  realised  short   maxDD  sharpe   lev
+B @ 14% @ $800  <- THE TEST   17.26%   1309    12.88%  +1.12%  24.79%  +1.017  0.36
+B @ 14% @ $400  (broken ref)  27.81%   1142    12.91%  +1.09%  14.78%  +0.985  0.37
+B @ 20% @ $400  (clean ref)   20.67%   1255    18.57%  +1.43%  29.73%  +1.114  0.52
+
+config                        notional med     p05     min   under $5      of
+B @ 14% @ $800  <- THE TEST        $36.95  $13.07   $5.00          0  13,026
+B @ 14% @ $400  (broken ref)       $18.26   $7.11   $3.00         20  11,329
+B @ 20% @ $400  (clean ref)        $29.80  $10.91   $5.00          0  12,491
+```
+
+**Drift — the disqualifier (§42.2):**
+
+```
+config                        SR real  SR demeaned   drift  fraction
+B @ 14% @ $800  <- THE TEST    +1.017       +0.867  +0.150      15%
+B @ 14% @ $400  (broken ref)   +0.985       +0.954  +0.031       3%
+B @ 20% @ $400  (clean ref)    +1.114       +0.662  +0.452      41%
+```
+
+| Check | Result | |
+|---|---|---|
+| demeaned Sharpe > 0 | **+0.867** | PASS |
+| drift fraction < 50% | **15%** | PASS — **clean (<30%)** |
+| skip rate near the 20% ref | 17.26% vs 20.67% | **better than the reference** |
+| realised vol vs target | 12.88% vs 14% (−1.12) | still short — see §42.6 |
+| p05 position notional | **$13.07** (floor $5) | clear with margin |
+| positions under the floor | **0 of 13,026** | clean |
+
+**Verdict: HEALED at $800.** Rebalances rise 1142 → 1309 of ~1380 scheduled,
+skips fall *below* the 20% reference's, no position touches the floor, and
+drift lands at 15% — cleaner than the 20% config's 41% and below the ~18%
+synthetic floor.
+
+### 42.6 Three findings that qualify the headline, none of which I will bury
+
+**1. The drawdown got WORSE at $800, and that undermines the rule that chose
+14%.** Same vol target, double the capital: max drawdown **14.78% → 24.79%**.
+
+That is not noise. At $400 the floor was skipping rebalances — 27.81% of
+them — and those skips were *accidentally protective*: the book sat out days
+it could not size. At $800 it trades them and takes the losses. **The
+$400/14% config's flattering 14.78% drawdown was itself a floor artifact.**
+
+The consequence is direct: §39.1 selected 14% as "the highest vol whose
+**measured** max drawdown ≤ 20%", and that measurement was made at $400 on a
+floor-contaminated run. **At $800 the same vol produces 24.79%, which would
+not have passed that cap.** The healed config does not satisfy the rule that
+picked its vol. Headroom to the 30% kill switch is back down to 5.2 points.
+
+**2. The "broken reference" was broken on 2024, not on train.** $400/14% shows
+only **3%** drift on train against **126%** on 2024, and 27.81% skips against
+51.8%. So §41's damage was concentrated in the validate year, where the floor
+bit far harder, rather than being a property of the config everywhere. This
+does not rescue the $400/14% config — 2024 is the out-of-sample year and that
+is where it failed — but the diagnosis is more specific than "$400/14% is
+broken."
+
+**3. Realised vol still falls 1.12 points short of target.** The shortfall is
+essentially unchanged from $400 (1.09) and is present at every configuration
+tested. The floor is no longer *skipping* rebalances, but something is still
+capping size — most likely the `[0.5x, 1.5x]` weight band and the 3x gross
+cap interacting with the vol scale, not `MIN_NOTIONAL`. Not investigated
+here; recorded.
+
+### 42.7 What this licenses, and the tension in it
+
+Per §42.4, healing licenses **one clean validate of the $800 config on 2024
+as trial 12** — the $400 validate measured a different, broken book.
+
+**But finding 1 makes the vol choice questionable.** Two coherent paths, and
+they are the user's to choose between:
+
+- **Validate $800 @ 14% as planned.** The mechanism is clean and the
+  drawdown (24.79%) is still inside the 30% switch. Accepts that 14% was
+  selected on a contaminated measurement.
+- **Re-derive the vol at $800 first.** A vol sweep at $800 is free — capital
+  and vol are both risk-sizing inputs on train, the same class as §39 and
+  this stage — and would apply §39.1's 20%-drawdown cap to *uncontaminated*
+  drawdowns. It costs no trial and would likely select a vol below 14%.
+
+I have **not** run the second, because §6's order of work ends this stage at
+the verdict, and because choosing between the two is a decision about what
+the deployment config *is*, which belongs to the user. Recording the tension
+rather than resolving it unilaterally.
+
+**Not done, per §8:** no config was shrunk to force $800 to work; N stays 10,
+k stays 5, the vol target was not adjusted after seeing these numbers.
+
+### 42.8 Status
+
+Budget **11 of 25** — no trial spent, capital being a risk-sizing input.
+2024 not re-run. Holdout **sealed and untouched**. The next step is a
+decision, not a run: validate $800 @ 14%, or re-derive the vol at $800 first.
