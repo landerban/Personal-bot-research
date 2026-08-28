@@ -2722,3 +2722,122 @@ Thresholds will not be adjusted after seeing intervals.
   is slightly rich.
 
 Validate and holdout remain untouched.
+
+## 34. Stage 5 result — BRANCH TWO on the universe, but the composition moved
+
+Trials 8 and 9 logged **before** execution. **Budget 9 of 25.** Validate and
+holdout untouched.
+
+### 34.1 The three configs on train
+
+```
+                                       sharpe   90% CI          ann_ret   vol    maxDD   fee drag
+ A   frozen, full USDT universe         0.796  [-0.019, +1.572]  17.83%  24.21%  27.87%   47.95%
+ B1  top-15 PIT majors, USDT fees       1.114  [+0.358, +1.897]  20.88%  18.57%  29.73%   27.71%
+ B2  same positions, USDC fees          1.195  [+0.437, +1.976]  22.22%  18.17%  27.47%   19.95%
+
+                    price      fees    funding      net   funding as % of net
+ A                +266.70    127.87   +205.30   +344.13        59.7%
+ B1               +449.26    124.49    +94.86   +419.63        22.6%
+ B2               +449.26     89.63    +94.86   +454.49        20.9%
+```
+
+Deflated Sharpe at the expanded denominator (variance held at the 7 real
+trials): A 0.603, B1 0.810, B2 0.850 at n=25 (0.715 / 0.882 / 0.910 at n=9).
+
+### 34.2 The pre-registered branch: TWO
+
+```
+ B1 - A   +0.3175   90% CI [-0.5964, +1.2403]   straddles zero
+ B2 - B1  +0.0808   90% CI [+0.0657, +0.0955]   ABOVE zero
+ B2 - A   +0.3984   90% CI [-0.4807, +1.3190]   straddles zero
+```
+
+**B1 − A straddles zero with a positive point estimate → branch two:
+consistent with helping, NOT established.** Exactly the outcome §33.3 called
+the honest most-likely one, and consistent with §28.4: the paired MDE on
+train is ~0.28 two-sided and this effect is +0.32 with a much wider interval
+than the Stage 3d comparison had, because A and B hold *different books*
+rather than differing on a sliver of days.
+
+**B2 − B1 is above zero, but that is arithmetic, not evidence.** The two
+series differ by a deterministic fee scaling on identical positions, so
+there is no independent noise for the bootstrap to find; the tight interval
+[+0.0657, +0.0955] measures the fee saving's size, not its significance.
+§5 predicted "small and positive by construction" and that is what it is:
+**+0.08 Sharpe for 1.4bps of taker fee**, worth $34.86 on $249k of turnover.
+
+### 34.3 The non-gated question — the collapse IS avoided, but 2022 breaks
+
+```
+ price PnL by year   2020    2021    2022    2023
+ A  (full universe)  +163    +110     +30     -37
+ B1 (top-15 majors)  +178    +175     -40    +137
+```
+
+**B1's 2023 price PnL is +137 against A's −37.** The monotonic collapse that
+motivated all of Stage 3b–3d does not happen in the majors universe — this
+is the clearest evidence yet for the dilution hypothesis, and it arrives
+from a completely different direction than the rank cap did.
+
+**But B1's 2022 is much worse: −40 price PnL and Sharpe −0.86, against A's
++30 and +0.05.** The majors book has no tail to hide in during the
+bull-to-bear transition. §22.2 identified that transition as this strategy's
+structural vulnerability, and concentrating the universe *sharpens* it.
+
+So majors-only is not uniformly better: it is better in three years out of
+four and materially worse in the one that already worried us.
+
+### 34.4 Two things that need flagging, not burying
+
+1. **B1's max drawdown is 29.73%, against a 30% kill switch.** That is 0.27
+   points of headroom — under §30's Tier 1 it would very nearly be an
+   automatic stop, and it is worse than A's 27.87%. B2's 27.47% is lower only
+   because lower fees lift the equity path, not because the risk is
+   different. **A validate or holdout run of B would be one bad week from
+   being switched off**, and that is a stronger objection to B than anything
+   in the Sharpe comparison.
+2. **The composition moved exactly as §25.3 hoped and the cap failed to
+   deliver:** funding falls from **59.7% to 22.6%** of net while price PnL
+   rises from +267 to +449. B is a momentum strategy in a way A is not. That
+   matters because the documented carry decay (negative in 2025) threatens A
+   far more than B — but it also means B forfeits the carry cushion that
+   carried A through 2023.
+
+### 34.5 A reporting bug found and fixed before these numbers were used
+
+The first run of `tools/stage5_majors.py` computed Sharpe over the **full**
+window including ~200 pre-fill zero days, reporting A at **0.744** where
+every prior figure in this project uses the strategy window (first fill
+onward) and gives **0.796**. The paired differences were unaffected — both
+legs shared the basis — but the absolute levels were not comparable to
+anything previously reported.
+
+Fixed so `ann_return`, `max_drawdown` and Sharpe all use the same
+strategy-window slice, and the numbers above are the corrected ones. The
+first set was never reported as a result.
+
+### 34.6 What this does and does not establish
+
+- It does **not** establish that majors-only helps: the pre-registered
+  interval straddles zero and §33.3 fixed that reading in advance.
+- It **does** show the price-PnL collapse is universe-dependent rather than
+  a property of the signal, which is the single most useful thing learned
+  since Stage 3b.
+- The reconstruction is **generous on two axes** (§33.4): USDC-list
+  membership still correlates with surviving to 2024 even though selection
+  is point-in-time, and the funding proxy is USDT's, measured at 1.16x the
+  USDC tail. A marginal B result should be read as an **upper bound**.
+- **Funding for B is a USDT proxy throughout.** USDC funding did not exist
+  in 2020–23. Nothing above is USDC funding.
+- **No maker figure is reported.** Stage 2e §4 stands: USDC's 0% maker is a
+  live-execution question answered by measuring post-only fill rates in
+  paper trading, not by this backtest.
+- One year of validate still cannot **confirm** whichever config wins
+  (MDE ~1.65). It can refute. Unchanged.
+
+### 34.7 Status
+
+Budget **9 of 25**. Validate untouched, holdout sealed. The frozen config of
+§19.5 is unchanged — B is a candidate, not a new freeze, and nothing in
+§30's validate rule has been rewritten to accommodate it.

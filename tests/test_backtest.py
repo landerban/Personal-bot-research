@@ -1674,6 +1674,63 @@ def test_liquidity_rank_cap():
           f"incl. tail; capped book within the top 10 by PIT liquidity)")
 
 
+def test_liquidity_cap_universe_is_survivorship_safe():
+    """Stage 5 1: the majors universe must be selected POINT-IN-TIME from the
+    full symbol list, never from a present-day name set. A today's-names
+    filter would silently exclude every symbol that died before today --
+    exactly the hindsight the PIT store exists to prevent.
+
+    Proof: a symbol that delists mid-sample is still selected on the dates it
+    traded. No name list can do that."""
+    n_days, dead_from = 260, 150
+    closes, _ = factor_market(seed=99, n_days=n_days)
+    doomed = "ALT01USDT"
+    # make the doomed symbol the most liquid name, so any honest PIT ranking
+    # must pick it while it is alive
+    qv = {s_: 1e7 for s_ in closes}
+    qv[doomed] = 1e9
+    qv[BTC] = 1.0                      # beta reference only, out of the universe
+    holes = {doomed: range(dead_from, n_days)}
+    store = _store_with_holes(closes, holes)
+    # _store_with_holes uses a flat 2e7 volume; re-write the doomed symbol's
+    # volume so it ranks first while alive
+    store._conn.execute("UPDATE klines SET quote_volume=? WHERE symbol=?",
+                        (1e9, doomed))
+    store._conn.execute("UPDATE klines SET quote_volume=? WHERE symbol=?", (1.0, BTC))
+    store._conn.commit()
+
+    cfg = Config(lookback=14, skip=0, max_liquidity_rank=15)
+    alive_ts = T0 + 120 * DAY - 1          # doomed still trading
+    dead_ts = T0 + 200 * DAY - 1           # doomed gone for 50 days
+
+    store.reset_clock()
+    v_alive = store.view_as_of(alive_ts)
+    uni_alive = v_alive.tradeable_universe(400.0, 3.0, 10, 5e6)
+    assert doomed in uni_alive, "PIT universe must contain a symbol still trading"
+
+    store.reset_clock()
+    v_dead = store.view_as_of(dead_ts)
+    uni_dead = v_dead.tradeable_universe(400.0, 3.0, 10, 5e6)
+    assert doomed not in uni_dead, "a symbol with no recent bars must drop out"
+
+    # and the ranked, capped selection behaves the same way
+    store.reset_clock()
+    d_alive = compute_target_weights(store.view_as_of(alive_ts), cfg, 400.0,
+                                     signal_fn=index_signal)
+    store.reset_clock()
+    d_dead = compute_target_weights(store.view_as_of(dead_ts), cfg, 400.0,
+                                    signal_fn=index_signal)
+    store.close()
+    for d in (d_alive, d_dead):
+        assert not isinstance(d, Skip), d
+    assert doomed in d_alive.final_weights, (
+        "the capped selection excluded a live, most-liquid symbol -- it is not "
+        "selecting point-in-time")
+    assert doomed not in d_dead.final_weights
+    print(f"PASS liquidity_cap_universe_is_survivorship_safe "
+          f"({doomed} selected while alive, absent after it delists)")
+
+
 # ------------------------------------------------------- metrics sanity
 
 def test_deflated_sharpe_sanity():

@@ -212,6 +212,11 @@ class BacktestResult:
     # month, by leg, and by regime without re-deriving it from equity.
     funding_rows: list[tuple[int, str, float, float, float]] = field(
         default_factory=list)                # (ts, symbol, units, rate, amount)
+    # Stage 5 2: per-day fee and turnover, so one position series can be
+    # RE-COSTED at a different fee schedule without re-running the engine
+    # (which would let ordering differences contaminate the comparison).
+    fees_by_day: list[tuple[int, float, float]] = field(
+        default_factory=list)                # (ts, fees, turnover_notional)
     bankrupt: bool = False
     # Attribution trace: per-day {symbol: price PnL}, aligned with timestamps.
     pnl_by_symbol_day: list[dict[str, float]] = field(default_factory=list)
@@ -270,6 +275,9 @@ def run_backtest(
     step = cfg.rebalance_ms
 
     day_pnl: dict[str, float] = {}
+    day_fees = 0.0
+    day_turnover = 0.0
+    nonlocal_fees = [0.0, 0.0]   # settle() runs before day_fees is in scope
 
     def mark(sym: str, units: float, dprice: float) -> None:
         """Accrue price PnL, attributed to the side and symbol that earned it."""
@@ -314,8 +322,11 @@ def run_backtest(
                 res.gross_pnl_short += pnl
             day_pnl[sym] = day_pnl.get(sym, 0.0) + pnl
             notional = abs(units) * price
-            res.total_fees += notional * costs.fee_rate(cfg.fee_mode)
+            _f = notional * costs.fee_rate(cfg.fee_mode)
+            res.total_fees += _f
             res.total_turnover += notional
+            nonlocal_fees[0] += _f
+            nonlocal_fees[1] += notional
             del positions[sym]
             del marks[sym]
             missing_days.pop(sym, None)
@@ -487,6 +498,8 @@ def run_backtest(
                     marks[sym] = open_px
             res.total_fees += fees
             res.total_turnover += turnover
+            day_fees += fees
+            day_turnover += turnover
             exposures = [
                 abs(u) * (bars[s].open if bars.get(s) is not None else marks[s])
                 for s, u in positions.items()
@@ -547,6 +560,8 @@ def run_backtest(
                     marks[sym] = open_px
             res.total_fees += rs_fees
             res.total_turnover += rs_turnover
+            day_fees += rs_fees
+            day_turnover += rs_turnover
             post = sum(
                 abs(u) * (bars[s].open if bars.get(s) is not None else marks[s])
                 for s, u in positions.items()
@@ -586,6 +601,11 @@ def run_backtest(
             cfg.initial_capital + res.gross_pnl - res.total_fees
             + res.total_funding
         )
+        day_fees += nonlocal_fees[0]
+        day_turnover += nonlocal_fees[1]
+        nonlocal_fees[0] = nonlocal_fees[1] = 0.0
+        res.fees_by_day.append((t, day_fees, day_turnover))
+        day_fees = day_turnover = 0.0
         res.pnl_by_symbol_day.append(dict(day_pnl))
         day_pnl.clear()
         gross_notional = sum(
