@@ -269,7 +269,12 @@ def strategy_key(config: dict) -> str:
     conservative count (every distinct config hash) is printed alongside
     so the stricter reading is always visible.
     """
-    c = {k: v for k, v in config.items() if k != "slippage_bps_per_side"}
+    # Both slippage and execution delay are COST ASSUMPTIONS run as
+    # sensitivity pairs and never selected between (Stage 2e 2, Stage 3c
+    # 5), so neither makes a run a distinct trial. Dropping delay merges
+    # no existing rows: every logged row has delay=1.
+    drop = ("slippage_bps_per_side", "execution_delay_minutes")
+    c = {k: v for k, v in config.items() if k not in drop}
     return json.dumps(c, sort_keys=True)
 
 

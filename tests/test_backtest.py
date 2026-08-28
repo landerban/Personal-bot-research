@@ -1636,6 +1636,44 @@ def test_funding_settlements_tolerate_millisecond_offsets():
           f"(funding {exact.total_funding:+.4f} either way, 0 missing)")
 
 
+def test_liquidity_rank_cap():
+    """Stage 3c Part B: max_liquidity_rank excludes the illiquid tail from
+    candidacy BEFORE ranking, using the same point-in-time median
+    quote-volume measure universe() filters on. Uncapped is the frozen
+    default and must be unchanged."""
+    n_days = 200
+    closes, _ = factor_market(seed=91, n_days=n_days)
+    # give each ALT a distinct, stable liquidity so ranks are deterministic
+    qv = {}
+    for i, sym in enumerate(sorted(s_ for s_ in closes if s_.startswith("ALT"))):
+        qv[sym] = 1e9 / (i + 1)          # ALT00 most liquid ... ALT13 least
+    qv[BTC] = 1.0          # beta reference only: kept out of the universe
+    store = build_store(closes, quote_volumes=qv)
+    store.reset_clock()
+    v = store.view_as_of(T0 + 150 * DAY - 1)
+    uni = v.tradeable_universe(400.0, 3.0, 10, 5e6)
+    assert len(uni) >= 12, uni
+
+    cfg_off = Config(lookback=14, skip=0)
+    cfg_on = Config(lookback=14, skip=0, max_liquidity_rank=10)
+    assert cfg_off.max_liquidity_rank is None, "uncapped must stay the default"
+
+    d_off = compute_target_weights(v, cfg_off, 400.0, signal_fn=index_signal)
+    store.reset_clock()
+    v2 = store.view_as_of(T0 + 150 * DAY - 1)
+    d_on = compute_target_weights(v2, cfg_on, 400.0, signal_fn=index_signal)
+    store.close()
+    assert not isinstance(d_off, Skip) and not isinstance(d_on, Skip), (d_off, d_on)
+
+    # the capped book may only contain the 10 most liquid names
+    eligible = {s_ for s_ in sorted(qv, key=lambda k: -qv[k])[:11] if s_ != BTC}
+    assert set(d_on.final_weights) <= eligible, set(d_on.final_weights) - eligible
+    # ...and the uncapped book reached past that boundary, so the cap bit
+    assert not set(d_off.final_weights) <= eligible, "fixture never exercises the cap"
+    print(f"PASS liquidity_rank_cap (uncapped {len(d_off.final_weights)} names "
+          f"incl. tail; capped book within the top 10 by PIT liquidity)")
+
+
 # ------------------------------------------------------- metrics sanity
 
 def test_deflated_sharpe_sanity():

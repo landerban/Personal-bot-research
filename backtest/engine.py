@@ -114,6 +114,13 @@ class Config:
     # 1 is the PRE-REGISTERED setting; 0 stays runnable so the effect is
     # measurable, but the two are never selected between on results.
     execution_delay_minutes: int = 1
+    # Stage 3c Part B (trial 7): exclude names below this point-in-time
+    # liquidity rank from candidacy. None = uncapped (the frozen
+    # baseline). 100 is inherited from the bucket boundaries
+    # pre-registered in NOTES 23 BEFORE any bucket number existed, so it
+    # is not fitted to the attribution that motivated it. This tests
+    # 'exclude the tail', NOT 'trade only the majors' (NOTES 25).
+    max_liquidity_rank: int | None = None
 
     def __post_init__(self):
         if self.n_positions < 2 or self.n_positions % 2:
@@ -128,6 +135,8 @@ class Config:
             raise ValueError("slippage_bps_per_side must be >= 0")
         if self.execution_delay_minutes < 0:
             raise ValueError("execution_delay_minutes must be >= 0")
+        if self.max_liquidity_rank is not None and self.max_liquidity_rank < self.n_positions:
+            raise ValueError("max_liquidity_rank must be >= n_positions")
 
 
 @dataclass

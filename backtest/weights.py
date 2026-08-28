@@ -29,6 +29,7 @@ would silently change the book.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from statistics import median
 from typing import TYPE_CHECKING, Callable, Optional
 
 import numpy as np
@@ -58,6 +59,11 @@ WEIGHT_BAND = (0.5, 1.5)
 # symbol during a mid-history funding gap, which has the same defect.
 # Data policy, not strategy.
 FUNDING_PRESENCE_WINDOW_MS = 3 * 86_400_000
+
+# Stage 3c Part B: the window used to rank liquidity, matching the one
+# `universe()` uses for its median-quote-volume test, so the cap and the
+# filter measure the same thing.
+LIQUIDITY_RANK_WINDOW = 30
 
 # Stage 2e 1: feasibility is checked on post-hedge, post-vol-target weights.
 # The universe filter estimates the smallest position as
@@ -337,6 +343,25 @@ def compute_target_weights(
     )
     if len(universe) < n:
         return Skip("universe_too_small", f"{len(universe)} < {n}")
+
+    # Stage 3c Part B: drop the illiquid tail before ranking. Rank is
+    # point-in-time by median quote volume over the trailing window --
+    # the same measure `universe()` filters on. Applied BEFORE the
+    # momentum ranking, so it is an eligibility rule like the funding
+    # filter, not a selection on outcome.
+    if cfg.max_liquidity_rank is not None:
+        med = []
+        for sym in universe:
+            bars = view.klines(sym, "1d", limit=LIQUIDITY_RANK_WINDOW)
+            if len(bars) < LIQUIDITY_RANK_WINDOW:
+                continue
+            med.append((median(b.quote_volume for b in bars), sym))
+        med.sort(reverse=True)
+        universe = sorted(s_ for _, s_ in med[:cfg.max_liquidity_rank])
+        if len(universe) < n:
+            return Skip("universe_too_small",
+                        f"{len(universe)} < {n} after rank cap "
+                        f"{cfg.max_liquidity_rank}")
 
     # Market proxy returns. BTC is the beta reference whether or not it is a
     # position; without its history there is no hedge, so skip.
