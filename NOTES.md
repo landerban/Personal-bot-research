@@ -4534,3 +4534,147 @@ before being holdout-eligible. **That validate is not run in this stage.**
 - Does not exceed b=3 (§45.2 geometry)
 - Does not validate a winning buffer on 2024
 - Does not touch the holdout
+
+### 45.9 RESULT — no buffer passes. b=0 stands. The last strategy question is closed.
+
+Trials 13, 14, 15 logged `status: started` at commit `1851b5e` on a clean tree
+before execution. **Budget 15 of 25.** Holdout untouched, 2024 not run.
+
+**Baseline check passed first:** the b=0 re-run reproduces §43.6 exactly on all
+six pinned figures (Sharpe 0.8351, 1241 rebalances, skip 21.55%, maxDD 17.03%,
+realised vol 9.28%, demeaned 0.6513). The buffer code did not move the frozen
+path, so every comparison below is against the real baseline.
+
+```
+ b  sharpe  demean  drift  annret   maxDD    vol    skip  rebal   turn  cross%  drag U  drag C
+ 0  +0.835  +0.651    22%   7.60%  17.03%  9.28%  21.55%   1241   50.6   56.0%   32.9%   23.7%
+ 1  +1.031  +0.845    18%   9.64%  12.62%  9.34%  21.30%   1245   45.2   50.0%   24.5%   17.6%
+ 2  +0.944  +0.991    -5%   8.81%  14.18%  9.41%  21.30%   1245   40.8   45.0%   24.3%   17.5%
+ 3  +1.079  +0.985     9%  10.29%  10.08%  9.49%  21.05%   1249   38.5   42.7%   20.3%   14.6%
+
+ b   price PnL  funding PnL  fees USDT  fees USDC
+ 0     +275.37       +70.63      90.70      65.30
+ 1     +346.47       +71.40      84.74      61.01
+ 2     +306.98       +68.81      74.70      53.78
+ 3     +363.78       +68.88      73.79      53.13
+```
+
+**Paired bootstrap vs b=0**, 1,381 identically-dated days, 2,000 resamples,
+90% CI, block length 11.1 days from the difference series' own autocorrelation:
+
+```
+  b=1   Sharpe difference +0.1963   90% CI [-0.0310, +0.4431]   straddles zero
+  b=2   Sharpe difference +0.1093   90% CI [-0.1548, +0.3697]   straddles zero
+  b=3   Sharpe difference +0.2442   90% CI [-0.1201, +0.6166]   straddles zero
+```
+
+**§45.4 applied:**
+
+```
+  b=1   1 NO   2 ok   3 ok
+  b=2   1 NO   2 ok   3 ok
+  b=3   1 NO   2 ok   3 ok
+```
+
+**No buffer satisfies all three. b=0 is the deployment config.** The §45.6 row
+that fires is *"turnover falls but the net-Sharpe CI includes zero — the fee
+saving does not survive the noise; b=0 stands, the buffer is not worth the
+added parameter."*
+
+### 45.10 The mechanism claim is CONFIRMED — and that is not the same as the buffer working
+
+Condition 2 passed at every width, decisively and monotonically:
+
+```
+                    b=0     b=1     b=2     b=3
+  turnover (ann)   50.6x   45.2x   40.8x   38.5x     -24% by b=3
+  boundary share   56.0%   50.0%   45.0%   42.7%     -13.3 points
+  fees USDT        90.70   84.74   74.70   73.79     -$16.91
+  fee drag USDT    32.9%   24.5%   24.3%   20.3%     -12.6 points
+  fee drag USDC    23.7%   17.6%   17.5%   14.6%     -9.1 points
+```
+
+Hysteresis does exactly what §0 of the stage document claimed it would: it
+stops names round-tripping at the rank-k edge, and the fee drag that has been
+the dominant friction since the project began falls by more than a third. That
+question is now answered affirmatively and does not need asking again.
+
+**It is still not enough**, because the rule was written on net Sharpe and the
+net-Sharpe difference cannot be distinguished from zero. That is the intended
+behaviour of the rule, not a malfunction of it.
+
+Note also that b=0's own boundary-crossing share is **56.0%**, not §32.4's
+67.9%. That 67.9% was measured on config A (uncapped universe, $400); §45.5
+required computing this config's own split rather than inheriting the older
+number, and the difference is why.
+
+### 45.11 What makes this rejection uncomfortable, stated rather than smoothed
+
+Every buffer improved almost every reported number, several of them a lot:
+
+- **Sharpe** up at all three widths (+0.20, +0.11, +0.24)
+- **Max drawdown** down at all three: 17.03% → 12.62% / 14.18% / **10.08%**,
+  against the 20% cap the vol was selected under
+- **Annual return** up: 7.60% → 9.64% / 8.81% / **10.29%**
+- **Fee drag** down by a third
+- **Skip rate and realised vol essentially unchanged** — the floor did not
+  re-break, which §45.5 required confirming and which was a live risk
+
+And the rule rejects all of them. That is the rule working as designed: three
+prior candidate improvements in this project failed a paired CI and were
+correctly not adopted, and adopting this one on a point estimate after
+pre-registering the CI test would make the pre-registration decorative.
+
+**Two things about the test design that belong on the record, neither of which
+changes the verdict:**
+
+1. **The paired test mixes a stable channel with a noisy one.** The buffer's
+   benefit arrives through *costs* (turnover, fees), which move monotonically
+   in `b` and by large margins. Its effect on *price PnL* (+275 → +346 → +307 →
+   +364) is not monotone and is the noisy part. The Sharpe difference sums the
+   two, and the noise dominates the CI. A test that isolated the cost channel
+   would be a different test with a different pre-registration; **it is not run
+   here, and inventing one after the rule has spoken would be exactly the
+   goalpost-move this project does not make.**
+2. **"Smallest b" does not mean "small effect".** The buffer changes the book
+   on **97.2% of days at every width**. Once one retention decision differs the
+   books diverge and stay diverged — this is a path-dependent portfolio, not a
+   thin overlay. The pairing still removes shared market noise, which is why
+   the CIs are far tighter than independent bootstraps would give, but b=1 is
+   not a small perturbation of b=0.
+
+### 45.12 Two numbers that should not be over-read
+
+**b=2's drift fraction is −5%** — its demeaned Sharpe (0.991) *exceeds* its
+real Sharpe (0.944), meaning stripping per-symbol drift would have *helped*.
+Taken at face value that is a book earning more than all of its return from
+trend. It should not be taken at face value: the drift fractions across widths
+run **22%, 18%, −5%, 9%**, which is not monotone and not smooth. This is the
+same measurement instability §43.7 recorded across vols — small changes in
+which names are held flip whole rebalances and move the drift estimate several
+points. **The honest reading is that all four sit in a broad clean band, and
+that the ordering within it is not resolvable**, not that b=2 is drift-free.
+
+**The §41 trap did not fire.** The specific worry in §45.4 condition 3 was that
+a buffer would lift Sharpe by holding drifting names. The opposite happened:
+drift fell at every width (22% → 18% / −5% / 9%) while Sharpe rose. Whatever
+the buffers are doing, they are not harvesting drift, and the demeaned Sharpe
+rose at every width too (0.651 → 0.845 / 0.991 / 0.985). Recorded because it
+was the pre-registered failure mode and it is worth knowing it was absent.
+
+### 45.13 Status — the strategy is frozen
+
+**The deployment config is unchanged and now final on train+validate
+evidence:** B, top-15 PIT majors, `lookback=14`, `skip=0`, N=10, k=5, **10%
+vol**, **$800**, 3x gross cap, beta-neutral, +1min fill, 5 bps/side,
+**rank_buffer = 0**.
+
+Budget **15 of 25**. Holdout **sealed and untouched**: `holdout_log.json` does
+not exist, `trials.jsonl` contains zero holdout rows. 2024 not re-run in this
+stage; no buffer earned the validate §45.7 would have required.
+
+Per §45.6 row 4, **the last open strategy question is closed.** What remains
+before live capital is not strategy work: measured slippage (the 5 bps is an
+n=1 synthetic figure, not a measurement), the testnet paper harness, and the
+holdout — which remains one look, ever, and remains the user's decision to
+spend or not.
