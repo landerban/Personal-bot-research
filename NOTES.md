@@ -1246,3 +1246,38 @@ a six-trial project becomes a parameter mine.
 **Stated explicitly: choosing `lb14/skip0` out of six configs is a selection
 made on train.** It is already reflected in the Deflated Sharpe trial count
 of 6 and must stay reflected there.
+
+## 22. Stage 3a — regime diagnostics: PRE-REGISTERED READING
+
+*(`STAGE3A_REGIME.md` says "write §19 in NOTES"; §19 is already Stage 3, so
+this lands at §22. Same content, different number.)*
+
+**Recorded 2026-08-27 BEFORE any dispersion number was computed, per
+STAGE3A 2.2 and 9 ("do not adjust the reading after seeing the numbers").**
+
+The question: per-year price PnL fell +163 → +110 → +30 → −37. Is that
+**regime** (momentum needs cross-sectional dispersion; correlated markets
+have nothing to rank) or **decay** (crowding/competition, or it was always
+weak)? Regime implies momentum returns when dispersion does; decay implies
+it does not come back.
+
+The reading, fixed in advance:
+
+| If dispersion... | Then |
+|---|---|
+| collapses in 2022 **and stays low in 2023** | regime explains both years; momentum is dormant, not dead |
+| collapses in 2022 **but recovers in 2023** | regime explains 2022 only; 2023's negative price PnL needs another explanation and **decay becomes the leading candidate** |
+| is **roughly flat across all four years** | regime explains nothing; **decay** is the explanation for the whole decline |
+
+Measurement, also fixed in advance: per rebalance date, over the
+point-in-time universe, each symbol's 14-day trailing return (the frozen
+lookback); cross-sectional standard deviation; and top-decile minus
+bottom-decile spread (closer to what the strategy harvests, since it trades
+the extremes). Aggregated to annual mean and median, reported alongside
+universe size per year because dispersion is not comparable across a
+universe that grew. Computed through `PITView`, not raw SQL — it is a
+diagnostic, but ungated data would use future information and the habit
+matters more than this one number.
+
+No threshold will be chosen from these results (STAGE3A 9). Nothing in
+STAGE3A 6 will be implemented. The config stays frozen; budget stays 6 of 20.
