@@ -1397,10 +1397,35 @@ Concentration, three ways, all pointing the same direction:
 
 This is the sharpest risk finding in the project so far. The dominant return
 source is not a steady carry yield; it is a **tail payoff concentrated in
-deep drawdown regimes and, within those, in two months.** The holdout window
-(2025-01 → 2026-07) is a period in which BTC made new highs — the `>50%`
-drawdown bucket that produced 72% of train funding would largely not exist
-there. That is independent of, and additional to, the documented carry decay.
+deep drawdown regimes and, within those, in two months.**
+
+**CORRECTION (Stage 3b §4, 2026-08-28).** The sentence that stood here
+claimed the holdout window "is a period in which BTC made new highs" and
+that the `>50%` drawdown bucket "would largely not exist there". **That was
+factually wrong.** Bitcoin peaked at $126,296 on 2025-10-06, then fell
+~46.7% to about $67,550 by mid-February 2026 and was roughly 49% below the
+peak by June 2026, with total crypto market cap down ~48%. The holdout
+(2025-01 → 2026-07) therefore contains **both** regimes: new highs through
+October 2025, then a ~50% drawdown across the remainder. **The deep-drawdown
+bucket that produced 72% of train funding does exist in the holdout.**
+
+I asserted a fact about the holdout period from memory instead of checking
+it, and it happened to point the conclusion in the pessimistic direction.
+The corrected reading is not "the funding regime is absent from the
+holdout"; it is that the holdout contains a bull-to-bear transition of the
+same shape as the one in train.
+
+Which sharpens a structural echo worth stating: **our worst drawdown ran
+2021-11-25 → 2022-04-22** — beginning two weeks after the November 2021
+peak and troughing *before* both LUNA (2022-05) and FTX (2022-11). So the
+vulnerability this strategy has shown is **the bull-to-bear transition, not
+crash depth**. The October 2025 peak sits in the same position relative to
+the holdout that November 2021 sits relative to train. That is a reason to
+expect the holdout to be informative about the risk, not a prediction of the
+result.
+
+The documented carry decay (negative in 2025) remains a separate concern and
+is unaffected by this correction.
 
 ### 22.4 (5) Crash resilience — a genuinely positive result
 
@@ -1465,6 +1490,7 @@ the open question.
 | Per-name stop loss | Still unmotivated: kill switch never fired, closest liquidation approach 0.843 |
 | Correlation-regime vol target | Overlaps the dispersion filter; both weakened by 22.1 |
 | **NEW: drawdown-regime exposure scaling** | Arises from 22.3 (72% of funding in `>50%` BTC drawdown). Explicitly NOT implemented: it is a strategy change, costs a trial, and choosing the depth threshold from these numbers is exactly the fitting STAGE3A 9 forbids |
+| **NEW (3b): liquidity-rank cap / market-cap tilt** | The strongest-motivated candidate on the table after §23.1: `101+` loses money every year it exists and grew to 22.1% of position-days. **NOT implemented.** It is a configuration change costing a trial, and — the binding constraint — **the cap cannot be parameterised from this attribution**: choosing "top 30" because top-30 looked best here is fitting the cap to the result that motivated it. If it is worth a trial, the boundary must come from the published ~2%-of-market-cap finding or an independently derived liquidity threshold, **pre-registered before any backtest of it runs** |
 
 Nothing above was implemented. The config remains frozen at `lookback=14,
 skip=0`; budget remains **6 of 20**; validate and holdout untouched.
@@ -1517,3 +1543,114 @@ Nothing will be implemented from this (STAGE3B 5): if "dilution" fires, the
 implied universe restriction is a configuration change costing a trial, and
 its cap cannot be parameterised from this attribution without fitting it to
 the result that motivated it. Config stays frozen; budget stays 6 of 20.
+
+### 23.1 Result — DILUTION fires, and cleanly
+
+Ranks computed at 1,402 dates; **4,614,240 bars asserted `close_time <=
+as_of`** (the point-in-time requirement is enforced, not assumed). Bucket
+price PnL reconciles to per-year totals to ~1e-13 with **zero unranked PnL**
+in every year.
+
+```
+ year   bucket  avail    price$  funding$  pos-days   share  price/day     long$    short$
+ 2020     1-30    yes    +99.92    +24.16      3026   89.8%    +0.0330   +302.51   -202.59
+ 2020   31-100    yes    +63.20     +0.11       345   10.2%    +0.1832    +58.33     +4.87
+ 2020     101+    n/a         -         -         0       -          -         -         -
+ 2021     1-30    yes     +5.05    +14.69      1780   38.6%    +0.0028    +81.21    -76.16
+ 2021   31-100    yes   +164.89     +2.12      2637   57.2%    +0.0625   +313.40   -148.52
+ 2021     101+    yes    -59.48     +0.48       197    4.3%    -0.3019    -35.41    -24.07
+ 2022     1-30    yes    +13.81     -6.82      1367   29.7%    +0.0101    -61.27    +75.08
+ 2022   31-100    yes    +32.71     -0.98      2661   57.8%    +0.0123   -101.35   +134.06
+ 2022     101+    yes    -16.35     +1.80       575   12.5%    -0.0284    -10.76     -5.59
+ 2023     1-30    yes   +204.07    +74.19      1446   30.3%    +0.1411   +162.67    +41.40
+ 2023   31-100    yes    -39.84    +50.68      2266   47.5%    -0.0176   +123.30   -163.14
+ 2023     101+    yes   -201.27    +44.86      1056   22.1%    -0.1906   -123.80    -77.47
+```
+
+`101+` is unavailable in 2020 — the universe never reached rank 101 that
+year. That cell is empty, **not zero**.
+
+**The test — top-30 price PnL per position-day:**
+
+```
+  2020 +0.0330 -> 2021 +0.0028 -> 2022 +0.0101 -> 2023 +0.1411
+```
+
+**Positive in all four years, and highest in the final year.**
+
+**The dilution mechanism — `101+` share of position-days:**
+
+```
+  2020  0.0% (n/a)  ->  2021  4.3%  ->  2022 12.5%  ->  2023 22.1%
+```
+
+Rising monotonically, and `101+` price PnL per position-day is **negative in
+every year it exists** (−0.3019, −0.0284, −0.1906).
+
+All three branch-one conditions hold exactly as written in §23. **DILUTION
+fires.** The alpha did not decay; it was progressively diluted by the
+universe the strategy was permitted to trade.
+
+2023 makes the point vividly: **top-30 earned +$204.07 of price PnL while
+`101+` lost −$201.27.** They nearly cancel, and the reported year is −$37.
+The most liquid segment had its *best* year of the entire sample in the same
+year the aggregate went negative.
+
+### 23.2 Where the evidence is weaker than the label
+
+Per §23's instruction to say so plainly:
+
+- **The clean finding is the bottom bucket, not a liquidity gradient.**
+  `101+` is consistently negative with a rising share — that is solid. But
+  `31-100` **outperformed** `1-30` in three of four years (+0.1832 vs
+  +0.0330 in 2020, +0.0625 vs +0.0028 in 2021, +0.0123 vs +0.0101 in 2022),
+  reversing only in 2023. So "more liquid is better" is *not* an established
+  monotonic gradient; "the illiquid tail loses money" is.
+- **2021 is awkward for the story.** Top-30 was nearly flat (+0.0028) while
+  the mid bucket carried the year. If the alpha lived in the majors, 2021
+  should not look like that.
+- **2020's `101+` cell is structurally empty**, so the mechanism can only be
+  observed over three years, one of which (2022) has small magnitudes
+  throughout.
+- **Bucket boundaries were fixed in advance** (§23) and not revisited. Had
+  they been chosen after the fact, 2023's near-perfect cancellation would
+  have made almost any boundary look decisive.
+- **Funding does not follow the price pattern.** In 2023 the `101+` bucket
+  earned +$44.86 of funding against −$201.27 of price. So the illiquid tail
+  is a large *net* loser (−$156) even after carry, but the carry mechanism
+  itself is broad-based across liquidity, not concentrated where the price
+  alpha is.
+
+### 23.3 A method error found and fixed before reporting
+
+The first run stranded **$30.82 of 2022 price PnL as "unranked" — more than
+2022's entire price PnL of $30.17.** It arithmetically reconciled, so a
+weaker check would have passed it.
+
+Cause: I keyed each symbol's rank to the *current* book's decision date. A
+symbol dropped at a rebalance still books PnL on its exit day (it is marked
+before the fill), and the new decision does not contain it. LUNAUSDT's
++$24.69 exit on 2022-02-28 fell through that hole — verified directly:
+LUNAUSDT was in neither `universe()` nor the book on that date.
+
+Fixed by keying each symbol to the decision under which it was actually
+**held**, carrying that key forward when the symbol leaves the book. After
+the fix: zero unranked in all four years, and 2022's top-30 figure moved
+from −0.0049 to **+0.0101** — which is the difference between branch one
+failing and firing. The first numbers were not reported as a result.
+
+### 23.4 What this changes, and what it does not
+
+It **reopens** the question §22.5 closed. Stage 3a concluded "the train
+window is exhausted as an information source"; that was true on the
+dispersion axis and wrong as a general claim — the composition axis was
+still available and has now been read.
+
+It does **not** establish that a universe restriction would have worked.
+That is a different claim requiring a backtest, and per §23/STAGE3B 5 it
+costs a trial and cannot be parameterised from this attribution.
+
+Interaction with §22.3, worth stating: the price alpha now looks alive in the
+liquid segment (2023 was its best year), while the funding income is a tail
+concentrated in deep-drawdown regimes. Those are two different return sources
+with two different regime dependencies, and the frozen config holds both.
