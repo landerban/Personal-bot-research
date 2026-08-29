@@ -5514,3 +5514,104 @@ Demonstrations 1, 2 and 4 need a **non-skipping** day to be meaningful, since
 all three act on an order that exists. If the config keeps skipping, they wait
 — they are not made possible by widening the book, which §46.7 and STAGE12 B.5
 forbid.
+
+## 50. Stage 13 — the $2k capital tier: PRE-REGISTERED READINGS
+
+**Recorded 2026-08-29, BEFORE any run.** Capital re-sizing is the Stage 7
+diagnostic class, so **no trials**: budget stays **15 of 25**. The $800 28-day
+paper clock continues untouched. Holdout sealed; no 2025+ return data is read.
+
+### 50.0 A gap this stage forces me to close first
+
+STAGE13 §A.2 requires the runs to have the **crypto filter active**. It is
+not: §48's filter lives in `backtest/universe_filter.py` and is used by the
+live path, the no-op proof, the coverage tool and Test 26 — but
+`backtest.weights.compute_target_weights` never calls it. **A backtest today
+does not apply the amendment.**
+
+That is a real gap, not a technicality: §48.1 says the universe rule *becomes*
+"top 15 by point-in-time median quote volume, among crypto-asset perpetuals",
+and an amendment that is not in the code is not an amendment. So the filter is
+wired into the weight path before Part A runs, applied as an **eligibility
+rule before the liquidity ranking** — the same position as the funding-presence
+filter — so the top-15 is the top-15 *among crypto*.
+
+**This cannot move any historical number**, and that is proven rather than
+asserted: §48.5 checked 1,827 days of train and validate and found the filtered
+and unfiltered rankings bit-identical, and Test 26 pins it permanently. If the
+suites move, the premise is wrong and this stage stops.
+
+Wired unconditionally rather than behind a `Config` flag: the amendment
+replaced the rule, it did not add an option, and a flag would let a future run
+silently opt out of it.
+
+### 50.1 Why $2k is measured rather than assumed
+
+At $800/10% the train max drawdown of **17.03%** was measured with **21.55% of
+days skipped**, and §42.6 established that skips are *accidentally protective*
+— the book sits out days it cannot size. Healing them moved the $400/14%
+drawdown from 14.78% to **24.79%**. Higher capital heals skips and therefore
+reveals a truer, larger drawdown.
+
+The honest-ratio estimate at 10% vol is roughly **19.2% against the 20% cap** —
+inside by 0.8 points, which is well inside this project's measurement noise
+(§43.7 recorded ±5 points of floor discreteness on adjacent vols). **So
+"does the 10% vol choice carry to $2k?" is genuinely open.**
+
+### 50.2 The runs
+
+Frozen config except capital: top-15 crypto majors (filter active per §50.0),
+`lookback=14`, `skip=0`, N=10, k=5, **10% vol**, `rank_buffer=0`, 3x gross cap,
+beta-neutral, +1min fill, 5 bps/side, USDT fees, **train 2020–2023**, at:
+
+- **$2,000** — the asked-for point. BTC is marginal here: average position
+  ≈ 0.24 × 2000 / 10 ≈ $48 against BTCUSDT's $50 MIN_NOTIONAL.
+- **$2,500** — BTC seats unconditionally; the clean point.
+
+$800 is **cited** from §43.6, not re-run.
+
+### 50.3 The reading — fixed before the numbers
+
+| Outcome | Meaning |
+|---|---|
+| maxDD ≤ 20% at both, drift < 30% and demeaned Sharpe > 0, skips collapse | **The 10% vol choice carries.** The higher-capital book is the same strategy, finally including BTC/ETH. Recorded as the config-of-record **for that capital tier** |
+| maxDD > 20% | **The coupling bites again**: with skips healed, 10% vol breaches the cap. The vol for the $2k+ tier must be re-derived by the §43 three-condition rule — **a future free sweep, not done ad hoc here** |
+| drift rises past 30%, demeaned Sharpe ≤ 0, or skips fail to collapse | Something new. **Stop and report** |
+
+**Whatever fires, the $800/10% deployment config is UNCHANGED.** It was
+validated as-is, skips and all (§44). Part A characterises a *different capital
+tier*; it re-freezes nothing and re-validates nothing. Part A is a train
+diagnostic and carries no out-of-sample weight of any kind.
+
+### 50.4 Part B, and the criterion-4 interpretation fixed in advance
+
+A second paper book at the Part-A-informed capital would run **in parallel**
+with the $800 clock, on a **separate testnet account with separate keys**
+(one account cannot host two books — reconciliation would see the union and
+both harnesses would flag phantom mismatches), with separate `status.json`,
+logs and costlog tagged `venue=testnet, book=exercise`.
+
+**Labelled `exercise` everywhere.** Its PnL counts toward nothing, its
+behaviour tunes nothing, and it is **not** the config a holdout would test.
+
+**The criterion-4 interpretation, recorded now so it is fixed before it is
+graded:** the §46.2 criterion-4 demonstrations (the four Phase-2 fixes) test
+**machinery**, not a config. Demos 1, 2 and 4 act on orders, which only a
+non-skipping book reliably has, so running them on the exercise book satisfies
+criterion 4 **for the machinery** — the same code paths serve both books.
+Demo 3 (process kill and recover) runs on **each book once**, because recovery
+is per-process state.
+
+**The $800 book keeps the official 28-day clock, unchanged.** Day 1's skip sits
+inside its expected 21.55% cadence: the clock is not stalled and is not being
+rescued. If the $800 book fails its criteria, that is reported — never papered
+over with the exercise book's cleaner days (STAGE13 B.3).
+
+### 50.5 What this stage does not do
+
+- Does not treat Part A as re-validating anything — it is train, and free
+- Does not re-derive the vol target if the drawdown breaches; it reports and
+  stops
+- Does not run two books on one account
+- Does not let exercise-book results touch any criterion except demo evidence
+- Does not touch mainnet, the holdout, or 2025+ return data
