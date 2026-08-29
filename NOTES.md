@@ -5865,3 +5865,121 @@ must stay clean.
 **Still testnet-only.** The supervisor runs the same `TestnetClient` that
 cannot be pointed at a production venue. Nothing in this stage creates a path
 to real money; that remains gated on the holdout decision (§49.3).
+
+### 51.6 PART A RESULT — §48.14.1 is CLOSED
+
+```
+  classification of all 882 production instruments
+    crypto        702      underlyingType=COIN 699, INDEX 3
+    non_crypto    180      TRADIFI_PERPETUAL 172, seeded list 8
+    ambiguous       0
+```
+
+- **All seven §48.11 symbols now classify BY METADATA**, not by the recency
+  guard's ambiguity fallback: BZ (COMMODITY), DRAM/EWY/MRVL/AMD/NBIS (EQUITY),
+  SAMSUNG (KR_EQUITY) — every one `contractType=TRADIFI_PERPETUAL`.
+- **The seeded five are now redundant.** With the seeded list bypassed, SNDK,
+  SKHYNIX, MU, SOXL and CL are all still caught on contract type. §48.10
+  recorded the seeded list as "load-bearing, not belt-and-braces"; with
+  production metadata it is belt-and-braces at last. It stays in place anyway,
+  so the filter keeps biting if Binance ever relabels.
+- **Zero testnet-vs-production disagreements** across the 700 symbols both
+  snapshots carry. The §48.10 hazard is enumerated and it is empty.
+- **Zero still-invisible symbols.** Of the 182 instruments production carries
+  that testnet does not, **177** were invisible to the testnet-only classifier
+  and fell through as "crypto" — and **142 of those are positively TradFi**:
+  AAPL, ADBE, AMAT, ASML, AVGO, BABA, ARM, ANTHROPIC and 134 more.
+
+**So the TradFi wave is 180 instruments — 20% of the exchange — not §47's
+eight nor §48.11's fifteen.** §47.1 enumerated one day's top-15 and should
+never have been read as the population; §48.11 doubled the count and was still
+an order of magnitude short. Each successive look has found more, which is the
+argument for the standing guard rather than for a fixed list.
+
+**The no-op proof was re-run and still returns ZERO DIFFS over 1,827 days**;
+the historical-fallback count fell 26 -> 19 as production metadata covered
+seven more delisted symbols. Test 26 green. **History did not move.**
+
+### 51.7 PART B RESULT — the runner is built, installed and running
+
+Installed at `C:\Users\ASUS TUF\Desktop\App`:
+
+```
+  install.bat     one-time: venv, deps, credential check, clock check,
+                  power-settings advice, auto-start registration, and a
+                  verification tick. Idempotent -- run twice, one entry.
+  start_bot.bat   double-click to run. Loads keys from OUTSIDE the repo.
+  stop_bot.bat    clean shutdown via the lock file's pid.
+  RUNBOOK.md      one page: start, know-it-is-alive, stop, update, logs,
+                  the three lights, and the two rules of thumb.
+  logs/           rotating, 5 MB x 7.
+  .venv/          numpy + requests only.
+```
+
+**Auto-start fell back, and the fallback is the honest one.** `schtasks
+/create` returns *Access is denied* on this machine without elevation, so the
+installer now tries the Scheduled Task first and drops to a **Startup-folder
+shortcut** (no admin required) when that fails, reporting which mechanism is
+active. Start-at-boot and restart-on-failure still need an elevated shell and
+are documented in the runbook rather than silently skipped. A missing
+auto-start is a warning, never a failed install.
+
+**Verified live, not merely tested:**
+
+```
+  preflight ok: venue https://testnet.binancefuture.com, credentials present
+  dashboard serving on http://127.0.0.1:8787          (health: 200)
+  supervisor up (pid 50464). next cycle 2026-08-30 00:00:15Z
+  MISSED cycle for 2026-08-29 -- host past the 2h grace window.
+      Book held; counter PAUSES at 0 (NOTES 51.4)
+```
+
+**The single-instance lock was proven against a real second launch**, not just
+in the unit tests: `start_bot.bat` run again exits **2** with *"another xsmom
+supervisor is already running (pid 50464) ... two supervisors would place the
+same orders twice"*, and the original process and its lock are untouched.
+
+One observation worth recording so it is not mistaken for a bug later: the
+process list shows **two** `python.exe` entries with identical command lines.
+They are a parent/child pair — the venv's launcher stub re-execing the real
+interpreter — and only one acquires the lock. One logical supervisor.
+
+Suites **115/115** (99 + 16 runner tests). Secret scan clean over 103 tracked
+files; no key material anywhere in the repo, and the installer writes none.
+
+### 51.8 The 28-day counter is reset to ZERO, and giving up a day is the right direction
+
+`clock.json` and `status.json` disagreed on the count, and the disagreement is
+worth recording rather than quietly picking a side.
+
+Stage 12's day 1 was a **manual** cycle run at **05:02 UTC on 2026-08-29** —
+about five hours past the 00:00:15 scheduled instant. Under §51.4, registered
+earlier today and *before* the runner existed, that is beyond the 2-hour grace
+window and classifies as **`missed_cycle`**, not a counted day. STAGE12 B.2
+also starts the counter at "the first cycle that completes with all §46
+instrumentation live", and the scheduler and clock accounting are part of that
+instrumentation now and did not exist then.
+
+**So the counter is 0 and the 28 days begin with the first supervisor-run
+cycle**, scheduled for 2026-08-30 00:00:15 UTC. `status.json` was aligned to
+`clock.json` with the reason recorded in its anomaly feed.
+
+This gives up a day that had already been claimed. That is the conservative
+direction, and it is the direction a policy registered in advance should push
+in when it turns out to be inconvenient — the alternative is deciding after
+the fact that the rule does not apply to the day already banked.
+
+### 51.9 Status
+
+- **Budget 15 of 25.** No trial; nothing in this stage measures a return.
+- **Holdout sealed and untouched** — `holdout_log.json` absent, zero holdout
+  rows, no 2025+ return data read at any point.
+- **Strategy unchanged.** No parameter was touched. Still testnet-only, still
+  no path to real money, still gated on the holdout decision (§49.3).
+- **The bot is running now** and will attempt its first scheduled cycle at
+  **2026-08-30 00:00:15 UTC**. Today is already recorded as missed, correctly,
+  because the machine was not running the supervisor at 00:00.
+- **Two things depend on the user**, and neither is something I should do
+  silently: setting the power policy (`standby-timeout-ac 0`,
+  `hibernate-timeout-ac 0`), and — if start-at-boot and restart-on-failure are
+  wanted — running the elevated `schtasks` block in the runbook.
