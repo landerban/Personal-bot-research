@@ -5754,3 +5754,114 @@ uninterrupted and unaffected.
 The decision this hands back: whether a higher-capital tier is worth a
 dedicated vol sweep at all, given that its most-seated version measures a
 *lower* drift-stripped edge than the $800 book that is already validated.
+
+## 51. Stage 14 — production metadata, and the standalone runner: PRE-REGISTERED
+
+**Recorded 2026-08-29, BEFORE any Stage 14 code.** No trials; budget stays
+**15 of 25**. No strategy parameter changes. The $800 paper clock continues.
+Holdout sealed.
+
+### 51.1 Provenance of the production snapshot
+
+The user supplied a production `fapi/v1/exchangeInfo` dump **out of band** and
+committed it to the repo at `exchangeInfo.json`.
+
+```
+  serverTime      2026-08-28 09:36:55 UTC
+  symbols         882          (testnet snapshot: 733)
+  underlyingType  COIN 699 | EQUITY 148 | HK_EQUITY 12 | COMMODITY 8
+                  | KR_EQUITY 8 | INDEX 3 | PREMARKET 2 | CN_EQUITY 2
+  contractType    PERPETUAL 698 | TRADIFI_PERPETUAL 180
+                  | CURRENT_QUARTER 2 | NEXT_QUARTER 2
+  status          TRADING 751 | SETTLING 130 | PENDING_TRADING 1
+```
+
+**The no-mainnet-host rule is intact and is not being relaxed.** The file
+arrived as a file. No code fetches it, no production hostname enters the
+codebase, and `test_no_mainnet_anywhere_in_live` continues to enforce that.
+Refreshing this snapshot is always a user-supplied file, never an in-code
+fetch.
+
+**Two metadata sources, with fixed precedence:**
+
+- **Production** is authoritative for *classification* — it sees every listed
+  instrument, which is precisely the §48.11 blindness being closed. 180 TradFi
+  perpetuals against testnet's 40.
+- **Testnet** remains authoritative for *tradeability* — what the paper book
+  can actually hold.
+
+### 51.2 A classifier gap the production file exposes, fixed before it is used
+
+Production carries two `underlyingType` values the testnet snapshot never
+had: **`KR_EQUITY` (8)** and **`CN_EQUITY` (2)**. Under §48.3 as written both
+are outside `KNOWN_UNDERLYING_TYPES`, so SAMSUNGUSDT and SKHYNIXUSDT would
+classify **`underlying_ambiguous`** rather than `non_crypto`.
+
+Both outcomes exclude, so no book changes — but the *reason* would be wrong,
+and STAGE14 §A.2.1 requires these to classify **by metadata**, not by an
+ambiguity fallback. An ambiguity would also fire the §48.6 composition guard
+spuriously, every single day, which is how a guard gets ignored.
+
+Two corrections, both recorded before the run:
+
+1. `KR_EQUITY` and `CN_EQUITY` join `KNOWN_UNDERLYING_TYPES`. They are
+   regional equity labels of the same kind as `HK_EQUITY`, already present.
+2. **The `TRADIFI_PERPETUAL` test moves ahead of the unknown-type test.**
+   `contractType` is the discriminator (§48.9); checking it first means a
+   future `XX_EQUITY` label is classified correctly on its contract type
+   instead of falling into ambiguity, while a genuinely unknown type on a
+   *`PERPETUAL`* contract still goes ambiguous. Strictly better coverage with
+   no loss of conservatism.
+
+**The no-op proof must still return zero diffs after both changes.** If it
+does not, the change was not the safe reordering it appears to be, and this
+stage stops (§48.5 remains the stop condition).
+
+### 51.3 Snapshot staleness — the rule, fixed now
+
+A metadata snapshot ages, and a stale one silently loses the ability to see
+new listings — the §47 failure mode, one level up.
+
+**When the production snapshot is older than 30 days, the dashboard
+composition line goes AMBER with "metadata snapshot stale — refresh
+advised."** It is a prompt, never an automatic action: the guard observes and
+alerts and never auto-amends (§48.6), and refreshing is a user-supplied file.
+
+### 51.4 The missed-cycle policy — fixed BEFORE the runner is built
+
+A local machine will sometimes be off or asleep at 00:00 UTC (09:00 KST).
+Deciding this in the moment would be deciding it after seeing which answer
+flatters the clock, so it is fixed here:
+
+| Situation | Action | 28-day clock |
+|---|---|---|
+| Started within a **2-hour grace window** of the scheduled cycle | run a **`late_cycle`**, marked as such in the daily report. Decisions use the same close-gated inputs — unchanged; fills happen later and the fill-divergence measurement simply records that | **counts normally** |
+| Beyond the grace window | log **`missed_cycle`**, hold the book, next regular cycle proceeds normally | **PAUSES** — the day does not count, and the count does not reset |
+| Unrecovered crash, or unexplained shadow mismatch | the existing §46.2 rules | **RESETS** |
+
+The distinction that matters: **a host that was switched off is not a
+failure of the machine under test.** It produces no evidence either way, so it
+neither credits nor destroys the count. A crash or a mismatch *is* evidence
+about the machine, and those still reset. Recorded so the eventual 28-day
+verdict cannot be argued retroactively in either direction.
+
+### 51.5 What the runner is, and what it is not
+
+**Is:** a venv, a launcher, and a Windows Scheduled Task that starts a
+supervisor at logon and at boot. The supervisor runs the dashboard
+continuously and the cycle once daily, writes a heartbeat, restarts a crashed
+child with exponential backoff to ~5 minutes, holds a **single-instance lock**
+so a second launch refuses loudly rather than creating a twin trader, and
+shuts down cleanly on console close.
+
+**Is not:** a packaged single-file executable. Per STAGE14 §B.1 that is
+declined by default — it invites antivirus false positives and build
+fragility for no functional gain — and is available only if the user asks.
+
+**Keys stay outside the repo tree** (`~/.binance_testnet.env`, already the
+arrangement), the installer never writes them anywhere, and `scan_secrets`
+must stay clean.
+
+**Still testnet-only.** The supervisor runs the same `TestnetClient` that
+cannot be pointed at a production venue. Nothing in this stage creates a path
+to real money; that remains gated on the holdout decision (§49.3).
