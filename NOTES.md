@@ -5300,3 +5300,87 @@ point in this stage. Suites 76/76.
 3. **The exclusion list will need maintenance.** Seven instruments were found
    by a guard written the same day. The guard alerts; it never auto-amends
    (§48.6). Someone has to look.
+
+## 49. Stage 12 — the Phase-2 gate amendment, and the paper-run preconditions
+
+**Recorded 2026-08-29, BEFORE the Phase-2 code is written or run.** No trials.
+Budget stays **15 of 25**. Holdout sealed.
+
+### 49.1 A standing coded rule blocks this stage, and it is not being deleted
+
+`live/trader.py` refuses to construct a Phase-2 trader at all:
+
+```python
+if cfg.phase != 1:
+    raise NotImplementedError(
+        "Phase 2 (the momentum config) is refused until the grid and "
+        "holdout are complete (STAGE2B B2). Phase 1 only.")
+```
+
+STAGE12 starts Phase 2 with the holdout **still sealed**, so the two are in
+direct conflict. Under the project's amendment convention the later document
+wins, but a *safety* gate tied to the holdout is exactly the kind of rule that
+should not be quietly edited away, so the amendment is recorded here with its
+reasoning before any code moves.
+
+### 49.2 What B2 was actually protecting against, and why testnet is outside it
+
+B2's intent was: **do not put the real strategy in front of real money before
+the research is finished.** Everything about the rule points at capital risk —
+it sits beside "testnet only", "no production keys", "never a headline PnL".
+
+The paper phase risks **no capital**: testnet, play money, an account holding
+5,000 fake USDT. It also cannot consume the holdout — STAGE10 §9 and NOTES
+§46.7 both state explicitly that passing paper does **not** license skipping
+or shortcutting the holdout, and §46.1 states paper cannot say anything about
+strategy performance at all.
+
+So the gate conflated two different things: *research complete* and *safe to
+exercise the machine*. Only the first is genuinely coupled to the holdout.
+
+### 49.3 The amendment
+
+Phase 2 is permitted **on testnet only**. The gate is narrowed, not removed:
+
+- `phase=2` is allowed when the client is a testnet client (which
+  `assert_testnet_url` already guarantees can be nothing else — the codebase
+  has no mainnet host and cannot construct one).
+- **Real-money trading remains gated on the holdout decision**, which is
+  unchanged and still the user's. There is no code path to it, and this
+  amendment creates none.
+- The refusal message and its B2 citation stay in the code, rewritten to say
+  what is now refused rather than being deleted, so the history is visible in
+  the file and not only in this document.
+
+### 49.4 What the paper universe will be, and three honest limitations
+
+The live universe is built from **testnet's own data** through the same
+`compute_target_weights` path research uses (via `live/pitfeed.py`), with the
+§48 crypto filter applied. Three consequences, recorded now rather than
+discovered later:
+
+1. **Testnet quote volumes are synthetic.** The liquidity ranking that selects
+   the top-15 is therefore not the production ranking. Paper-phase book
+   composition is not the composition of the validated strategy nor of the
+   current production universe. This tests the machine, which is all §46.1
+   claims for it.
+2. **A candidate shortlist is applied before ranking.** Fetching daily klines
+   for all ~700 listed symbols every cycle is not a reasonable REST budget, so
+   the cycle pre-narrows to the top-40 by 24h quote volume and then applies
+   the real top-15 rule inside that. A name outside the 24h top-40 that would
+   have ranked top-15 on 30-day median volume would be missed. The margin is
+   40 against 15; the deviation is recorded, not assumed harmless.
+3. **The metadata gap of §48.11 still applies.** The classifier can only see
+   what testnet lists. On testnet that is self-consistent — the universe and
+   the metadata come from the same venue — which is a strictly better position
+   than production, where they do not.
+
+### 49.5 The day counter
+
+Per STAGE12 B.2 the counter starts at the **first cycle that completes with
+all §46 instrumentation live** — shadow reconciliation, costlog `venue=testnet`
+tagging, watchdog heartbeat, `status.json`, dashboard. A cycle run before any
+of those existed does not count toward the 28, and none has been counted.
+
+Induced-failure demonstrations (§46.4) do **not** reset the counter; only an
+*unexplained* shadow mismatch or an *unrecovered* crash does (§46.2).
