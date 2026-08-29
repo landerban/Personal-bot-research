@@ -108,10 +108,24 @@ class Trader:
                  heartbeat: Path = ROOT / "live" / "state" / "heartbeat",
                  sleeper: Callable[[float], None] = time.sleep,
                  clock: Callable[[], float] = time.time):
+        # STAGE2B B2 originally refused Phase 2 outright "until the grid and
+        # holdout are complete". NOTES 49.3 narrows that rule rather than
+        # deleting it: B2 was protecting against putting the real strategy in
+        # front of REAL MONEY before the research finished, and testnet paper
+        # risks no capital and cannot consume the holdout (NOTES 46.1/46.7).
+        #
+        # Real-money trading remains gated on the holdout decision. There is
+        # no code path to it and this class creates none -- TestnetClient
+        # cannot be pointed at a production venue (assert_testnet_url).
+        #
+        # Phase 2 lives in live/phase2.py; this Phase-1 trader still runs the
+        # two-symbol book only.
         if cfg.phase != 1:
             raise NotImplementedError(
-                "Phase 2 (the momentum config) is refused until the grid and "
-                "holdout are complete (STAGE2B B2). Phase 1 only.")
+                "this Trader implements Phase 1 (the two-symbol book) only. "
+                "Phase 2 (the frozen momentum config) runs through "
+                "live/phase2.py on testnet (NOTES 49.3). Real-money trading "
+                "remains gated on the holdout decision (STAGE2B B2).")
         if cfg.inject is not None and cfg.inject not in INJECTIONS:
             raise ValueError(f"unknown injection {cfg.inject!r}; one of {INJECTIONS}")
         self.c = client

@@ -5384,3 +5384,133 @@ of those existed does not count toward the 28, and none has been counted.
 
 Induced-failure demonstrations (§46.4) do **not** reset the counter; only an
 *unexplained* shadow mismatch or an *unrecovered* crash does (§46.2).
+
+### 49.6 Part A verdict — the dashboard was ABSENT, and is now built
+
+Checked before building, per STAGE12 A.1: no `dashboard/` directory, no
+`status.json` writer anywhere in the tree, no dashboard tests, `import
+dashboard` raised `ModuleNotFoundError`. **Absent, not partial.**
+
+Built to the STAGE10A spec: `live/status.py` (atomic snapshot) and
+`dashboard/` (read-only stdlib server, 127.0.0.1 only, GET only), 13 tests
+covering healthy / missing / stale / MISMATCH / testnet-reset renders, the
+composition-guard AMBER line, loopback refusal, live serving, and a
+concurrent-reader atomicity test.
+
+**One deviation, stated not hidden:** STAGE10A §3 says "FastAPI (or Flask)".
+Neither is installed, and adding a web framework to a project whose runtime
+dependencies are numpy and requests — in order to serve one read-only local
+page — works against that same section's binding constraint ("no build step,
+no framework, no database — it reads files"). `http.server` meets every
+non-negotiable and installs nothing.
+
+**The atomicity test found a real bug.** On Windows `os.replace` raises
+PermissionError when the destination is open, because Python's `open()` does
+not request FILE_SHARE_DELETE. A dashboard reading `status.json` at the moment
+the harness wrote it would have made **the harness's write fail** —
+nondeterministically, and in the harness rather than in the UI. Both sides now
+retry over a short window; a genuine absence still returns immediately so the
+day-one page stays instant. Found by the test, not in production.
+
+### 49.7 Part B.1 preconditions — asserted, not assumed
+
+```
+  check                          result
+  46 criteria recorded           NOTES 46, dated 2026-08-29, before day one   PASS
+  keys                           env vars present; scan_secrets clean over
+                                 88 tracked files                             PASS
+  URL guard                      mainnet hosts and testnet=False both
+                                 refused; allow-list, no mainnet string       PASS
+  universe filter                crypto-only active; Test 26 green;
+                                 composition guard wired and reporting        PASS
+  production exchangeInfo        NOT supplied -- standing limitation
+                                 (48.14.1), proceeding on testnet metadata
+                                 + seeded list                                GAP
+  testnet coverage               558 USDT TRADING symbols, 533 crypto-
+                                 eligible, 25 excluded, 0 ambiguous           PASS
+  config                         frozen: lb14/skip0, N=10, k=5, vol 10%,
+                                 $800, b=0, top-15 crypto, kill switch 30%    PASS
+  dashboard                      serving; RED on missing/stale verified       PASS
+  suites                         99/99 (76 backtest + 13 dashboard +
+                                 10 phase2) + 19 live                         PASS
+```
+
+The one **GAP** is §48.14.1 and it is recorded rather than worked around: on
+testnet the universe and the metadata come from the same venue, so the §48.11
+hole cannot open here — anything testnet lists, testnet's exchangeInfo
+describes. It remains open for production.
+
+### 49.8 Day 1 — the cycle completed, and it SKIPPED. What that does and does not establish.
+
+```
+  universe shortlist    40 crypto names (from 533 eligible)
+  composition guard     clear -- 25 excluded, 0 ambiguous, 0 in the top-15
+  exchange equity       5,000 (testnet grant); paper capital 800
+  decision              SKIP: below_min_notional_post_hedge
+                        leg reduced to 2L/4S by BTCUSDT, DOGEUSDT, ETHUSDT, FXSUSDT
+  orders placed         0
+  positions             flat
+  shadow                SKIP (not MATCH)
+  errors                none
+  status.json           written; dashboard renders AMBER
+```
+
+**The skip is the frozen config behaving exactly as measured, not a fault.**
+BTCUSDT carries `MIN_NOTIONAL = 50` and ETHUSDT `20`, against an average
+position of roughly `0.24 x 800 / 10 ≈ $19` at this vol. Those names cannot be
+seated, the feasibility drop-loop removes them, and the long leg falls under
+`MIN_LEG_NAMES = 3`.
+
+**Checked, because it would have been a serious finding otherwise:** the
+research store carries the *same* values — BTCUSDT 50.0, ETHUSDT 20.0 — so
+this is **not** a live-versus-backtest discrepancy. The backtest skips 21.55%
+of train days at this config (§43.6) for exactly this reason. The live path
+reproduced a known behaviour of the frozen config on live data, which is
+itself weak evidence the machine matches.
+
+**What day 1 did NOT establish, stated plainly:**
+
+- **The shadow comparison was not exercised.** It correctly returned `SKIP`
+  rather than `MATCH` — a vacuous pass here would have been the Stage 2e trap
+  in a new costume — but that means criterion 1 has one day of *nothing to
+  compare*, not one day of agreement.
+- **The execution path was not exercised.** No orders, no fills, so no
+  costlog rows, no atomicity repair, no slippage capture.
+- The dashboard shows **AMBER, not GREEN**, precisely because the shadow did
+  not return MATCH. The light is telling the truth.
+
+**So the checks were proven by test instead of by the venue** (`tests/
+test_phase2.py`, 10 tests): the shadow detects a weight drift above 1e-6, a
+different name set, a re-fetch that skips where the live path traded, reports
+SKIP without ever claiming MATCH, and measures fill divergence; the costlog
+tags every row `venue=testnet`; the client order id is stable within a second
+so an ambiguous POST is resolvable. Shipping an unexercised check would have
+been worse than shipping none.
+
+**Day counter: 1 of 28**, per STAGE12 B.2 — the cycle completed with all §46
+instrumentation live. A reader who thinks a skipped day should not count has a
+fair argument; the count is recorded with exactly what it did and did not
+exercise so the judgement stays available.
+
+### 49.9 The induced-failure schedule (STAGE12 B.3) — planned, not winged
+
+One at a time, each on a day whose previous daily report was clean. **None
+resets the 28-day clock** (§46.2): they satisfy criterion 4.
+
+```
+  target date   demonstration                              evidence to capture
+  2026-09-01    1. undersized/rejected leg -> atomicity     residual beta and
+                   repair fires                             tracking error before
+                                                            and after the repair
+  2026-09-04    2. tight stop that fills -> cascade         reconcile log, book
+                   reconcile re-hedges                      before/after, re-hedge
+  2026-09-08    3. process killed mid-cycle -> restart      exchange book vs
+                   reconciles, no manual repair             recovered book, diff
+  2026-09-11    4. ambiguous POST response -> query by      the query-first call
+                   newClientOrderId before any resubmit     ordering, no duplicate
+```
+
+Demonstrations 1, 2 and 4 need a **non-skipping** day to be meaningful, since
+all three act on an order that exists. If the config keeps skipping, they wait
+— they are not made possible by widening the book, which §46.7 and STAGE12 B.5
+forbid.

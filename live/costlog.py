@@ -26,6 +26,13 @@ from backtest.costs import FEE_RATES, funding_cashflow
 DEFAULT_PATH = Path(__file__).resolve().parents[1] / "paper_costs.jsonl"
 
 
+# STAGE10 6: every cost row carries the venue it came from. Nothing in
+# this codebase can reach a production venue, so the default is the only
+# value it takes today -- but the field must exist from the first fill,
+# because a row written without it cannot be filtered out later.
+DEFAULT_VENUE = "testnet"
+
+
 def slippage_bps(side: str, intended: float, fill: float) -> float:
     """Signed cost in bps vs the intended (mid) price. Positive = paid more
     than intended (BUY filled above mid / SELL filled below mid)."""
@@ -47,9 +54,15 @@ class CostLog:
     def record_fill(self, *, symbol: str, side: str, intended_price: float,
                     fill_price: float, qty: float, fee: float, fee_asset: str,
                     maker: bool, order_type: str, ts_ms: int | None = None,
-                    order_id: int | None = None, trade_id: int | None = None) -> dict:
+                    order_id: int | None = None, trade_id: int | None = None,
+                    venue: str = DEFAULT_VENUE) -> dict:
         rec = {
             "kind": "fill",
+            # STAGE10 6: the venue tag is MANDATORY and defaults to testnet.
+            # Testnet fills are synthetic -- thin books, fake counterparties --
+            # so an untagged row could silently contaminate the real-cost
+            # estimate that is meant to replace the n=1 5bps assumption.
+            "venue": venue,
             "ts": ts_ms or int(time.time() * 1000),
             "symbol": symbol, "side": side, "order_type": order_type,
             "intended_price": intended_price, "fill_price": fill_price,
@@ -62,10 +75,11 @@ class CostLog:
         return rec
 
     def record_funding(self, *, symbol: str, position_units: float, mark: float,
-                       rate: float, actual_amount: float, ts_ms: int) -> dict:
+                       rate: float, actual_amount: float, ts_ms: int,
+                       venue: str = DEFAULT_VENUE) -> dict:
         expected = funding_cashflow(position_units, mark, rate)
         rec = {
-            "kind": "funding", "ts": ts_ms, "symbol": symbol,
+            "kind": "funding", "venue": venue, "ts": ts_ms, "symbol": symbol,
             "position_units": position_units, "notional": abs(position_units) * mark,
             "rate": rate, "expected_amount": expected, "actual_amount": actual_amount,
             # Sign is the thing the backtest could get backwards; check it
