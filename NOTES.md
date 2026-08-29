@@ -5615,3 +5615,142 @@ over with the exercise book's cleaner days (STAGE13 B.3).
 - Does not run two books on one account
 - Does not let exercise-book results touch any criterion except demo evidence
 - Does not touch mainnet, the holdout, or 2025+ return data
+
+### 50.6 PART A RESULT — BRANCH THREE. Something new, and it is not a degradation.
+
+Determinism check passed first: the $800 row reproduces §43.6 on all six
+pinned figures (Sharpe 0.8351, 1241 rebalances, skip 21.55%, maxDD 17.03%,
+realised vol 9.28%, demeaned 0.6513). The §50.0 filter wiring is therefore
+inert on the real store as well as on the synthetic fixtures.
+
+```
+  capital   maxDD      DD date    skip  rebal  realised  short  drift  demean SR  sharpe
+  $   800  17.03%   2023-06-28  21.55%   1241    9.28%  +0.72%    22%    +0.651  +0.835
+  $ 2,000  18.43%   2023-09-02  15.36%   1339    9.20%  +0.80%    -7%    +0.769  +0.719
+  $ 2,500  19.81%   2023-08-25  14.85%   1347    9.23%  +0.77%    18%    +0.442  +0.539
+
+  capital  notional med       p05       min
+  $   800 $      22.49 $    8.43 $    3.10
+  $ 2,000 $      55.15 $   18.71 $    5.46
+  $ 2,500 $      67.45 $   22.82 $    6.03
+```
+
+**Branch THREE fired** on the pre-registered skip condition: skips did not
+collapse. But the reason is a decomposition finding rather than a failure, and
+it corrects a premise the stage document was built on.
+
+### 50.7 The skip premise was wrong: skips were never mostly floor-driven
+
+STAGE13 §A.3 expected the skip rate to "collapse from 21.55% toward ~0",
+because §42/§43 discussed skip rate as a measure of floor health. The reason
+breakdown says otherwise:
+
+```
+  capital   universe_too_small  insufficient_candidates  below_min_notional  missing_fill_bar
+  $   800                 278                       36                  26                 1
+  $ 2,000                 207                       35                   0                 1
+  $ 2,500                 200                       34                   0                 1
+```
+
+**The floor skips healed COMPLETELY: 26 -> 0 -> 0.** That is the thing capital
+was supposed to fix, and it fixed it entirely.
+
+But at $800 those 26 days were only **1.6% of the 21.55% skip rate.** The
+dominant cause at every capital is `universe_too_small` — fewer than N=10
+symbols clearing 60 days of history and the $5M median-volume floor, which is
+an early-sample **data availability** constraint, not a capital one. It falls
+from 278 to 200 (capital does admit more symbols through the MIN_NOTIONAL leg
+of `tradeable_universe`) and then plateaus, because on those remaining days
+the symbols simply did not exist yet.
+
+**So the 21.55% skip rate at $800 was never evidence of a floor-crippled
+book** in the way §41-§43 framed skip rate, and no amount of capital can drive
+it to zero on this train window. Recorded because the same misreading could
+otherwise be carried into a future sweep.
+
+### 50.8 What actually got worse: the drawdown hugs the cap, and BOTH Sharpes fall
+
+**Drawdown rises monotonically with capital — 17.03% -> 18.43% -> 19.81%** —
+exactly as §42.6 predicted once the protective skips heal. All three are
+inside the 20% cap, so the §50.3 drawdown test technically passes.
+
+**It should not be read as a pass.** At $2,500 the measured drawdown is
+**0.19 points** under the cap. §44.1 point 4 declined 12% vol at $800 for
+sitting 0.53 points under this same cap, on the grounds that "the entire vol
+investigation existed to escape boundary-hugging; deploying another cap-hugger
+would repeat the error with open eyes." 0.19 points is a tighter hug than the
+one already refused, and §43.7 measured this project's floor discreteness at
+±5 points. **The margin is a small fraction of the noise.**
+
+**Sharpe falls monotonically as capital rises: 0.835 -> 0.719 -> 0.539.** The
+drift-stripped number, which is the real-edge estimate, falls too:
+**0.651 -> 0.769 -> 0.442.** More capital, more names seated, *worse*
+risk-adjusted result — the opposite of the intuition that the $800 book is
+crippled by its floor and would improve if freed from it.
+
+Two honest qualifications on that, both of which cut against over-reading it:
+
+- **Sharpe is not comparable across capital here.** §39.7 established that the
+  floor breaks vol-invariance, and the same discreteness breaks size-
+  invariance: different capitals trade different day-sets and different books.
+  Reported, never selected on (§7A.3).
+- **The drift measure is wildly unstable across this range.** It runs
+  **22% -> -7% -> 18%**, and at $2,000 the demeaned Sharpe (0.769) *exceeds*
+  the real one, meaning stripping per-symbol drift would have helped. Between
+  two capitals only $500 apart the demeaned Sharpe moves **0.33**. That is not
+  a measurement precise enough to choose a tier on, and it is the same
+  instability §43.7 and §45.12 recorded.
+
+### 50.9 Seating: the book does become "majors including BTC"
+
+```
+  capital  symbol   seated days  dropped(traded)  dropped(skipped)
+  $   800  BTCUSDT            1                0                 0
+  $   800  ETHUSDT           61                9                10
+  $ 2,000  BTCUSDT           78                4                 0
+  $ 2,000  ETHUSDT          612               13                 0
+  $ 2,500  BTCUSDT          232               17                 0
+  $ 2,500  ETHUSDT          676                8                 0
+```
+
+**At $800 BTCUSDT is seated on exactly ONE day out of 1,241 rebalances.** The
+$800 book is, in practice, a book that cannot hold Bitcoin — its $50
+MIN_NOTIONAL against a ~$19 average position. ETH seats on 61 days (5%).
+
+At $2,500 BTC seats on 232 days (17% of rebalances) and ETH on 676 (50%). So
+the answer to §A.3's question is **yes**: the higher-capital book genuinely
+becomes majors-including-BTC.
+
+**And that is the same fact as §50.8's falling Sharpe.** The book that seats
+BTC and ETH is the book with the lower risk-adjusted return. Whether that is
+BTC/ETH carrying less cross-sectional momentum than the alt tail, or the beta
+hedge behaving differently once the hedge reference is itself a position, is
+**not established here** and would need its own attribution.
+
+### 50.10 The reading, and what is NOT being done
+
+**Branch THREE: stop and report.** Per §50.3 that is where this stage ends.
+
+- **The $800/10% deployment config is UNCHANGED.** It was validated as-is,
+  skips and all (§44). Part A is a train diagnostic, carries no out-of-sample
+  weight, re-freezes nothing and re-validates nothing.
+- **The vol target is NOT re-derived here.** §50.5 and STAGE13 §"Do not"
+  forbid it, and the drawdown did not technically breach in any case. If a
+  $2k+ tier is ever wanted, its vol must come from the §43 three-condition
+  rule as a separate free sweep — and §50.8's instability says that sweep
+  should expect to find the same ±5-point noise it found before.
+- **Part B is NOT wired.** STAGE13's order of work gates it on "if DD <= 20%",
+  which is literally satisfied, but §50.3 branch three says stop and report,
+  and the $2,500 drawdown hugs the cap tighter than a configuration this
+  project has already declined for hugging it. Standing up a second paper book
+  at a capital whose own diagnostic returned "something new" would be
+  proceeding past a stop condition.
+- **No second-account keys are requested**, since Part B is not being wired.
+
+**Budget 15 of 25** — no trial spent, capital being a risk-sizing input. 2024
+not re-run. Holdout **sealed and untouched**. The $800 paper clock is
+uninterrupted and unaffected.
+
+The decision this hands back: whether a higher-capital tier is worth a
+dedicated vol sweep at all, given that its most-seated version measures a
+*lower* drift-stripped edge than the $800 book that is already validated.
