@@ -32,6 +32,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from live import risk as R  # noqa: E402
 from xsmom import schedule as S  # noqa: E402
 from xsmom.lock import AlreadyRunning, SingleInstanceLock  # noqa: E402
 
@@ -40,6 +41,7 @@ log = logging.getLogger("xsmom.supervisor")
 STATE_DIR = ROOT / "live" / "state"
 LOCK_PATH = STATE_DIR / "supervisor.lock"
 CLOCK_PATH = STATE_DIR / "clock.json"
+RISK_PATH = STATE_DIR / "risk.json"
 STATUS_PATH = STATE_DIR / "status.json"
 HEARTBEAT_PATH = STATE_DIR / "heartbeat"
 # A stop SENTINEL rather than a signal. On Windows `taskkill` without /f
@@ -108,7 +110,8 @@ def preflight() -> dict:
 
 class Supervisor:
     def __init__(self, dashboard_port: int = 8787, log_dir: Path | None = None,
-                 clock=utcnow, run_dashboard: bool = True):
+                 clock=utcnow, run_dashboard: bool = True,
+                 run_watchdog: bool = True):
         self.port = dashboard_port
         self.log_dir = log_dir or (ROOT / "logs")
         self._clock = clock
@@ -118,9 +121,63 @@ class Supervisor:
         self._dash_thread: threading.Thread | None = None
         self._dash_backoff = BACKOFF_START_S
         self.dashboard_restarts = 0
+        self.watchdog_restarts = 0
         self.cycles_run = 0
+        self._watchdog = None
+        self._wd_backoff = BACKOFF_START_S
+        self.run_watchdog = run_watchdog
 
     # ---------------------------------------------------------- dashboard
+
+    # --------------------------------------------------------- watchdog
+
+    def _start_watchdog(self) -> None:
+        """Layer 2 (STAGE10 46.2 criterion 5), as a SEPARATE PROCESS.
+
+        The failure it defends against is a supervisor that is alive but
+        wedged -- a loop that stopped ticking while the process still exists.
+        Running it as a thread in here would share that wedge, so it is a
+        child process with its own interpreter and no shared state beyond the
+        heartbeat file it reads.
+        """
+        import subprocess
+
+        if self._watchdog is not None and self._watchdog.poll() is None:
+            return
+        self._watchdog = subprocess.Popen(
+            [sys.executable, str(ROOT / "live" / "watchdog.py"),
+             "--heartbeat", str(HEARTBEAT_PATH), "--stale", "300"],
+            cwd=str(ROOT),
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        )
+        log.info("watchdog started (pid %d, stale threshold 300s)",
+                 self._watchdog.pid)
+
+    def _supervise_watchdog(self) -> None:
+        if self.stop.is_set() or not self.run_watchdog:
+            return
+        if self._watchdog is not None and self._watchdog.poll() is None:
+            self._wd_backoff = BACKOFF_START_S
+            return
+        log.error("watchdog is not running; restarting in %.0fs",
+                  self._wd_backoff)
+        if self.stop.wait(self._wd_backoff):
+            return
+        try:
+            self._start_watchdog()
+            self.watchdog_restarts += 1
+        except Exception:
+            log.exception("watchdog restart failed")
+            self._wd_backoff = min(self._wd_backoff * 2, BACKOFF_MAX_S)
+
+    def _stop_watchdog(self) -> None:
+        if self._watchdog is not None and self._watchdog.poll() is None:
+            self._watchdog.terminate()
+            try:
+                self._watchdog.wait(timeout=10)
+            except Exception:
+                self._watchdog.kill()
+            log.info("watchdog stopped")
 
     def _start_dashboard(self) -> None:
         from dashboard.server import serve
@@ -178,12 +235,63 @@ class Supervisor:
         clock.save(CLOCK_PATH)
 
         cfg = Phase2Config()
+
+        # ---- the risk layer: real equity, real drawdown, real kill switch --
+        # Until this existed, status.json carried equity=capital and
+        # drawdown=0.0 as LITERALS, so the dashboard advertised a safety net
+        # that was never evaluated.
+        risk = R.RiskState.load(RISK_PATH)
+        risk.capital = cfg.capital
+        risk, reset_event = R.update(
+            risk, time.time(), float(res.equity or 0.0),
+            price_pnl=res.price_pnl, funding=(res.funding or {}).get("exchange", 0.0),
+            fees=res.fees)
+        if reset_event:
+            log.warning("TESTNET RESET detected: %s", reset_event["note"])
+        breached = R.kill_switch_breached(risk, cfg.kill_switch_dd)
+        if breached and not risk.halted:
+            risk.halted = True
+            risk.halt_reason = (f"kill switch: drawdown {risk.drawdown:.2%} "
+                                f">= {cfg.kill_switch_dd:.0%}")
+            log.error("KILL SWITCH: %s -- flattening", risk.halt_reason)
+            try:
+                from live.killswitch import flatten_all
+                log.error("flatten result: %s", flatten_all())
+            except Exception:
+                log.exception("FLATTEN FAILED -- run live/killswitch.py by hand")
+            self.stop.set()
+        risk.save(RISK_PATH)
+
+        hb_age = None
+        try:
+            hb_age = time.time() - float(
+                HEARTBEAT_PATH.read_text(encoding="utf-8").strip())
+        except (OSError, ValueError):
+            pass
+
+        anomalies = [{"ts": date, "msg": e} for e in res.errors]
+        if reset_event:
+            anomalies.append({"kind": "testnet_reset", "ts": date,
+                              "msg": reset_event["note"]})
+        if res.stop_cascade:
+            anomalies.append({"kind": "stop_cascade", "ts": date,
+                              "msg": f"stop fired on {res.stop_cascade}; "
+                                     f"reconciled and re-hedged"})
+        if risk.halted:
+            anomalies.append({"kind": "kill_switch", "ts": date,
+                              "msg": risk.halt_reason})
+
         write_status(STATUS_PATH, StatusSnapshot(
             ts=time.time(), cycle_interval_s=86_400.0,
-            equity=cfg.capital, baseline_equity=cfg.capital,
+            equity=risk.paper_equity, baseline_equity=risk.capital,
             exchange_balance=res.equity,
+            cum_price_pnl=risk.cum_price_pnl,
+            cum_funding_pnl=risk.cum_funding_pnl,
+            equity_curve=risk.curve, testnet_resets=risk.resets,
+            positions=self._position_rows(res),
             kill_switch_armed=True, kill_switch_threshold=cfg.kill_switch_dd,
-            drawdown=0.0, heartbeat_age_s=0.0,
+            drawdown=risk.drawdown, heartbeat_age_s=hb_age,
+            halted=risk.halted, halt_reason=risk.halt_reason,
             day_counter=clock.day_counter, day_target=clock.day_target,
             skips=({res.skip_reason.split(":")[0]: 1} if res.skip_reason else {}),
             shadow=res.shadow,
@@ -191,12 +299,65 @@ class Supervisor:
                                "reason": res.guard_reason,
                                "excluded": res.excluded[:20], "ambiguous": [],
                                "excluded_in_top15": 0},
-            anomalies=([{"ts": date, "msg": e} for e in res.errors]
+            anomalies=(anomalies
                        + ([{"ts": date, "msg": f"{kind}: ran late but inside "
                             f"the 2h grace window; day counts (NOTES 51.4)"}]
                           if kind == S.LATE else [])),
         ))
+        self._write_daily_report(date, kind, res, risk, clock)
         return True
+
+    @staticmethod
+    def _position_rows(res) -> list[dict]:
+        """Positions as the dashboard renders them, with target vs actual so a
+        divergence is visible rather than inferred."""
+        rows = []
+        target = res.decision or {}
+        for sym, units in (res.filled or {}).items():
+            rows.append({
+                "symbol": sym, "side": "LONG" if units > 0 else "SHORT",
+                "units": units, "notional": None, "entry": None, "mark": None,
+                "upnl": None,
+                "target_weight": target.get(sym),
+                "actual_weight": None,
+            })
+        return rows
+
+    def _write_daily_report(self, date, kind, res, risk, clock) -> None:
+        """STAGE10 7: one compact block per day, appended to a running log.
+
+        Deliberately a separate artefact from status.json: status is "now" and
+        is overwritten; this is the audit trail and is append-only.
+        """
+        import json as _json
+
+        rec = {
+            "kind": "daily_report", "date": date, "cycle": kind,
+            "ts": time.time(),
+            "day_counter": clock.day_counter, "day_target": clock.day_target,
+            "equity": risk.paper_equity, "drawdown": risk.drawdown,
+            "exchange_balance": res.equity,
+            "positions": len(res.filled or {}),
+            "gross_leverage": None,
+            "skips": ({res.skip_reason.split(":")[0]: 1}
+                      if res.skip_reason else {}),
+            "shadow": res.shadow,
+            "funding": res.funding,
+            "atomicity": res.atomicity,
+            "stops_placed": res.stops_placed,
+            "stop_cascade": res.stop_cascade,
+            "composition_guard": {"alert": res.guard_alert,
+                                  "reason": res.guard_reason,
+                                  "excluded": len(res.excluded)},
+            "errors": res.errors,
+            "testnet_resets": len(risk.resets),
+            "halted": risk.halted,
+        }
+        try:
+            with open(ROOT / "paper_daily.jsonl", "a", encoding="utf-8") as f:
+                f.write(_json.dumps(rec, default=str) + "\n")
+        except OSError:
+            log.exception("could not append the daily report")
 
     # --------------------------------------------------------------- loop
 
@@ -208,6 +369,7 @@ class Supervisor:
         """One supervision step: heartbeat, dashboard health, cycle if due."""
         self.beat()
         self._supervise_dashboard()
+        self._supervise_watchdog()
         now = self._clock()
         clock = S.ClockState.load(CLOCK_PATH)
         should, kind, date = S.due_cycle(now, clock)
@@ -297,6 +459,8 @@ class Supervisor:
         try:
             if self.run_dashboard:
                 self._start_dashboard()
+            if self.run_watchdog:
+                self._start_watchdog()
             log.info("supervisor up (pid %d). next cycle %s",
                      info.pid,
                      S.next_cycle_after(self._clock()).strftime("%Y-%m-%d %H:%M:%SZ"))
@@ -305,6 +469,7 @@ class Supervisor:
                 self._wait_interruptibly(HEARTBEAT_S)
         finally:
             log.info("shutting down")
+            self._stop_watchdog()
             if self.httpd is not None:
                 try:
                     self.httpd.shutdown()

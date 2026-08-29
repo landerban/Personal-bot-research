@@ -119,6 +119,11 @@ class Decision:
     # anything -- but "selected and dropped" cannot be reconstructed after the
     # fact, and the seating question needs it.
     dropped: tuple[str, ...] = ()
+    # Stage 14: the SHRUNK betas the hedge actually executed on. The live
+    # atomicity check (STAGE10 4.1) needs them to compute the residual beta of
+    # the FILLED book; without them it silently scores every book 0.000 and
+    # that half of the check never fires.
+    betas: dict = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -625,6 +630,7 @@ def compute_target_weights(
             np.abs(np.array([betas[s_] for s_ in betas]) - raw_betas)
         )),
         dropped=tuple(dropped_syms),
+        betas=dict(betas),
     )
 
 

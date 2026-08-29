@@ -65,8 +65,10 @@ def flatten_all(key: str | None = None, secret: str | None = None,
     reduce-only MARKET order, re-read positions, and report what is left.
     `request` is injectable for tests.
     """
-    key = key or os.environ.get(ENV_KEY, "")
-    secret = secret or os.environ.get(ENV_SECRET, "")
+    # Stage 10 2.1 names the vars without the API_ infix; accept both so
+    # the kill switch cannot fail to authenticate at the worst moment.
+    key = key or os.environ.get("BINANCE_TESTNET_KEY") or os.environ.get(ENV_KEY, "")
+    secret = secret or os.environ.get("BINANCE_TESTNET_SECRET") or os.environ.get(ENV_SECRET, "")
     if not key or not secret:
         raise RuntimeError(f"{ENV_KEY}/{ENV_SECRET} not set")
 

@@ -38,6 +38,10 @@ from backtest.engine import Config
 from backtest.universe_filter import filter_universe
 from live import reconcile
 from live.client import FilterRejected, TestnetClient
+from live.fixes import (
+    check_atomicity, book_weights, detect_stop_fills,
+    place_order_idempotent, reconcile_funding, reconstruct_position_at,
+)
 from live.pitfeed import LiveFeed
 
 log = logging.getLogger("live.phase2")
@@ -51,6 +55,10 @@ BTC = W.BTC
 SHORTLIST = 40
 # Shadow tolerance, STAGE10 §3.
 WEIGHT_TOL = 1e-6
+# Exchange-side reduce-only stop distance. SAFETY, not strategy: it is a
+# backstop that survives this process, this machine and this ISP, and it
+# is deliberately far enough out that it never front-runs the vol target.
+STOP_PCT = 0.20
 
 
 def _utc(ms: int) -> str:
@@ -102,6 +110,12 @@ class CycleResult:
     shadow: dict = field(default_factory=dict)
     errors: list[str] = field(default_factory=list)
     equity: float | None = None
+    atomicity: dict = field(default_factory=dict)     # STAGE10 4.1
+    stops_placed: list[str] = field(default_factory=list)
+    stop_cascade: list[str] = field(default_factory=list)  # 4.2
+    funding: dict = field(default_factory=dict)       # 4.3 + criterion 2
+    price_pnl: float = 0.0
+    fees: float = 0.0
 
 
 class Phase2Runner:
@@ -266,6 +280,104 @@ def order_id(tag: str, sym: str, clock=time.time) -> str:
     return f"p2-{tag}-{sym}-{int(clock())}"[:36]
 
 
+def _place_stops(runner: "Phase2Runner", positions: dict, res: CycleResult
+                 ) -> list[str]:
+    """Layer 1 protection (STAGE10 4.2): an exchange-side reduce-only stop per
+    position, replaced every rebalance.
+
+    It survives this process, this machine and this ISP -- which is the point.
+    The distance is deliberately wide: a backstop, never a strategy exit.
+    """
+    from live.client import quantize_price
+
+    placed = []
+    filters = runner.c.filters()
+    for sym, units in positions.items():
+        if not units:
+            continue
+        f = filters.get(sym)
+        if f is None:
+            res.errors.append(f"{sym}: no filters, stop NOT placed")
+            continue
+        try:
+            runner.c.cancel_all(sym)               # replace, never stack
+            mark = runner.c.mark_price(sym)
+            if units > 0:
+                stop = quantize_price(mark * (1 - STOP_PCT), f.tick_size, "SELL")
+                side = "SELL"
+            else:
+                stop = quantize_price(mark * (1 + STOP_PCT), f.tick_size, "BUY")
+                side = "BUY"
+            runner.c.place_order(
+                symbol=sym, side=side, type="STOP_MARKET",
+                stopPrice=f"{stop:f}".rstrip("0").rstrip("."),
+                closePosition="true", workingType="MARK_PRICE",
+                newClientOrderId=order_id("stop", sym, runner._clock))
+            placed.append(sym)
+        except Exception as e:
+            res.errors.append(f"{sym}: stop not placed: {type(e).__name__}: {e}")
+    return placed
+
+
+def _record_funding(runner: "Phase2Runner", cl, res: CycleResult) -> dict:
+    """STAGE10 4.3 + NOTES 46.2 criterion 2.
+
+    Records each settlement against the position held AT THE SETTLEMENT
+    INSTANT -- reconstructed from fill history, never read off the current
+    book -- and reconciles the total against the exchange's own income
+    history to $0.01.
+    """
+    now = int(runner._clock() * 1000)
+    since = now - DAY_MS
+    out: dict = {}
+    try:
+        funding_rows = runner.c.income("FUNDING_FEE", since, now)
+        commission = runner.c.income("COMMISSION", since, now)
+        realized = runner.c.income("REALIZED_PNL", since, now)
+    except Exception as e:
+        res.errors.append(f"income query failed: {type(e).__name__}: {e}")
+        return {"error": str(e)}
+
+    res.fees = -sum(float(r.get("income", 0.0)) for r in commission)
+    res.price_pnl = sum(float(r.get("income", 0.0)) for r in realized)
+
+    # fills of the last day, for the reconstruction
+    fills: list[dict] = []
+    for sym in {r.get("symbol") for r in funding_rows if r.get("symbol")}:
+        try:
+            for t in runner.c.user_trades(sym, start_ms=since):
+                fills.append({"ts": int(t["time"]), "symbol": sym,
+                              "side": "BUY" if t.get("buyer") else "SELL",
+                              "qty": float(t["qty"])})
+        except Exception as e:
+            res.errors.append(f"{sym}: trade history unavailable: {e}")
+
+    recorded = []
+    for row in funding_rows:
+        sym, ts = row.get("symbol"), int(row.get("time", 0))
+        if not sym:
+            continue
+        units_then = reconstruct_position_at(fills, ts, sym)
+        try:
+            rates = runner.c.funding_rates(sym, ts - 60_000, ts + 60_000)
+            rate = rates[-1][1] if rates else 0.0
+            mark = runner.c.mark_price(sym)
+        except Exception:
+            rate, mark = 0.0, 0.0
+        recorded.append(cl.record_funding(
+            symbol=sym, position_units=units_then, mark=mark, rate=rate,
+            actual_amount=float(row.get("income", 0.0)), ts_ms=ts,
+            venue="testnet"))
+
+    out = reconcile_funding(recorded, funding_rows)
+    out["settlements"] = len(funding_rows)
+    if not out["ok"]:
+        res.errors.append(
+            f"funding reconciliation drift {out['drift']:+.4f} exceeds "
+            f"{out['tolerance']}")
+    return out
+
+
 # ---------------------------------------------------------------- the cycle
 
 def _weights_from_units(units: dict, marks: dict, equity: float) -> dict:
@@ -322,10 +434,12 @@ def run_cycle(runner: "Phase2Runner", costlog=None, execute: bool = True,
                     bid, ask = runner.c.book(sym)
                     intended = (bid + ask) / 2.0
                     cid = order_id("rb", sym, runner._clock)
-                    order = runner.c.place_order(
-                        symbol=sym, side=side, type="MARKET",
-                        quantity=f"{abs(delta):f}".rstrip("0").rstrip("."),
-                        newClientOrderId=cid)
+                    # STAGE10 4.4: an ambiguous POST is queried by client id
+                    # before any resubmit, never retried blind.
+                    order = place_order_idempotent(
+                        runner.c, symbol=sym, client_order_id=cid,
+                        side=side, type="MARKET",
+                        quantity=f"{abs(delta):f}".rstrip("0").rstrip("."))
                     if float(order.get("executedQty", 0) or 0) > 0:
                         for t in runner.c.user_trades(
                                 sym, order_id=int(order["orderId"])):
@@ -350,6 +464,33 @@ def run_cycle(runner: "Phase2Runner", costlog=None, execute: bool = True,
     res.filled = after.positions
     marks = {s: runner.c.mark_price(s) for s in after.positions}
     filled_w = _weights_from_units(after.positions, marks, cfg.capital)
+
+    # ---- STAGE10 4.2: did a stop fire while we were away? -----------------
+    stopped = detect_stop_fills(state.open_orders, state.positions,
+                                after.positions)
+    if stopped:
+        res.stop_cascade = stopped
+        log.warning("STOP CASCADE on %s -- reconciling and re-hedging", stopped)
+        after = reconcile.fetch_state(runner.c)
+        res.filled = after.positions
+        marks = {s: runner.c.mark_price(s) for s in after.positions}
+        filled_w = _weights_from_units(after.positions, marks, cfg.capital)
+
+    # ---- STAGE10 4.1: is the FILLED book the book we intended? ------------
+    if res.decision:
+        betas = getattr(decision, "betas", None) or {}
+        res.atomicity = check_atomicity(res.decision, filled_w, betas)
+        if res.atomicity["needs_repair"]:
+            log.error("ATOMICITY BREACH: %s", res.atomicity["detail"])
+            res.errors.append(f"atomicity: {res.atomicity['detail']}")
+
+    # ---- STAGE10 4.2 (layer 1): exchange-side reduce-only stops -----------
+    if execute and after.positions:
+        res.stops_placed = _place_stops(runner, after.positions, res)
+
+    # ---- STAGE10 4.3 + criterion 2: funding, reconstructed and reconciled --
+    res.funding = _record_funding(runner, cl, res)
+
     res.shadow = runner.shadow_check(short, cfg.capital, decision, filled_w)
 
     if log_path is not None:

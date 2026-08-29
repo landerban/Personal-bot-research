@@ -6028,3 +6028,122 @@ The planted entries were scrubbed from the live feed. Suites **119/119**.
 (200 AMBER — one anomaly today plus the day-1 shadow SKIP, which is truthful),
 lock held, `missed_days = [2026-08-29]`, counter 0, zero repeated MISSED lines,
 next cycle **2026-08-30 00:00:15 UTC**.
+
+## 52. Stage 14a — closing the criteria gaps the audit found
+
+**2026-08-29.** No trials; budget stays **15 of 25**. **No strategy parameter
+was touched.** Holdout sealed. This is safety, accounting and reporting
+machinery that §46.2 and §46.4 already required and that was **not built** —
+found by auditing the six criteria against the code rather than against
+memory, when asked whether the phase was now just a matter of waiting.
+
+### 52.1 What the audit found, and the worst of it
+
+Of the six §46.2 criteria: 1 and 6 were satisfied; **2, 4 and 5 were not
+implemented at all**, and the demo for 3 had not been run.
+
+The worst item was not a missing feature but a **false claim**: `status.json`
+carried `kill_switch_armed: True` and `drawdown: 0.0` as **literals**.
+Drawdown was never computed, the kill switch was never evaluated in the
+running path, and `live/watchdog.py` existed but nothing started it. The
+dashboard advertised a safety net that did not exist — the same class of fault
+as the `halted` flag in §51.10, and in the more dangerous direction.
+
+### 52.2 The risk layer (`live/risk.py`) — criterion 5
+
+Paper equity is now measured, not asserted:
+
+```
+  paper_equity = capital + (exchange_balance - reference_balance)
+```
+
+The account holds ~5,000 USDT of play money against an $800 book; the two are
+different numbers and are no longer conflated. Drawdown is peak-to-current on
+that series, and the kill switch fires `flatten_all()` and halts at 30%.
+
+**Testnet resets re-baseline and never fire the switch** (§46.5). A balance
+move that the day's own fills, fees and funding cannot explain is classified
+as a reset: the reference is re-baselined, paper equity is carried across
+unbroken, and the event is recorded. The threshold is deliberately generous
+(max($100, 25% of capital)) because the dangerous error is the *other*
+direction — misclassifying a real loss as a reset would disarm the switch
+exactly when it is needed. Tested both ways.
+
+**The watchdog now runs as a separate child process**, not a thread: the
+failure it defends against is a supervisor that is alive but *wedged*, and a
+thread would share the wedge. Supervised with the same backoff as the
+dashboard.
+
+### 52.3 Criterion 2 — funding, recorded and reconciled
+
+The Phase-2 cycle previously recorded **no funding at all**. It now queries
+`FUNDING_FEE`, `COMMISSION` and `REALIZED_PNL` income each cycle, records each
+settlement to the costlog with the `venue=testnet` tag, and reconciles the
+total against the exchange's own income history to **$0.01 cumulative**, with
+a drift beyond tolerance raised as a cycle error.
+
+### 52.4 Criterion 4 — the four fixes (`live/fixes.py`)
+
+1. **Multi-leg atomicity.** After fills, the *filled* book is checked against
+   target for tracking error (>20% of gross) and residual beta (>±0.15).
+2. **Stop-execution cascade.** Exchange-side reduce-only stops are now placed
+   after every rebalance — **the Phase-2 path was placing none at all**, while
+   Phase 1 had them. A stop fill is detected from before/after position state
+   rather than a stream event, so a stream gap cannot become a missed cascade,
+   and it triggers a reconcile and re-hedge.
+3. **Funding reconstruction.** The position at each settlement is rebuilt from
+   fill history instead of read off the current book — the case that breaks
+   the naive version is a rebalance landing seconds after a settlement.
+4. **POST idempotency.** An ambiguous POST (timeout/5xx) is resolved by
+   **querying by `newClientOrderId` before any resubmit**. A lost response is
+   not a rejection, and blind resubmission is how a book ends up at double
+   size. Deterministic filter rejections are never retried; an unresolvable
+   case raises `AmbiguousPost` rather than guessing.
+
+**A silent hole caught while wiring this:** `check_atomicity` reads
+`decision.betas`, and `Decision` had **no such field** — so residual beta
+would have scored 0.000 on every book and half of fix 1 would never have
+fired. The shrunk betas the hedge actually executes on are now carried on the
+Decision. A check that always passes is worse than no check, and this project
+has been caught by that shape before (the Stage 2e vacuity trap).
+
+### 52.5 Demo 3 run — induced kill, unassisted recovery
+
+```
+  supervisor pid 47984 -> hard-killed (no signal, no clean shutdown)
+  lock left behind holding dead pid 47984
+  restart: "reclaimed a stale lock from dead pid 47984 (previous run did not
+            shut down cleanly); recovery goes through reconcile on the next
+            cycle"
+  supervisor up (pid 44480), dashboard 200, watchdog restarted
+```
+
+**No manual repair of any kind.** Honest limitation: **the book was flat**, so
+the reconcile-to-a-correct-*book* half of criterion 3 is not yet demonstrated.
+It must be re-run on a day that holds positions, and until then criterion 3 is
+**partially** satisfied, not satisfied.
+
+### 52.6 Criteria status — stated so the 28-day verdict is not argued later
+
+```
+  1 shadow reconciliation   RUNNING   (vacuous while the book skips -- below)
+  2 funding reconciles      BUILT + running, $0.01 tolerance enforced
+  3 no unrecovered crash    PARTIAL   -- kill/recover shown on a FLAT book
+  4 four fixes              BUILT + unit-tested; induced demos 1/2/4 owed
+  5 kill switch + watchdog  BUILT + running; watchdog gap test green
+  6 zero silent errors      running
+```
+
+**The vacuity warning, on the record:** if the book keeps skipping,
+criterion 1 passes having compared nothing — 28 days of skips would satisfy it
+while testing nothing. A meaningful pass needs trading days in it, and demos
+1, 2 and 4 also need an order to act on. Neither is a reason to widen the
+book: §46.7 and STAGE12 B.5 forbid tuning on paper behaviour, and that
+prohibition is not suspended by being inconvenient.
+
+### 52.7 Status
+
+Suites **138/138**; live state provably untouched by the suite (checksummed
+across a full run). Secret scan clean. The bot is running: supervisor,
+dashboard and watchdog, next cycle **2026-08-30 00:00:15 UTC**, counter 0 of
+28, holdout sealed.
