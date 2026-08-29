@@ -42,8 +42,17 @@ LOCK_PATH = STATE_DIR / "supervisor.lock"
 CLOCK_PATH = STATE_DIR / "clock.json"
 STATUS_PATH = STATE_DIR / "status.json"
 HEARTBEAT_PATH = STATE_DIR / "heartbeat"
+# A stop SENTINEL rather than a signal. On Windows `taskkill` without /f
+# only posts WM_CLOSE to GUI windows, so a console supervisor never sees
+# it and gets force-killed instead -- skipping the clean-shutdown path
+# entirely and leaving a stale lock. A file both sides agree on works the
+# same way on every OS and needs no signal semantics.
+STOP_FILE = STATE_DIR / "stop"
 
 HEARTBEAT_S = 30.0
+# How often the idle wait checks for the stop sentinel. The supervision
+# tick stays at HEARTBEAT_S; this only makes shutdown prompt.
+STOP_POLL_S = 1.0
 BACKOFF_START_S = 5.0
 BACKOFF_MAX_S = 300.0        # ~5 minutes, per STAGE14 B.2.1
 
@@ -210,7 +219,16 @@ class Supervisor:
                 # and retried on the next tick only if still inside the grace
                 # window -- never silently counted.
                 log.exception("cycle FAILED for %s (%s)", date, kind)
-        elif kind == S.MISSED and clock.last_cycle_date != date:
+        elif kind == S.MISSED and date not in clock.missed_days:
+            # ONCE per missed date, not once per poll tick. The guard used to
+            # be `last_cycle_date != date`, which stays true forever on a
+            # missed day, so a single missed date produced a WARNING every 30
+            # seconds -- 45 identical lines before this was fixed. A log that
+            # repeats itself is a log nobody reads, and it would have buried
+            # the next real event.
+            #
+            # `missed_days` is the durable record, so this stays quiet across
+            # restarts too, not just across ticks.
             clock.record_missed(date)
             clock.save(CLOCK_PATH)
             log.warning(
@@ -218,6 +236,40 @@ class Supervisor:
                 "grace window. Book held; the 28-day counter PAUSES at %d "
                 "(it does not reset -- NOTES 51.4).",
                 date, clock.day_counter)
+            self._note_missed(date, clock.day_counter)
+
+    MISSED_MARKER = "missed_cycle"
+
+    def _note_missed(self, date: str, counter: int) -> None:
+        """One anomaly-feed entry per missed date, so the dashboard can say
+        WHY the counter is not advancing.
+
+        Without this the feed received nothing at all on a missed day and the
+        operator saw a stalled count with no explanation. Idempotent by
+        construction: the existing feed is scanned for this date's marker
+        first, so a restart cannot double it.
+        """
+        try:
+            from live.status import read_status, write_status
+
+            snap = read_status(STATUS_PATH) or {}
+            feed = list(snap.get("anomalies") or [])
+            for a in feed:
+                if (isinstance(a, dict) and a.get("kind") == self.MISSED_MARKER
+                        and a.get("ts") == date):
+                    return                      # already noted for this date
+            feed.append({
+                "kind": self.MISSED_MARKER, "ts": date,
+                "msg": (f"missed_cycle {date}: host off or asleep past the 2h "
+                        f"grace window. Book held; 28-day counter paused at "
+                        f"{counter} (not reset -- NOTES 51.4)."),
+            })
+            snap["anomalies"] = feed
+            snap["ts"] = time.time()
+            write_status(STATUS_PATH, snap)
+        except Exception:
+            log.exception("could not record the missed-cycle anomaly for %s",
+                          date)
 
     def run(self) -> int:
         lock = SingleInstanceLock(LOCK_PATH)
@@ -239,6 +291,8 @@ class Supervisor:
             return 3
         log.info("preflight ok: venue %s, credentials present", cfg["base_url"])
 
+        STOP_FILE.unlink(missing_ok=True)   # never inherit a stale request
+        self._clear_halted()
         self._install_signal_handlers()
         try:
             if self.run_dashboard:
@@ -248,7 +302,7 @@ class Supervisor:
                      S.next_cycle_after(self._clock()).strftime("%Y-%m-%d %H:%M:%SZ"))
             while not self.stop.is_set():
                 self.tick()
-                self.stop.wait(HEARTBEAT_S)
+                self._wait_interruptibly(HEARTBEAT_S)
         finally:
             log.info("shutting down")
             if self.httpd is not None:
@@ -261,6 +315,50 @@ class Supervisor:
             lock.release()
             log.info("stopped cleanly; lock released")
         return 0
+
+    def _wait_interruptibly(self, seconds: float) -> None:
+        """Idle between ticks, but notice a stop request within a second."""
+        deadline = time.monotonic() + seconds
+        while time.monotonic() < deadline:
+            if self.stop.wait(min(STOP_POLL_S, deadline - time.monotonic())):
+                return
+            if self._stop_requested():
+                return
+
+    def _stop_requested(self) -> bool:
+        """True if stop_bot.bat (or anything else) asked us to shut down."""
+        try:
+            if STOP_FILE.exists():
+                STOP_FILE.unlink(missing_ok=True)
+                log.info("stop requested via %s", STOP_FILE.name)
+                self.stop.set()
+                return True
+        except OSError:
+            pass
+        return False
+
+    def _clear_halted(self) -> None:
+        """Clear the shutdown flag left by the previous run.
+
+        `_final_status` sets halted=True so a stopped bot reads as stopped.
+        Nothing cleared it on the way back up, so after one clean stop/start
+        the dashboard showed RED "supervisor stopped" forever while the bot
+        was in fact running -- a status line that lies in the reassuring
+        direction is bad, but one that cries wolf gets the whole light
+        ignored.
+        """
+        try:
+            from live.status import read_status, write_status
+
+            snap = read_status(STATUS_PATH)
+            if snap and snap.get("halted"):
+                snap["halted"] = False
+                snap["halt_reason"] = None
+                snap["ts"] = time.time()
+                write_status(STATUS_PATH, snap)
+                log.info("cleared the halted flag from the previous shutdown")
+        except Exception:
+            log.exception("could not clear the halted flag")
 
     def _final_status(self) -> None:
         """STAGE14 B.2.6: leave a truthful last word rather than a stale file

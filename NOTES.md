@@ -5983,3 +5983,48 @@ the fact that the rule does not apply to the day already banked.
   silently: setting the power policy (`standby-timeout-ac 0`,
   `hibernate-timeout-ac 0`), and — if start-at-boot and restart-on-failure are
   wanted — running the elevated `schtasks` block in the runbook.
+
+### 51.10 Log hygiene fix, and two defects it uncovered
+
+**The reported bug.** A missed date re-logged its WARNING on every 30-second
+poll tick — **45 identical lines for one date**. The guard was
+`last_cycle_date != date`, which stays true forever on a missed day;
+`record_missed` deduped the *list* but nothing deduped the *log*. Now guarded
+on `date not in clock.missed_days`, which is the durable record, so it stays
+quiet across restarts too and not merely across ticks.
+
+The anomaly feed previously received **nothing** on a missed day, so the
+dashboard showed a stalled counter with no explanation. It now gets exactly
+one entry per missed date, idempotent by construction (the feed is scanned for
+that date's marker first). That is a small addition beyond pure log hygiene
+and is flagged as such. **No policy and no counter changed.**
+
+**Defect 1 — `stop_bot.bat` never shut down cleanly.** On Windows `taskkill`
+without `/f` only posts WM_CLOSE to GUI windows, so a console supervisor never
+saw it and was force-killed — skipping the clean-shutdown path and leaving a
+stale lock. The runbook claimed stopping was clean; it was not. Stop is now a
+**sentinel file** both sides agree on, with force kept as a last resort after
+20 seconds. Verified live: `stop requested via stop` → `shutting down` →
+`stopped cleanly; lock released`.
+
+**Defect 2 — a stopped bot stayed RED after restarting.** `_final_status`
+sets `halted=True` so a stopped bot reads as stopped, and nothing cleared it
+on the way back up. After one stop/start the dashboard showed RED "supervisor
+stopped" while the bot was running. A status light that cries wolf gets
+ignored, so startup now clears the flag.
+
+**And the way both were found: my own tests were writing to LIVE state.**
+`test_tick_records_a_missed_day` planted a `missed_cycle` entry dated
+2026-08-30 in the running bot's anomaly feed, and `test_stale_stop_file` left
+`halted=True` there — which is what turned the live dashboard RED. They
+patched `CLOCK_PATH` but not `STATUS_PATH`. Fixed with an **autouse fixture**
+that redirects every supervisor path into `tmp_path`, so no runner test can
+reach live state whether or not its author remembered. Proven by checksumming
+`status.json` and `clock.json` across a full suite run: **unchanged**.
+
+The planted entries were scrubbed from the live feed. Suites **119/119**.
+
+**State after the restart:** supervisor up (pid 19024), dashboard healthy
+(200 AMBER — one anomaly today plus the day-1 shadow SKIP, which is truthful),
+lock held, `missed_days = [2026-08-29]`, counter 0, zero repeated MISSED lines,
+next cycle **2026-08-30 00:00:15 UTC**.

@@ -29,6 +29,30 @@ from xsmom.supervisor import BACKOFF_MAX_S, ConfigError, Supervisor  # noqa: E40
 UTC = timezone.utc
 
 
+@pytest.fixture(autouse=True)
+def _isolate_live_state(monkeypatch, tmp_path):
+    """Redirect every path the supervisor writes into tmp_path.
+
+    Without this, tests that exercise tick()/run() write to the REAL
+    live/state files: one planted a missed_cycle entry for a future date in
+    the running bot's anomaly feed, and another left halted=True there, which
+    correctly turned the live dashboard RED. Tests must never be able to do
+    that, so the isolation is autouse rather than per-test opt-in.
+    """
+    import xsmom.supervisor as sup_mod
+
+    state = tmp_path / "state"
+    state.mkdir()
+    for name, fname in (("LOCK_PATH", "supervisor.lock"),
+                        ("CLOCK_PATH", "clock.json"),
+                        ("STATUS_PATH", "status.json"),
+                        ("HEARTBEAT_PATH", "heartbeat"),
+                        ("STOP_FILE", "stop")):
+        monkeypatch.setattr(sup_mod, name, state / fname)
+    monkeypatch.setattr(sup_mod, "STATE_DIR", state)
+    return state
+
+
 # ------------------------------------------------------------------- lock
 
 def test_second_launch_refuses_loudly(tmp_path):
@@ -326,3 +350,134 @@ def test_a_crashed_cycle_is_not_counted_as_a_day(monkeypatch, tmp_path):
     sup.tick()                       # must not propagate
     assert S.ClockState.load(clock_path).day_counter == 5
     print("PASS runner_crashed_cycle_not_counted")
+
+
+def test_a_missed_day_logs_once_across_many_poll_ticks(monkeypatch, tmp_path,
+                                                       caplog):
+    """Log hygiene: the supervisor polls every 30s, but a missed date must
+    produce exactly ONE warning and ONE anomaly-feed entry -- not one per
+    tick. Before this was fixed a single missed date wrote 45 identical
+    WARNING lines, which buries the next real event.
+
+    The policy and the counter are unchanged; only the noise is.
+    """
+    import logging
+
+    import xsmom.supervisor as sup_mod
+
+    clock_path = tmp_path / "clock.json"
+    status_path = tmp_path / "status.json"
+    monkeypatch.setattr(sup_mod, "CLOCK_PATH", clock_path)
+    monkeypatch.setattr(sup_mod, "STATUS_PATH", status_path)
+    S.ClockState(day_counter=7).save(clock_path)
+
+    sched = S.scheduled_for(datetime(2026, 8, 30, 12, 0, tzinfo=UTC))
+    late = sched + timedelta(hours=6)              # well past the grace window
+    sup = Supervisor(run_dashboard=False, clock=lambda: late)
+    monkeypatch.setattr(sup, "beat", lambda: None)
+    ran = []
+    monkeypatch.setattr(sup, "run_cycle_now",
+                        lambda kind, date: ran.append(kind))
+
+    caplog.set_level(logging.WARNING, logger="xsmom.supervisor")
+    for _ in range(3):                             # three poll ticks
+        sup.tick()
+
+    missed_lines = [r for r in caplog.records if "MISSED cycle" in r.getMessage()]
+    assert len(missed_lines) == 1, [r.getMessage() for r in missed_lines]
+    assert "2026-08-30" in missed_lines[0].getMessage()
+
+    from live.status import read_status
+    feed = (read_status(status_path) or {}).get("anomalies") or []
+    entries = [a for a in feed if a.get("kind") == sup.MISSED_MARKER
+               and a.get("ts") == "2026-08-30"]
+    assert len(entries) == 1, feed
+    assert "paused at 7" in entries[0]["msg"]
+
+    assert ran == [], "a missed cycle must still not run"
+    st = S.ClockState.load(clock_path)
+    assert st.day_counter == 7, "counter unchanged -- policy did not move"
+    assert st.missed_days == ["2026-08-30"], st.missed_days
+    print("PASS runner_missed_day_logs_once (3 ticks -> 1 line, 1 feed entry)")
+
+
+def test_missed_note_survives_a_restart_without_duplicating(monkeypatch,
+                                                            tmp_path, caplog):
+    """A restart mid-missed-day must not re-log or re-note it: `missed_days`
+    in clock.json is the durable record, not in-memory state."""
+    import logging
+
+    import xsmom.supervisor as sup_mod
+
+    clock_path = tmp_path / "clock.json"
+    status_path = tmp_path / "status.json"
+    monkeypatch.setattr(sup_mod, "CLOCK_PATH", clock_path)
+    monkeypatch.setattr(sup_mod, "STATUS_PATH", status_path)
+    S.ClockState(day_counter=3).save(clock_path)
+
+    sched = S.scheduled_for(datetime(2026, 8, 30, 12, 0, tzinfo=UTC))
+    late = sched + timedelta(hours=6)
+    caplog.set_level(logging.WARNING, logger="xsmom.supervisor")
+
+    for _ in range(2):                    # two separate supervisor "runs"
+        sup = Supervisor(run_dashboard=False, clock=lambda: late)
+        monkeypatch.setattr(sup, "beat", lambda: None)
+        monkeypatch.setattr(sup, "run_cycle_now", lambda kind, date: None)
+        sup.tick()
+
+    assert len([r for r in caplog.records
+                if "MISSED cycle" in r.getMessage()]) == 1
+    from live.status import read_status
+    feed = (read_status(status_path) or {}).get("anomalies") or []
+    assert len([a for a in feed if a.get("kind") == "missed_cycle"]) == 1, feed
+    print("PASS runner_missed_note_survives_restart")
+
+
+def test_stop_sentinel_shuts_down_cleanly(monkeypatch, tmp_path):
+    """STAGE14 B.2.6. The stop request arrives as a FILE, not a signal: on
+    Windows `taskkill` without /f never reaches a console process, so the
+    signal path was being skipped and the lock left stale."""
+    import xsmom.supervisor as sup_mod
+
+    stop_file = tmp_path / "stop"
+    monkeypatch.setattr(sup_mod, "STOP_FILE", stop_file)
+    sup = Supervisor(run_dashboard=False)
+
+    assert sup._stop_requested() is False
+    assert not sup.stop.is_set()
+
+    stop_file.write_text("stop", encoding="utf-8")
+    assert sup._stop_requested() is True
+    assert sup.stop.is_set(), "a stop request must set the stop event"
+    assert not stop_file.exists(), "the sentinel must be consumed, not left"
+
+    # ...and the interruptible wait must return promptly rather than idling
+    sup2 = Supervisor(run_dashboard=False)
+    monkeypatch.setattr(sup_mod, "STOP_FILE", stop_file)
+    stop_file.write_text("stop", encoding="utf-8")
+    t0 = time.time()
+    sup2._wait_interruptibly(30.0)
+    assert time.time() - t0 < 5.0, "waited too long to notice the stop file"
+    assert sup2.stop.is_set()
+    print("PASS runner_stop_sentinel")
+
+
+def test_a_stale_stop_file_cannot_kill_the_next_run(monkeypatch, tmp_path):
+    """A leftover sentinel from a previous shutdown must not immediately stop
+    a fresh supervisor -- run() clears it before the loop starts."""
+    import xsmom.supervisor as sup_mod
+
+    stop_file = tmp_path / "stop"
+    stop_file.write_text("stop", encoding="utf-8")
+    monkeypatch.setattr(sup_mod, "STOP_FILE", stop_file)
+    monkeypatch.setattr(sup_mod, "LOCK_PATH", tmp_path / "s.lock")
+    monkeypatch.setattr(sup_mod, "preflight",
+                        lambda: {"base_url": "https://testnet.binancefuture.com"})
+
+    sup = sup_mod.Supervisor(run_dashboard=False)
+    # stop immediately after the first tick so run() terminates
+    monkeypatch.setattr(sup, "tick", lambda: sup.stop.set())
+    rc = sup.run()
+    assert rc == 0, rc
+    assert not stop_file.exists(), "the stale sentinel should have been cleared"
+    print("PASS runner_stale_stop_file_cleared")
