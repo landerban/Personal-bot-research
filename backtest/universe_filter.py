@@ -77,7 +77,22 @@ from functools import lru_cache
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-SNAPSHOT_PATH = ROOT / "data" / "underlying_classes.json"
+# Stage 14 A.1 / NOTES 51.1 -- TWO metadata sources with fixed precedence.
+# Production is authoritative for CLASSIFICATION: it sees every listed
+# instrument, which is exactly the 48.11 blindness being closed (180
+# TradFi perpetuals against testnet's 40). Testnet remains authoritative
+# for TRADEABILITY -- what the paper book can actually hold -- and is the
+# fallback for anything production does not carry.
+#
+# Both are USER-SUPPLIED FILES. Nothing here fetches production metadata;
+# no production hostname exists anywhere in this codebase.
+SNAPSHOT_PATH = ROOT / "data" / "underlying_classes.json"            # testnet
+PRODUCTION_SNAPSHOT_PATH = ROOT / "data" / "underlying_classes_production.json"
+
+# NOTES 51.3: past this age the dashboard composition line goes AMBER with
+# "metadata snapshot stale -- refresh advised". A prompt, never an action:
+# the guard observes and alerts and never auto-amends (48.6).
+SNAPSHOT_STALE_MS = 30 * 86_400_000
 
 CRYPTO = "crypto"
 NON_CRYPTO = "non_crypto"
@@ -96,6 +111,9 @@ CONTEMPORANEOUS_MS = 90 * 86_400_000
 # AMBIGUOUS -- unknown means excluded and logged, never guessed.
 KNOWN_UNDERLYING_TYPES = frozenset({
     "COIN", "EQUITY", "HK_EQUITY", "COMMODITY", "INDEX", "PREMARKET",
+    # NOTES 51.2: the production snapshot carries regional equity labels the
+    # testnet one never had. Same kind as HK_EQUITY, which was already here.
+    "KR_EQUITY", "CN_EQUITY",
 })
 KNOWN_CONTRACT_TYPES = frozenset({
     "PERPETUAL", TRADFI_CONTRACT_TYPE, "CURRENT_QUARTER", "NEXT_QUARTER",
@@ -128,12 +146,51 @@ class Verdict:
         return self.klass == CRYPTO
 
 
+def _read(p: Path) -> dict:
+    if not p.exists():
+        return {"snapshot_date": None, "snapshot_ts": None, "symbols": {}}
+    return json.loads(p.read_text(encoding="utf-8"))
+
+
 @lru_cache(maxsize=1)
 def load_snapshot(path: str | None = None) -> dict:
-    p = Path(path) if path else SNAPSHOT_PATH
-    if not p.exists():
-        return {"snapshot_date": None, "symbols": {}}
-    return json.loads(p.read_text(encoding="utf-8"))
+    """The merged metadata view: production overlaid on testnet.
+
+    Production wins on every symbol it carries (NOTES 51.1); testnet fills in
+    anything production does not, which in practice is nothing but costs
+    nothing to keep. `snapshot_ts` is the PRODUCTION timestamp when production
+    is present, because that is the one whose staleness matters for seeing new
+    listings.
+    """
+    if path:                       # explicit override: single source, as given
+        return _read(Path(path))
+    testnet = _read(SNAPSHOT_PATH)
+    prod = _read(PRODUCTION_SNAPSHOT_PATH)
+    if not prod.get("symbols"):
+        return testnet
+    merged = dict(testnet.get("symbols") or {})
+    merged.update(prod["symbols"])
+    return {
+        "snapshot_date": prod.get("snapshot_date"),
+        "snapshot_ts": prod.get("snapshot_ts"),
+        "source": prod.get("source"),
+        "testnet_snapshot_ts": testnet.get("snapshot_ts"),
+        "n_production": len(prod["symbols"]),
+        "n_testnet_only": len(set(testnet.get("symbols") or {}) - set(prod["symbols"])),
+        "symbols": merged,
+    }
+
+
+def snapshot_is_stale(snapshot: dict | None = None, now_ms: int | None = None) -> bool:
+    """NOTES 51.3: True once the metadata is older than SNAPSHOT_STALE_MS.
+    Drives the dashboard AMBER prompt; changes no classification."""
+    import time as _t
+    snap = snapshot if snapshot is not None else load_snapshot()
+    ts = snap.get("snapshot_ts")
+    if not ts:
+        return True
+    now = now_ms if now_ms is not None else int(_t.time() * 1000)
+    return (now - int(ts)) > SNAPSHOT_STALE_MS
 
 
 def classify(symbol: str, snapshot: dict | None = None) -> Verdict:
@@ -155,15 +212,20 @@ def classify(symbol: str, snapshot: dict | None = None) -> Verdict:
     utype = meta.get("underlyingType")
     ctype = meta.get("contractType")
 
+    # NOTES 51.2: the contractType discriminator is checked FIRST. A future
+    # regional label like XX_EQUITY on a TradFi contract is then classified
+    # correctly on its contract type instead of falling into ambiguity, while
+    # an unknown type on a PERPETUAL contract still goes ambiguous. Strictly
+    # better coverage, no loss of conservatism.
+    if ctype == TRADFI_CONTRACT_TYPE:
+        return Verdict(symbol, NON_CRYPTO,
+                       f"contractType={ctype} (underlyingType={utype})", True)
     if utype not in KNOWN_UNDERLYING_TYPES:
         return Verdict(symbol, AMBIGUOUS,
                        f"underlying_ambiguous:underlyingType={utype!r}", True)
     if ctype not in KNOWN_CONTRACT_TYPES:
         return Verdict(symbol, AMBIGUOUS,
                        f"underlying_ambiguous:contractType={ctype!r}", True)
-    if ctype == TRADFI_CONTRACT_TYPE:
-        return Verdict(symbol, NON_CRYPTO,
-                       f"contractType={ctype} (underlyingType={utype})", True)
     return Verdict(symbol, CRYPTO, f"underlyingType={utype}", True)
 
 
