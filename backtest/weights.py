@@ -34,6 +34,8 @@ from typing import TYPE_CHECKING, Callable, Optional
 
 import numpy as np
 
+from backtest.universe_filter import filter_universe
+
 if TYPE_CHECKING:  # avoid a runtime import cycle with engine.py
     from backtest.engine import Config
     from pitdata.store import PITView
@@ -112,6 +114,11 @@ class Decision:
     beta_se_median: float             # 2e 5: beta estimation uncertainty
     beta_se_max: float
     beta_shrink_median: float         # |shrunk - raw|, median over the book
+    # Stage 13 A.3: names the feasibility loop dropped for MIN_NOTIONAL before
+    # this book was seated. Diagnostic only -- nothing reads it to decide
+    # anything -- but "selected and dropped" cannot be reconstructed after the
+    # fact, and the seating question needs it.
+    dropped: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -412,6 +419,25 @@ def compute_target_weights(
     if len(universe) < n:
         return Skip("universe_too_small", f"{len(universe)} < {n}")
 
+    # Stage 11 (NOTES 48.1): the universe rule is "top 15 by point-in-time
+    # median quote volume, AMONG CRYPTO-ASSET PERPETUALS". §47 found the
+    # volume-rank rule had drifted into tokenised equities, ETFs, commodities
+    # and pre-market instruments while holding formally.
+    #
+    # Applied HERE -- before the liquidity ranking, beside the funding-presence
+    # filter -- so the top-15 is the top-15 *among crypto*, not the crypto
+    # subset of a mixed top-15. It is an eligibility rule, not a selection on
+    # outcome.
+    #
+    # Unconditional, not a Config flag: the amendment REPLACED the rule rather
+    # than adding an option, and a flag would let a future run silently opt out
+    # of it. Proven inert on every day of train and validate (NOTES 48.5: 1,827
+    # days, zero diffs) and pinned by Test 26, so no logged result moves.
+    universe = filter_universe(universe)[0]
+    if len(universe) < n:
+        return Skip("universe_too_small",
+                    f"{len(universe)} < {n} after the crypto-only filter")
+
     # Stage 3c Part B: drop the illiquid tail before ranking. Rank is
     # point-in-time by median quote volume over the trailing window --
     # the same measure `universe()` filters on. Applied BEFORE the
@@ -542,6 +568,7 @@ def compute_target_weights(
     # separated from the momentum signal afterwards), the remainder is
     # renormalised and re-hedged, and the check repeats.
     built = None
+    dropped_syms: list[str] = []
     for _ in range(MAX_FEASIBILITY_PASSES):
         out = build(longs, shorts)
         if isinstance(out, Skip):
@@ -556,6 +583,7 @@ def compute_target_weights(
         if not infeasible:
             built = out
             break
+        dropped_syms.extend(infeasible)
         longs = [x for x in longs if x not in infeasible]
         shorts = [x for x in shorts if x not in infeasible]
         if len(longs) < MIN_LEG_NAMES or len(shorts) < MIN_LEG_NAMES:
@@ -596,6 +624,7 @@ def compute_target_weights(
         beta_shrink_median=float(np.median(
             np.abs(np.array([betas[s_] for s_ in betas]) - raw_betas)
         )),
+        dropped=tuple(dropped_syms),
     )
 
 

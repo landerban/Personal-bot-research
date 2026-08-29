@@ -183,6 +183,7 @@ class RebalanceRecord:
     binding_min_notional: float | None     # largest MIN_NOTIONAL in the book
     beta_se_median: float                  # 2e 5: beta estimation noise
     beta_shrink_median: float
+    dropped: tuple[str, ...] = ()          # Stage 13 A.3 seating diagnostic
 
 
 @dataclass
@@ -546,6 +547,7 @@ def run_backtest(
                     binding_min_notional=pending.binding_min_notional,
                     beta_se_median=pending.beta_se_median,
                     beta_shrink_median=pending.beta_shrink_median,
+                    dropped=pending.dropped,
                 )
             )
             pending, pending_dollars = None, {}
