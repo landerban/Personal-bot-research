@@ -7184,3 +7184,106 @@ holdout without spending the one look on a rule invented after the fact.
 - Suites **169/169**. Secret scan clean over 129 tracked files.
 - **Budget 15 of 25. No trial. No validated strategy parameter changed. Zero
   orders on mainnet. Holdout sealed and untouched.**
+
+## 58. The RCM proposal (Strategy Generation 2) — REVIEWED, not implemented
+
+**2026-08-31.** `Claude/RCM_Strategy_Proposal.md` received and reviewed. This
+entry records the review, two measurements made to ground it, and the
+questions that must be answered before any RCM stage can be pre-registered.
+**Nothing is implemented, no trial is spent, XSMOM stays frozen as Generation
+1, and the holdout is untouched.**
+
+### 58.1 The verdict, in one paragraph
+
+The proposal is sound, and its diagnosis is not a hypothesis — it is what this
+project has already measured. "The portfolio construction can fail before the
+alpha is expressed at all" is §56.13 and §57.8 verbatim: 0-of-12 book
+formation with the failure split 45% floor / 32% identifiability, on a guard
+that was working correctly. Every architectural change RCM proposes maps onto
+a measured failure: continuous SE penalty ↔ the UNIVERSE-TOO-YOUNG verdict;
+graceful degradation ↔ the binary `MIN_LEG_NAMES` / feasibility rejections;
+BTC+ETH factor model ↔ §47.2's finding that a BTC-only hedge lost meaning as
+the universe drifted; continuous selection ↔ the §57.8 result that momentum's
+extreme-picking is exactly what feeds unhedgeable names into fixed top-k legs.
+The kill criteria (§18 of the proposal) and staged methodology (§17) match the
+house discipline. Keeping XSMOM frozen rather than patched is the same call
+§57.10 made.
+
+### 58.2 Two measurements made for this review
+
+**1. The universe rule is expressible in today's market.** Crypto-only
+(NOTES 48 filter) USDT perps: **514**. Of the top 80 by production volume,
+**77 have ≥180 days of history** — plenty for a 20–30% tail selection
+(~15–23 names per side against XSMOM's fixed 5).
+
+**2. Maturity does NOT buy identifiability — measured, not assumed.**
+
+```
+  symbol     listed   beta(60d)     SE
+  AKEUSDT      339d     -3.765   2.523
+  LABUSDT      318d      2.632   1.795
+  BANKUSDT     400d     -0.469   1.375
+```
+
+AKEUSDT has nearly a year of history and a beta standard error of 2.5. The
+proposal's §3 maturity rule alone would still admit these names into the
+book. **What carries the load is §7's continuous penalty**
+(`S/(1+c·SE)`) — noisy names get less capital instead of either full weight
+or a vetoed book. That is the single most important mechanism in the
+proposal, and the review's one structural caution: the maturity rule should
+be described as a data-quality precondition, not as the identifiability fix.
+
+### 58.3 What transfers from Generation 1 — most of the machine
+
+The PIT store and its 13/13 lookahead discipline; the crypto universe filter
+and composition guard; `proddata` (read-only production data with proven
+rails); the fill simulator and the pre-registered fill model; the shared
+quantized sizing module — **which RCM's optimizer needs as a constraint set,
+and which did not exist until Stage 17**; the settle primitive; the risk
+layer, kill switch, watchdog, supervisor, dashboard, alert scaffolding; the
+costlog with venue tags; the trial-budget and pre-registration conventions.
+Generation 2 is mostly strategy-layer work on top of a machine that now
+exists and is tested (169/169).
+
+### 58.4 The questions that must be answered BEFORE an RCM stage is registered
+
+**1. The data-era question — the big one, and it is the user's.** The
+proposal's Stage B says "training-period evaluation" without naming the era.
+§56.13 established that 2020–2023 no longer resembles the market; training
+RCM there inherits the same dead-era problem XSMOM died of. But training on
+2024–2026 consumes data that overlaps the sealed holdout window
+(2025-01 → 2026-07), which was defined for Generation 1. **Does the seal bind
+Generation 2?** Three coherent positions exist — (a) it binds absolutely and
+RCM trains only through 2024, (b) it was Gen-1-specific and Gen 2 defines
+fresh splits with the seal re-drawn forward, (c) forward-only validation with
+no historical holdout at all, per §57.10. Each has different integrity costs.
+**Not chosen here; nothing proceeds until it is.**
+
+**2. The Gen-2 trial budget.** Gen 1 spent 15 of 25. A new generation needs
+its own budget, pre-registered before the first backtest, and a definition of
+what counts as a trial for a strategy whose parameters are continuous
+(λ, c, γ, η, tanh scale, window weights) rather than a small grid. The
+proposal's §15 restraint is right; the budget must make it enforceable.
+
+**3. The direction-aware funding sign.** The proposal itself concedes
+`S = Zmom − λ·Zfund` is not direction-correct for shorts and defers the fix
+to "ultimately". It is the economics of half the book and it is cheap; it
+belongs in v1, not later.
+
+**4. The optimizer's engineering costs.** A QP introduces the project's first
+solver dependency, and solver tolerance breaks bit-exact shadow
+reconciliation — the identity check that anchored Gen 1's paper phase. The
+shadow tolerance (1e-6 on weights) will need a pre-registered, argued
+replacement for an optimization-based book.
+
+**5. One math note for the eventual spec.** §5's nested windows (days 2–21
+weighted 0.6+0.4, days 22–63 weighted 0.4) are fine as a scheme but should be
+stated as deliberate; and the z-scores of overlapping sums will correlate the
+two components — worth knowing before anyone interprets a weight sweep.
+
+### 58.5 Status
+
+Proposal committed to the repo. XSMOM remains frozen; its 0/12 failure is
+already recorded (§56.13) as the proposal's §22 asks. Budget **15 of 25**
+(Gen 1). Holdout **sealed** — and question 1 above is now the gating decision
+for everything that follows.
