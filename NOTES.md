@@ -6875,3 +6875,152 @@ phase.
 
 **Budget 15 of 25. No strategy parameter changed. Zero orders on mainnet.
 Holdout sealed and untouched.**
+
+## 57. Stage 17 — review fixes and the feasibility surface: PRE-REGISTERED 2026-08-30
+
+**Recorded BEFORE any Stage 17 code.** No trials; budget stays **15 of 25**.
+**No strategy parameter of any validated config is changed** — Part II derives
+candidates and selects nothing. Zero orders on mainnet. Holdout sealed.
+
+### 57.1 The four defects, verified before being fixed
+
+An external review named four. Each was checked against the code rather than
+accepted, and all four are real:
+
+1. **No settle primitive.** `tools/roundtrip_demo.py` polls with a bare
+   `time.sleep(0.5)`; `live/phase2.py` reads `fetch_state` immediately after
+   execution with **no settle at all**. Two behaviours, one of them absent —
+   and §56.8-3 already measured `positionRisk` lagging a filled order, which
+   would make the §52.4 atomicity check report a false breach.
+2. **The floor model disagrees with itself.** `plan_rescale`'s docstring
+   asserts "reduce-only orders are floor-exempt on Binance" and closes
+   sub-floor positions outright; `fillsim.simulate` refuses **every** delta
+   under `min_notional`, reduce-only included. One of them is wrong about the
+   venue, and the trap is a position whose closing delta is sub-floor —
+   unclosable under the strict rule.
+3. **Research sizing never quantizes.** The store's schema persists
+   `step_size` and `tick_size` and `insert_filters` writes them, but `PITView`
+   exposes only `min_notional()`, and `compute_target_weights` computes
+   `min_position_notional` from raw `weight x equity` with no lot-size
+   rounding. Backtest, sim and live each size differently.
+4. **`leg_beta_se` is broken and dead.** Its docstring promises
+   `(|weighted leg beta contribution|, SE)`; it returns `(se, se)` and never
+   computes the contribution. It has **zero callers** — authoritative-looking
+   dead code.
+
+### 57.2 I.2 — the floor rule is MEASURED, not argued
+
+The venue can be asked, so it will be. One run on the demo fixture
+(testnet, `demo=True`), logged verbatim:
+
+```
+  1. open ~$15 SOLUSDT
+  2. reduce-only PARTIAL close of ~$3   (sub-floor)   -> accept or reject code
+  3. reduce back to a sub-floor remnant
+  4. reduce-only FULL close of that remnant           -> accept or reject code
+  5. non-reduce-only sub-floor order (the control)    -> expected reject
+```
+
+Step 5 is the control: without it, an "everything was accepted" result cannot
+distinguish a floor-exempt reduce-only rule from a venue that simply has no
+floor today.
+
+The measured rule is then encoded **once**, applied per delta class
+(`open_increase | partial_reduce | full_close | flip`), and used by `fillsim`,
+`plan_rescale` and the live path alike.
+
+**If testnet's measured behaviour differs from documented mainnet behaviour**,
+testnet's is encoded for the simulator, the discrepancy is recorded here, and
+it is flagged as a **must-re-verify item for any future real-money venue** —
+the same class of finding as §56.9's stops, where a capability the code
+assumed turned out not to exist on the venue actually in use.
+
+### 57.3 I.3 — the sizing module, and the scope rule that keeps history honest
+
+One deterministic function is the single source of truth for backtest,
+simulator and live:
+
+```
+  weight -> notional -> reference price -> raw qty
+        -> step-quantized qty -> executable notional -> filter verdict
+```
+
+**Scope rule, fixed now.** The module is wired into Part II's surface and into
+the paper/live path. It is **NOT retro-run against the frozen config's
+recorded train and validate results.** Those stand exactly as recorded, with
+an explicit caveat that they predate quantized sizing.
+
+The reason is the one this project has applied throughout: **history is
+annotated, never rewritten.** Re-running §44's validate through a new sizing
+module would produce a number that no pre-registration ever authorised, and
+which could not be compared with anything already recorded. The caveat is the
+honest form; a silently improved history is not.
+
+### 57.4 II.1 — the feasibility surface: pre-registration
+
+**The question, verbatim:** *"Under what capital, universe-rank, and
+identifiability conditions can the strategy definition (5L/5S, rank-weighted,
+beta-hedged, vol-targeted) physically express a book in the current market?"*
+
+**The outputs are probabilities of book formation. Never Sharpe, never PnL,
+never returns.** Nothing in Part II reads any return series, and no 2025+
+return data is touched.
+
+**The axes, fixed in advance:**
+
+```
+  capital                 $800, $1.2k, $2k, $3k, $5k
+  universe rank cap       top 15, 20, 25, 30
+  identifiability screen  none | beta SE <= 0.3 | <= 0.5 | 60d-listed + SE cap
+  vol target              10%, 12%, 14%
+```
+
+**Fixed, not swept:** N=10, k=5, the [0.5, 1.5] band, the hedge-guard
+thresholds, `MIN_LEG_NAMES`. **The strategy definition is the thing being
+tested for expressibility, so it does not bend during the test.** A grid that
+also relaxed the guards would answer a different and much easier question.
+
+**The estimator.** For each grid point, over a distribution of plausible
+momentum rankings — **bootstrapped from recent real relative-strength
+orderings, not one fixed ranking** — draw a top/bottom-k selection, size it
+through the §57.3 module with real floors and step sizes, apply the hedge with
+today's real betas and standard errors, and record whether a book forms and
+which guard refused. Report `P(form)`, the failure-mode split (floor vs
+identifiability vs leg-count) and median seated names.
+
+Bootstrapping the ranking is the point: formation must be robust to *which*
+names momentum picks, not conditioned on last Tuesday's ordering.
+
+**The anti-tuning rule.** The 12 replay days of §56.11 are a **smoke test
+only**. The surface is computed from structural facts — listings, floors, step
+sizes, beta standard errors as of today. Candidate regions are **verified on
+forward live-replay days as they accumulate, never fitted to the 12.** Fitting
+to 12 known failures would produce a region defined by those failures and
+tell us nothing about the next twelve days.
+
+### 57.5 The reading — fixed before computing
+
+| Pattern | Meaning |
+|---|---|
+| `P(form)` rises steeply with capital at a fixed screen | **capital-bound**: $800 is simply too small for today's structure. Report the tier where P ≥ 0.9 |
+| low at all capitals without a screen, healthy with one | **universe-too-young**: identifiability binds, not money. The screen becomes the research object |
+| low everywhere on the grid | **aged out** as defined; a new strategy generation is a bigger question than any grid |
+
+Mixed patterns are reported as mixed rather than resolved.
+
+**No cell is promoted to a deployment config.** The surface ends as a report
+and a recommendation *for the user's decision*. If a viable region exists, the
+report must state the validation problem that region inherits — a train era
+that no longer resembles the market, a sealed holdout, and forward validation
+as the only clean option left.
+
+### 57.6 What this stage does not do
+
+- Does not sleep instead of settling
+- Does not argue the floor rule from documentation when the venue can be asked
+- Does not re-run frozen-config history through the new sizing module
+- Does not fit any Part II choice to the 12 replay days
+- Does not read Sharpe, PnL or any 2025+ return data in Part II
+- Does not promote a surface cell to a deployment config
+- Does not split or edit `NOTES.md` — it stays canonical and append-only
+- Does not touch mainnet or the holdout
