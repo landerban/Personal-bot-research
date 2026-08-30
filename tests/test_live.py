@@ -262,12 +262,35 @@ def test_signature_matches_binance_docs_vector():
     print("PASS signature_matches_binance_docs_vector")
 
 
+# NOTES 56.1: the ONLY module permitted to name a production host. It is
+# read-only, unsigned and GET-only, and test_proddata_cannot_sign_or_post
+# proves each of those separately. Adding a name here without those proofs is
+# the thing this list exists to make visible in a diff.
+DATA_ONLY_MODULES = {"proddata.py"}
+
+
 def test_no_mainnet_anywhere_in_live():
-    """B1/B7: not even commented out."""
+    """B1/B7, NARROWED by NOTES 56.1 -- not relaxed.
+
+    Every TRADING-capable module must still contain no production host, not
+    even commented out. The single data-only module may, because it cannot
+    sign and therefore cannot reach a venue that settles money -- which was
+    always the rule's purpose.
+    """
     mainnet = re.compile(r"(?<!testnet\.)(?<![a-z])(f?api|f?stream|ws-f?api)\.binance\.com")
+    checked = 0
     for f in (Path(__file__).resolve().parents[1] / "live").glob("*.py"):
+        if f.name in DATA_ONLY_MODULES:
+            continue
+        checked += 1
         txt = f.read_text(encoding="utf-8")
         assert not mainnet.search(txt), f"mainnet host in {f.name}"
+    assert checked >= 6, f"only {checked} trading modules scanned"
+    # and the trading client specifically must be unable to name one
+    for f in ("client.py", "killswitch.py", "trader.py", "phase2.py"):
+        txt = (Path(__file__).resolve().parents[1] / "live" / f).read_text(
+            encoding="utf-8")
+        assert not mainnet.search(txt), f"mainnet host in {f}"
     for f in ("client.py", "killswitch.py"):
         assert "testnet.binancefuture.com" in (Path(__file__).resolve().parents[1] / "live" / f).read_text()
     print("PASS no_mainnet_anywhere_in_live")

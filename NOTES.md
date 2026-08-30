@@ -6750,3 +6750,128 @@ being retired. If real-money trading is ever approached, layer 1 must be
 re-established and re-tested on the venue that will actually carry it.
 
 Suites 138/138. Account flat. Budget 15 of 25. Holdout sealed.
+
+### 56.10 PARTS B AND C — built, railed, tested
+
+**Part B — `live/proddata.py`.** Read-only production market data: GET-only,
+unsigned, allow-listed. It is the only module permitted to name a production
+host, and the permission is earned by proof rather than asserted:
+
+```
+  imports no hmac/hashlib/cryptography/secrets   -- no signing PATH exists
+  constructor accepts no key/secret/token param  -- a caller cannot pass one
+  signs nothing even with credentials in the env -- adversarial test
+  post/place_order/cancel_* all raise ReadOnlyViolation
+  7 allow-listed read paths; /fapi/v1/order and /fapi/v2/account refused
+  every request built with method="GET"; no other verb is constructed
+  refuses a non-TLS base
+  paper_feed=production may pair ONLY with execution=simulated
+```
+
+**`test_no_mainnet_anywhere_in_live` was NARROWED, not deleted** (§56.1).
+Every trading-capable module — `client.py`, `killswitch.py`, `trader.py`,
+`phase2.py` — is still checked for production hosts by name, and the
+data-only exemption is a one-item list that shows up in any diff.
+
+**Part B.2 `feedcheck` — the feed is live and consistent:**
+
+```
+  server skew -13 ms, rtt 124 ms
+  last CLOSED 1m bar 53 s old (limit 180 s)          FRESH
+  funding rates live, next settlement 16:00 UTC
+  quotes move between successive calls                LIVE
+  live 24h volume vs store medians: ratios 0.43-1.01  SAME ORDER
+  exchangeInfo drift vs snapshot: +1 symbol           guard input
+  20 GET requests, zero signed, zero orders
+```
+
+One number worth keeping: **realised half-spreads on majors were 0.01–0.47
+bps against the 5 bps fill assumption.** That is the first real-data hint that
+5 bps is generous for liquid names. **Nothing is adopted from it** — §56.2
+fixed the fill model in advance precisely so this measurement cannot quietly
+become an input.
+
+**Part C — `live/fillsim.py`**, 10 tests. Fill at the open of the bar that
+opens **strictly after** the decision (a bar already forming was partly
+visible), 5 bps **adverse in both directions**, both fee schedules reported as
+a pair, MIN_NOTIONAL refused exactly as the venue would, rows tagged
+`venue=prod_data_sim` so they can never be confused with testnet or real
+fills, plus spread capture and the shadow-maker counterfactual — logged,
+never placed.
+
+### 56.11 PART D RESULT — 0 of 12 on REAL data. My §55.9 diagnosis is FALSIFIED.
+
+```
+  testnet, synthetic ranking   (53.1)   0 of 12   (0%)
+  testnet, production ranking  (55.8)   0 of 12   (0%)
+  PRODUCTION DATA              (here)   0 of 12   (0%)
+
+    unhedgeable_beta                6
+    below_min_notional_post_hedge   6
+```
+
+**§55.9 said the blocker was testnet's ~89 days of synthetic price history.
+That is wrong.** On real data beta identifiability is close to perfect — **1
+of 15 unidentified**, against 2 of 15 on testnet and 5 of 15 before the §55.1
+fix — and the book still never forms. The venue was never the blocker.
+
+This is the second hypothesis of mine falsified by measurement in two stages
+(§53.2's premise held; §55.9's did not). Both were caught by measuring rather
+than by reasoning, which is the argument for the stop conditions being written
+before the runs rather than after.
+
+### 56.12 What the blocker actually is
+
+Two causes, almost exactly half the days each.
+
+**1. The floor, at this capital.** Only **2 of 15** names are unseatable at
+the nominal band minimum — BTCUSDT ($50) and ETHUSDT ($20) against a $9.60
+band minimum. But the band applies at the *rank-weight* stage; the beta hedge
+then scales the short leg and the vol target scales everything, so realised
+positions fall well below it and names with ordinary $5 floors (1000PEPE, ADA)
+drop too. Each drop shrinks a leg, and a leg under `MIN_LEG_NAMES = 3` skips
+the day. This is §32.3 and §39.7's mechanism, unchanged, biting harder.
+
+**2. Recently-listed names with genuinely unidentifiable betas.** AKEUSDT
+(beta −3.776 ± **2.504**), LABUSDT (2.342 ± 1.801), BANKUSDT (−0.458 ± 1.365)
+are in the top-15 by real production volume. At a 0.2 weight, AKE alone
+contributes 0.50 to a leg's standard error; two such names put a leg at ~0.7
+before anything else, against a weighted beta that partially cancels to
+0.2–0.8. The `unhedgeable_beta` guard then correctly refuses.
+
+**The guard is right in both halves. The config cannot express itself in
+today's market at $800.**
+
+### 56.13 The finding, stated plainly
+
+**The frozen config formed a book on ~78% of train days (2020–2023). It forms
+one on 0% of the last 12 days of the real market.**
+
+That is not a code fault, a venue fault or a guard fault — all three have now
+been eliminated by measurement. It is the market having moved under a
+configuration frozen against 2023 data: the same shape as §47's universe
+drift, but affecting **tradability** rather than composition. §47 found the
+universe rule selecting instruments the strategy was never validated on; this
+finds the *sizing and hedging* assumptions no longer satisfiable by the
+universe the rule now selects.
+
+**Per §56.5 this stage stops here.** Parts B and C are built, tested and
+keep their value; **Part D's cutover is not performed**, because cutting a
+daily rehearsal over to a configuration that cannot form a book would produce
+28 more days of nothing.
+
+**Not attempted, and each would be a strategy change requiring its own
+pre-registration:** raising capital (§50.8 measured the higher-capital book as
+carrying a *lower* drift-stripped edge), relaxing `MIN_LEG_NAMES`, filtering
+candidates on beta estimation quality, lengthening the beta window, or
+loosening the hedge guard.
+
+**The open question is now a research one, not an engineering one:** the
+deployment config was validated on a market that no longer exists in the shape
+it was validated against. Whether that calls for re-derivation at today's
+universe, a different capital tier, or an explicit decision that the strategy
+has aged out, is the user's call — and it is a larger question than the paper
+phase.
+
+**Budget 15 of 25. No strategy parameter changed. Zero orders on mainnet.
+Holdout sealed and untouched.**
