@@ -47,15 +47,19 @@ class StubRunner(Phase2Runner):
             def __init__(self, *a, **k):
                 pass
 
-            def build(self, syms, as_of=None):
+            def build(self, syms, as_of=None, volume_reference=None):
                 return None, None
 
             def close(self):
                 pass
 
         real_feed, real_ctw = p2.LiveFeed, W.compute_target_weights
+        real_vols = p2.production_volumes
         sw = self._shadow_weights
         p2.LiveFeed = _Feed
+        # the shadow re-fetch now carries the production volume reference
+        # (NOTES 55.1); the stub must not open the 732 MB store to supply it
+        p2.production_volumes = lambda *a, **k: ({}, 0.0)
         try:
             W.compute_target_weights = (
                 lambda *a, **k: sw if isinstance(sw, W.Skip)
@@ -65,6 +69,7 @@ class StubRunner(Phase2Runner):
         finally:
             p2.LiveFeed = real_feed
             W.compute_target_weights = real_ctw
+            p2.production_volumes = real_vols
 
 
 BOOK = {"AAAUSDT": 0.05, "BBBUSDT": 0.04, "CCCUSDT": -0.045, "DDDUSDT": -0.045}
