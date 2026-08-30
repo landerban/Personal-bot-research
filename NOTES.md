@@ -6147,3 +6147,114 @@ Suites **138/138**; live state provably untouched by the suite (checksummed
 across a full run). Secret scan clean. The bot is running: supervisor,
 dashboard and watchdog, next cycle **2026-08-30 00:00:15 UTC**, counter 0 of
 28, holdout sealed.
+
+## 53. THE PAPER BOOK DOES NOT FORM — measured 2026-08-30, day 1 of 28
+
+Day 1 ran **on time and clean**: preflight, feed, decision, funding query,
+shadow, status, daily report, heartbeat — every piece of the machinery built
+in §52 worked. Counter 1 of 28, no errors, risk baselined (5,000 account →
+800 paper equity).
+
+**And it skipped, for a NEW reason.** That prompted a measurement, and the
+measurement is the important part of this entry.
+
+### 53.1 The measurement
+
+Replaying the last 12 testnet days through the *same* decision path:
+
+```
+  08-18  SKIP  unhedgeable_beta               long leg beta 0.805 +/- 1.239
+  08-19  SKIP  unhedgeable_beta               long leg beta 0.559 +/- 0.927
+  08-20  SKIP  unhedgeable_beta               long leg beta 0.485 +/- 0.923
+  08-21  SKIP  below_min_notional_post_hedge  leg reduced to 3L/2S
+  08-22  SKIP  unhedgeable_beta               long leg beta 0.713 +/- 0.724
+  08-23  SKIP  unhedgeable_beta               long leg beta 0.682 +/- 0.738
+  08-24  SKIP  unhedgeable_beta               long leg beta 0.623 +/- 0.746
+  08-25  SKIP  unhedgeable_beta               long leg beta 0.643 +/- 0.744
+  08-26  SKIP  unhedgeable_beta               long leg beta 0.643 +/- 0.745
+  08-27  SKIP  below_min_notional_post_hedge  leg reduced to 2L/4S
+  08-28  SKIP  below_min_notional_post_hedge  leg reduced to 2L/4S
+  08-29  SKIP  unhedgeable_beta               short leg beta 0.269 +/- 0.662
+
+  book formed on 0 of 12 days (0%)
+    unhedgeable_beta                9
+    below_min_notional_post_hedge   3
+```
+
+**A first attempt at this replay covered 25 days and reported 11
+`insufficient_candidates`. That was MY artifact and is withdrawn:** the live
+feed fetches only 14 days of funding history, so any as_of older than that
+starves every symbol on the funding-presence filter. Only the last ~12 days
+are replayable, and the corrected window is what is reported above.
+
+### 53.2 The cause — and it is the limitation I recorded, underestimated
+
+Beta identifiability on today's shortlist:
+
+```
+  BTCUSDT 1.000 +/- 0.000    XRPUSDT 1.521 +/- 0.124    ETHUSDT 1.367 +/- 0.106
+  BCHUSDT 1.667 +/- 0.202    DOGEUSDT 1.195 +/- 0.121   BNBUSDT 0.609 +/- 0.066
+  ---- and then ----
+  BTRUSDT 0.369 +/- 2.565    PROMUSDT 0.737 +/- 0.767   FXSUSDT -0.037 +/- 0.171
+  我踏马来了USDT 0.192 +/- 0.407  COLLECTUSDT 0.695 +/- 0.568
+```
+
+**The majors are cleanly identified. The rest is noise.** They are in the
+shortlist because the live path ranks candidates by **testnet 24-hour quote
+volume, which is synthetic** — junk symbols carry fake volume and outrank real
+majors. The momentum ranking then picks its extremes out of that junk, and the
+beta hedge **correctly refuses** to hedge on an estimate smaller than its own
+standard error (the §2e 5 guard doing exactly its job).
+
+**The hedge is not the defect. The input to it is.** §49.4 limitation 1
+recorded that synthetic testnet volumes make the paper composition unlike the
+validated one. That was right but too mild: it does not merely change the
+composition, **it prevents the book from forming at all.**
+
+### 53.3 What this costs, stated plainly
+
+At 0% book formation the 28-day phase cannot produce its deliverables:
+
+- **Criterion 1 passes vacuously.** 28 days with nothing to compare is not 28
+  days of agreement. This is the Stage 2e vacuity trap arriving exactly where
+  §52.6 warned it would.
+- **Criterion 4 demos 1, 2 and 4 are impossible** — all three act on an order.
+- **Criterion 3's book-reconcile half is impossible** (§52.5 already had it as
+  partial on a flat book).
+- **The costlog stays empty**, so §46.6's deliverable — the fill dataset that
+  is meant to replace the n=1 5 bps slippage assumption — is never produced.
+
+The phase would still exercise scheduling, recovery, the risk layer, funding
+queries, reporting and the dashboard. That is not nothing. It is also not what
+§46.2 says the phase is for.
+
+### 53.4 The options — NOT decided here
+
+1. **Rank the shortlist by REAL volume** (the research store carries production
+   quote volumes to 2026-07-31) intersected with what testnet lists, instead of
+   by synthetic testnet volume. The universe rule (§48.1) says "median quote
+   volume"; testnet volume is not that quantity, so this is arguably a
+   *more* faithful implementation rather than a change to the rule.
+   **Recommended.**
+2. **Accept 0% and run the 28 days as a plumbing exercise**, grading criteria
+   1, 3 and 4 as unproven rather than passed.
+3. **Raise paper capital** so BTC/ETH seat. **Rejected**: it changes a strategy
+   parameter in response to paper behaviour (§46.7, STAGE12 B.5), and §50.8
+   already measured the higher-capital book as carrying a *lower* drift-stripped
+   edge.
+
+**Nothing was changed.** Option 1 alters what the paper book trades, and
+although the argument for it is a data-fidelity one rather than a performance
+one, it was prompted by watching paper behaviour — which is close enough to
+the §46.7 line that it is the user's call, not mine, and the user is away.
+
+### 53.5 The guard against a vacuous verdict
+
+Recorded now, so it cannot be argued at day 28: **a day on which no book
+formed is not evidence for criterion 1.** The daily report already records the
+skip reason for every day, so the eventual verdict must be graded on *trading*
+days, and a phase with zero trading days cannot pass criteria 1, 3 or 4
+however many days the counter shows.
+
+The clock is untouched and keeps running; the counter is honest about days
+elapsed, and this section is what stops those days being mistaken for evidence.
