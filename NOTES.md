@@ -6562,3 +6562,100 @@ progress, and is recorded as such.
 **Recommended: 1 or 2. Option 3 is available but earns nothing** — a paper
 phase that only passes after the strategy is bent for the venue tests a
 strategy nobody intends to deploy.
+
+## 56. Stage 16 — real market, imaginary money: PRE-REGISTERED 2026-08-30
+
+**Recorded BEFORE any Stage 16 code.** No trials; budget stays **15 of 25**.
+**No strategy parameter changes.** Holdout sealed.
+
+### 56.1 The venue amendment — data yes, trading no
+
+**Production Binance MARKET DATA is permitted for the paper feed**: public,
+unauthenticated, read-only `GET`. **Production TRADING remains forbidden** and
+holdout-gated, exactly as §49.3 left it.
+
+**Grounds.** §55.9 established that testnet's ~89 days of synthetic price
+history cannot identify 60-day betas for the names momentum selects, so the
+`unhedgeable_beta` guard — working exactly as designed — blocks book formation
+on 12 of 12 days. The screen is not broken; the data is. On real data the
+screen behaves as the research measured. A read-only feed risks no capital and
+creates no path to one.
+
+**This narrows a rule I have enforced absolutely, so the narrowing is written
+down rather than assumed.** The standing rule (B1/B7, enforced by
+`test_no_mainnet_anywhere_in_live`) is that no mainnet host string appears
+anywhere in `live/`. Its purpose was that **no code path can reach a venue
+that settles real money**. A GET-only client with no credential, no HMAC and
+no POST cannot reach one.
+
+So the test is **narrowed, not deleted**: every trading-capable module
+(`client.py`, `killswitch.py`, `trader.py`, `phase2.py`) must still contain no
+production host, and the one new module that may — `live/proddata.py` — is
+separately proven unable to sign or to issue any non-GET request. A host
+string is permitted only where signing is impossible.
+
+**The combination rule:** `paper_feed=production` may only pair with
+`execution=simulated`. `execution=live` with any production host is a
+**startup refusal**, not a warning.
+
+### 56.2 The fill model — fixed now so nobody tunes it later
+
+Paper fills execute at **the open of the next 1-minute bar after the
+decision, plus 5 bps adverse slippage**. That is the backtester's own
+assumption (§2e 2 for the +1min open, §2c 4 for the 5 bps), now applied to
+live real bars rather than historical ones.
+
+**Recorded before any fill is simulated** so that no later result can be
+produced by moving the fill model toward flattery. The 5 bps remains what it
+has always been: a plausible magnitude from an n=1 synthetic fill, **not a
+measurement**. Stage 16 §C.2's spread capture begins collecting the evidence
+that will eventually replace it, and adopts nothing.
+
+### 56.3 Criterion interpretations — fixed before grading
+
+Following the §50.4 precedent of fixing an interpretation before it can be
+argued from a result:
+
+```
+  criterion 1 (shadow matched)      satisfied on the real-data rehearsal
+  criterion 2 (funding reconciles)  ledger half already demonstrated (52.3)
+                                    + daily accrual against real published
+                                      funding rates
+  criterion 3 (no unrecovered crash) real-data rehearsal
+  criterion 4 (four fixes)          demos 1, 2 and 4 on the TESTNET demo
+                                    fixture (they need real orders, which
+                                    only testnet allows); demo 3 already
+                                    partially shown (52.5)
+  criterion 5 (kill switch/watchdog) real-data rehearsal
+  criterion 6 (zero silent errors)   real-data rehearsal
+```
+
+**The honest limitation of this split, stated now:** the execution machinery
+is proven on testnet orders while the strategy rehearsal runs on production
+data with simulated fills. **No single environment proves both at once.** That
+is a real weakening of what "the machine works" means, it is the price of
+refusing to trade real money before the holdout, and it must be quoted
+alongside any eventual pass — not discovered later.
+
+### 56.4 The counter
+
+**The 28-day counter restarts at the first real-data cycle.** It currently
+reads 0: §55.10's restart never began counting, because no book formed on any
+day since. Nothing is being discarded.
+
+### 56.5 Stop conditions
+
+- **Part A:** any divergence between exchange response and local record stops
+  the stage. The roundtrip is the evidence that the code can genuinely trade;
+  a partial pass is not evidence.
+- **Part D:** if the 12-day real-data replay again shows ~0% formation, **stop
+  and report**. That would falsify §55.9's diagnosis — the third measurement of
+  the same quantity — and would need eyes rather than another layer.
+
+### 56.6 What this stage does not do
+
+- Does not give the production client any secret, signing path or non-GET method
+- Does not place any order outside the testnet demo fixture
+- Does not tune the fill model beyond §56.2
+- Does not change a strategy parameter
+- Does not touch mainnet trading or the holdout
