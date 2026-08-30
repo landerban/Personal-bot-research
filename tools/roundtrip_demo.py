@@ -48,6 +48,9 @@ from live.client import (  # noqa: E402
 # Binance: 'Order type not supported for this endpoint.'
 CODE_ORDER_TYPE = -4120
 from live.costlog import CostLog  # noqa: E402
+from live.settle import (  # noqa: E402
+    SettleTimeout, await_reconciled_state,
+)
 
 # Liquid majors, sized above each symbol's own MIN_NOTIONAL floor.
 PLAN = [("BTCUSDT", 60.0), ("ETHUSDT", 25.0), ("SOLUSDT", 15.0)]
@@ -210,13 +213,15 @@ class Roundtrip:
         # positionRisk can LAG a filled order (observed once: 0.0 immediately
         # after a FILLED market order, correct on a later call), so settle
         # before asserting rather than reading once and believing it.
+        # STAGE17 I.1: the SAME primitive run_cycle uses. No bare sleep.
         pos = 0.0
-        for _ in range(10):
-            state = reconcile.fetch_state(self.c)
-            pos = state.positions.get(symbol, 0.0)
-            if abs(pos) > 0:
-                break
-            time.sleep(0.5)
+        try:
+            settled = await_reconciled_state(
+                self.c, {symbol: float(qty)},
+                step_sizes={symbol: float(f.step_size)})
+            pos = settled.state.positions.get(symbol, 0.0)
+        except SettleTimeout as e:
+            self.record(symbol, "4 settle", False, str(e)[:110])
         self.record(symbol, "4 reconcile sees position",
                     abs(pos - float(qty)) < float(f.step_size) * 2,
                     f"exchange {pos} vs filled {filled}")

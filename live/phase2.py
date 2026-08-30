@@ -45,6 +45,7 @@ from live.fixes import (
     place_order_idempotent, reconcile_funding, reconstruct_position_at,
 )
 from live.pitfeed import LiveFeed
+from live.settle import SettleTimeout, await_reconciled_state
 
 log = logging.getLogger("live.phase2")
 
@@ -161,6 +162,7 @@ class CycleResult:
     atomicity: dict = field(default_factory=dict)     # STAGE10 4.1
     stops_placed: list[str] = field(default_factory=list)
     stops_unsupported: bool = False    # NOTES 56.7: venue capability
+    settle_timed_out: bool = False     # STAGE17 I.1
     stop_cascade: list[str] = field(default_factory=list)  # 4.2
     funding: dict = field(default_factory=dict)       # 4.3 + criterion 2
     price_pnl: float = 0.0
@@ -564,7 +566,28 @@ def run_cycle(runner: "Phase2Runner", costlog=None, execute: bool = True,
                 except Exception as e:                      # pragma: no cover
                     res.errors.append(f"{sym}: {type(e).__name__}: {e}")
 
-    after = reconcile.fetch_state(runner.c)
+    # ---- STAGE17 I.1: settle before believing the book -------------------
+    # positionRisk can lag a filled order (56.8-3). Reading once, immediately,
+    # made the atomicity check compare target against a book the exchange had
+    # not finished reporting -- a FALSE breach. Wait for the condition, never
+    # a fixed sleep, and record if it never settles.
+    if execute and res.target_units:
+        try:
+            settled = await_reconciled_state(
+                runner.c, res.target_units,
+                step_sizes={s: float(f.step_size)
+                            for s, f in runner.c.filters().items()})
+            after = settled.state
+            if settled.polls > 1:
+                log.info("book settled after %d polls (%.1fs)",
+                         settled.polls, settled.elapsed_s)
+        except SettleTimeout as e:
+            res.errors.append(f"settle: {e}")
+            res.settle_timed_out = True
+            after = reconcile.fetch_state(runner.c)
+    else:
+        after = reconcile.fetch_state(runner.c)
+
     res.filled = after.positions
     marks = {s: runner.c.mark_price(s) for s in after.positions}
     filled_w = _weights_from_units(after.positions, marks, cfg.capital)
@@ -581,7 +604,7 @@ def run_cycle(runner: "Phase2Runner", costlog=None, execute: bool = True,
         filled_w = _weights_from_units(after.positions, marks, cfg.capital)
 
     # ---- STAGE10 4.1: is the FILLED book the book we intended? ------------
-    if res.decision:
+    if res.decision and not res.settle_timed_out:
         betas = getattr(decision, "betas", None) or {}
         res.atomicity = check_atomicity(res.decision, filled_w, betas)
         if res.atomicity["needs_repair"]:

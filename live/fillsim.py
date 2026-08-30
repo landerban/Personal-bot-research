@@ -34,6 +34,8 @@ from __future__ import annotations
 import logging
 from dataclasses import asdict, dataclass, field
 
+from backtest.sizing import SymbolFilters, size_order
+
 log = logging.getLogger("live.fillsim")
 
 # NOTES 56.2 -- do not tune.
@@ -134,6 +136,7 @@ def simulate(client, targets: dict[str, float], current: dict[str, float],
              marks: dict[str, float], decision_ms: int,
              min_notionals: dict[str, float] | None = None,
              quotes: dict[str, tuple[float, float]] | None = None,
+             step_sizes: dict[str, float] | None = None,
              ) -> SimResult:
     """Simulate the fills for one rebalance against REAL bars.
 
@@ -144,6 +147,7 @@ def simulate(client, targets: dict[str, float], current: dict[str, float],
     """
     res = SimResult()
     mins = min_notionals or {}
+    steps = step_sizes or {}
     quotes = quotes or {}
 
     for symbol in sorted(set(targets) | set(current)):
@@ -152,12 +156,22 @@ def simulate(client, targets: dict[str, float], current: dict[str, float],
             continue
         side = "BUY" if delta > 0 else "SELL"
         mark = marks.get(symbol, 0.0)
-        notional = abs(delta) * mark
-        floor = mins.get(symbol)
-        if floor is not None and notional < floor:
+
+        # Stage 17 I.2/I.3: one sizing module, and the MEASURED floor rule.
+        # This used to refuse every sub-floor delta including a close, which
+        # would make a sub-floor position unclosable in the sim -- the venue
+        # accepts a reduce-only close under the floor (tools/floor_probe.py).
+        sized = size_order(symbol, current.get(symbol, 0.0),
+                           targets.get(symbol, 0.0), mark,
+                           SymbolFilters(symbol,
+                                         min_notional=mins.get(symbol),
+                                         step_size=steps.get(symbol)))
+        if not sized.ok:
             res.refused.append({"symbol": symbol, "side": side,
-                                "notional": notional, "min_notional": floor,
-                                "reason": "below_min_notional"})
+                                "notional": sized.notional,
+                                "min_notional": mins.get(symbol),
+                                "delta_class": sized.delta_class,
+                                "reason": sized.reason.split(" ")[0]})
             continue
 
         bar = execution_bar(client, symbol, decision_ms)
@@ -165,9 +179,10 @@ def simulate(client, targets: dict[str, float], current: dict[str, float],
             res.missing_bars.append(symbol)
             continue
 
+        qty = sized.qty
         bar_open = float(bar[1])
         fill_price = adverse_fill_price(bar_open, side)
-        filled_notional = abs(delta) * fill_price
+        filled_notional = qty * fill_price
         bid, ask = quotes.get(symbol, (None, None))
         half_bps = None
         if bid and ask:
@@ -176,7 +191,7 @@ def simulate(client, targets: dict[str, float], current: dict[str, float],
         mk_price, mk_fill = maker_counterfactual(bar, side, bid, ask)
 
         res.fills.append(SimFill(
-            symbol=symbol, side=side, qty=abs(delta),
+            symbol=symbol, side=side, qty=qty,
             decision_price=mark, bar_open=bar_open, fill_price=fill_price,
             slippage_bps=SLIPPAGE_BPS, notional=filled_notional,
             fee_usdt=filled_notional * USDT_TAKER,

@@ -7024,3 +7024,163 @@ as the only clean option left.
 - Does not promote a surface cell to a deployment config
 - Does not split or edit `NOTES.md` — it stays canonical and append-only
 - Does not touch mainnet or the holdout
+
+### 57.7 PART I RESULT — the four defects, and one frozen-module decision
+
+**I.1 the settle primitive.** `live/settle.py::await_reconciled_state` polls
+for a *condition* — every expected position reflected within step tolerance —
+and **raises** on the deadline rather than returning a book it does not
+believe. Both call sites now import the same function; the bare
+`time.sleep(0.5)` in the roundtrip is gone, and `run_cycle` settles before the
+atomicity verdict instead of reading once. **The atomicity check is skipped
+entirely when the settle times out**, because a verdict on unsettled state is
+a guess. A test asserts exactly one implementation exists.
+
+**I.2 the floor rule — measured, not argued.** Probed on the venue:
+
+```
+  1 open ~$15 (non-reduce-only)                ACCEPTED
+  2 reduce-only PARTIAL close ~$3 (sub-floor)  ACCEPTED
+  3 reduce-only down to a $3.21 remnant        ACCEPTED
+  4 reduce-only FULL close of that remnant     ACCEPTED
+  5 CONTROL: same size, NOT reduce-only        REJECTED -4164
+      "Order's notional must be no smaller than 5
+       (unless you choose reduce only)"
+```
+
+**Rule: `reduce_only_exempt`.** `plan_rescale` was right; **`fillsim` — which
+I wrote in Stage 16 — was too strict** and would have made a sub-floor
+position unclosable in the simulator. The control step is what makes this
+conclusive: without it, "everything was accepted" could equally have meant a
+venue with no floor at all.
+
+This rule is **testnet-measured** and is flagged as a **must-re-verify item
+for any real-money venue**, the same class as §56.9's stops finding.
+
+**I.3 the shared sizing module** (`backtest/sizing.py`), with delta
+classification, and it immediately paid for itself:
+
+```
+  BTCUSDT at $800/10%: target $19.20 -> raw qty 0.000305 -> step 0.001
+                       -> quantized qty 0 -> NO POSITION AT ALL
+```
+
+Research sizing never quantized, so it believed that BTC position existed. The
+step size kills it before the floor is ever consulted. `PITView.symbol_filters`
+now exposes the `step_size` the schema has carried all along and nothing read.
+
+**Scope rule honoured:** the frozen config's train and validate numbers are
+**not re-run** through the new module. They stand as recorded, annotated as
+predating quantized sizing (`docs/CURRENT_STATUS.md`). History is annotated,
+never rewritten.
+
+**I.4 `leg_beta_se`** returned `(se, se)` — never computing the contribution
+its docstring promised — and had **zero callers**. Fixed to match the
+docstring **and wired into `build()`**, replacing the open-coded duplicate, so
+there is one implementation rather than a correct copy beside a wrong dead
+one. **The refactor is proven inert**: the $800/10% train row still reproduces
+§43.6 on all four pinned figures.
+
+**A frozen-module decision, recorded rather than slipped through.** Adding
+`PITView.symbol_filters` broke `test_every_public_reader_is_time_gated` and
+`test_stage1_regression` — the frozen Stage 1 whitelist, doing exactly its
+job by refusing an unenrolled reader. The method is **not** point-in-time: it
+returns the earliest recorded filters, which is precisely and only the gap
+`min_notional` already carries and `audit_filter_coverage()` already
+quantifies. It was enrolled deliberately, with that reasoning written beside
+the whitelist entry. Stage 1 is 13/13 again.
+
+### 57.8 PART II RESULT — UNIVERSE-TOO-YOUNG. Identifiability binds, not money.
+
+```
+  P(form), rank-cap 15, vol 10%
+  capital        none    se<=0.3    se<=0.5   60d+se<=0.5
+  $   800         23%       100%       100%       100%
+  $ 1,200         17%       100%       100%       100%
+  $ 2,000         15%       100%       100%       100%
+  $ 3,000         16%       100%       100%       100%
+  $ 5,000         14%       100%       100%       100%
+
+  capital effect ($800 -> $5k, no screen):   +3%
+  screen effect (best screened - unscreened): +59%
+```
+
+**Capital does essentially nothing. The screen does everything.**
+
+That is a direct answer to the review's tier question, and it **contradicts
+the intuition behind Stage 13's $2k exploration**: more money does not buy
+formation. §50.8 had already found the higher-capital book carrying a *lower*
+drift-stripped edge; the surface now adds that it does not even buy the
+ability to trade.
+
+The frozen config's own cell: **P(form) = 23%**, failure split **floor 45%,
+identifiability 32%, leg-count 0%**.
+
+### 57.9 Two estimator defects I had to fix before believing any of it
+
+**1. A uniform shuffle is not a momentum ranking.** The first implementation
+drew orderings with `rng.permutation` and reported the frozen cell at **59%**
+against a measured 0/12. §57.4 had registered "bootstrap from recent real
+relative-strength orderings", and a uniform shuffle is not that. Momentum
+picks **extremes**, and on this venue the extreme movers are systematically
+the recent listings with the largest beta standard errors: a uniform draw puts
+one in a leg occasionally, real momentum puts one there almost always.
+Corrected to sample a real historical day and use its actual 14-day ordering
+— frozen cell **59% -> 23%**.
+
+**2. The floor was checked at the wrong point.** I applied it to band weights;
+the pipeline applies it **post-hedge, post-vol-scale**, where positions are
+smaller. The first corrected run reported **floor 0%** against a replay that
+measured 6 of 12. With the hedge ratio applied before sizing, the split
+becomes **floor 45% / identifiability 32%** — matching the replay's 6/6.
+
+Neither correction was a fit to the 12 days: both were faithfulness repairs
+against the pre-registered estimator, and both moved the answer *away* from
+the flattering direction. The smoke test then agreed, which is what a smoke
+test is for.
+
+**The residual gap is stated, not smoothed:** the surface says 23% and the
+replay measured 0 of 12. `P(0 of 12 | p = 0.23) ≈ 4%`, so the two are only
+marginally consistent. The surface's gross proxy (`0.24 x vol/0.10`) and its
+single-hedge-pass approximation are the likely remainder, and the surface
+should be read as *the shape of the constraint*, not as a calibrated
+probability.
+
+### 57.10 The reading, and what is NOT being concluded
+
+**Pattern: UNIVERSE-TOO-YOUNG.** The binding constraint is that the top of
+today's crypto universe contains recently-listed names whose betas cannot be
+identified on 60 days, and the strategy's own hedge guard — correctly —
+refuses to hedge on them.
+
+**No cell is promoted to a deployment config**, and the smallest cell reaching
+P ≥ 0.9 (`$800 / top-15 / SE ≤ 0.3 / 10%`) is **a research object, not a
+recommendation**. Adopting it would mean adding a screen the validated
+strategy never had, and:
+
+- it was derived from **today's** structure, on 30 symbols, at one moment
+- a beta-SE screen is a **new selection rule**, and selection on estimation
+  quality correlates with age, size and volatility — a tilt that would need
+  its own attribution before anyone could claim the edge survived it
+- the validated evidence is from a market whose composition has since drifted
+  (§47) and whose tradability has since broken (§56.13)
+
+**The validation problem any viable region inherits**, stated as §57.5
+required: a train era that no longer resembles the market, a **sealed
+holdout**, and **forward validation as the only clean option left**. A screen
+adopted now could not be tested on train without re-opening a question the
+train data can no longer answer honestly, and could not be tested on the
+holdout without spending the one look on a rule invented after the fact.
+
+### 57.11 Status
+
+- **`docs/CURRENT_STATUS.md`**, `pyproject.toml` and a CI workflow added. CI
+  runs the secret scan, the frozen lookahead suite and the fast suite; the
+  732 MB store, network venues and the real-order roundtrip **cannot** run
+  there and are marked locally-verified-only, so **CI green does not mean
+  everything was checked**.
+- **`NOTES.md` untouched as the ledger** — append-only, unsplit, canonical.
+  `CURRENT_STATUS.md` says so and defers to it on any disagreement.
+- Suites **169/169**. Secret scan clean over 129 tracked files.
+- **Budget 15 of 25. No trial. No validated strategy parameter changed. Zero
+  orders on mainnet. Holdout sealed and untouched.**

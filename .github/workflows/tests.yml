@@ -1,0 +1,27 @@
+name: tests
+
+# The fast suite runs per commit. Anything that needs the 732 MB store or a
+# network venue cannot run in CI and is listed in docs/CURRENT_STATUS.md as
+# locally-verified-only -- CI green is not the same as "everything checked".
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 3 * * *"        # nightly, for the slower adversarial checks
+
+jobs:
+  fast:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -e ".[dev]"
+      - name: secret scan
+        run: python tools/scan_secrets.py
+      - name: lookahead suite (Stage 1, frozen)
+        run: python -m pytest tests/test_lookahead.py -q
+      - name: fast suite
+        run: python -m pytest tests -q -k "not slow"

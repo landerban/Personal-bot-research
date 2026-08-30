@@ -234,16 +234,27 @@ def shrink_betas(betas: np.ndarray, ses: np.ndarray) -> np.ndarray:
     return w * betas + (1.0 - w) * 1.0
 
 
-def leg_beta_se(weights: dict[str, float], ses: dict[str, float],
-                positive: bool) -> tuple[float, float]:
-    """(|weighted leg beta contribution|, SE of it) for one leg. The SE
-    combines independently: sqrt(sum (w_i * SE_i)^2)."""
-    items = [(w, ses[s]) for s, w in weights.items()
+def leg_beta_se(weights: dict[str, float], betas: dict[str, float],
+                ses: dict[str, float], positive: bool) -> tuple[float, float]:
+    """(|weighted leg beta contribution|, SE of it) for one leg.
+
+    The contribution is sum(|w_i| * beta_i); the SE combines independently as
+    sqrt(sum (|w_i| * SE_i)^2). When the SE exceeds the contribution the hedge
+    ratio is not identified and hedging on it executes noise (Stage 2e 5).
+
+    Stage 17 I.4: this previously returned `(se, se)` -- it never computed the
+    contribution its docstring promised, and had zero callers. Fixed to match
+    the docstring AND wired into `build()` below, so there is one
+    implementation rather than a correct open-coded one beside a wrong dead
+    one. The refactor is proven inert by the §43.6 determinism check.
+    """
+    items = [(abs(w), betas[s], ses[s]) for s, w in weights.items()
              if (w > 0) == positive and w != 0]
     if not items:
         return 0.0, 0.0
-    se = float(np.sqrt(sum((abs(w) * se_) ** 2 for w, se_ in items)))
-    return se, se
+    contrib = float(sum(w * b for w, b, _ in items))
+    se = float(np.sqrt(sum((w * se_) ** 2 for w, _, se_ in items)))
+    return abs(contrib), se
 
 
 def beta_hedge(
@@ -535,15 +546,8 @@ def compute_target_weights(
         # If a leg's weighted beta is smaller than its own standard error the
         # hedge ratio is not identified; hedging on it executes noise.
         for is_long in (True, False):
-            contrib = sum(
-                abs(w) * betas[s_] for s_, w in raw.items()
-                if (w > 0) == is_long
-            )
-            se_leg = float(np.sqrt(sum(
-                (abs(w) * ses[s_]) ** 2 for s_, w in raw.items()
-                if (w > 0) == is_long
-            )))
-            if se_leg > abs(contrib):
+            contrib, se_leg = leg_beta_se(raw, betas, ses, is_long)
+            if se_leg > contrib:
                 return Skip(
                     "unhedgeable_beta",
                     f"{'long' if is_long else 'short'} leg beta "

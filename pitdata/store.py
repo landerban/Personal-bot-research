@@ -345,6 +345,26 @@ class PITView:
         ).fetchone()
         return row[0] if row else None
 
+    def symbol_filters(self, symbol: str) -> dict | None:
+        """Earliest observed lot/tick/notional filters for `symbol`.
+
+        NOT point-in-time, for the same reason `min_notional` is not: Binance
+        publishes no filter history. Stage 17 I.3 needs step_size for
+        quantization -- the schema has carried it all along and nothing read
+        it, which is why research sizing never quantized.
+        """
+        row = self._conn.execute(
+            """
+            SELECT min_notional, step_size, tick_size FROM symbol_filters
+             WHERE symbol = ? AND step_size IS NOT NULL
+             ORDER BY snapshot_time ASC LIMIT 1
+            """,
+            (symbol,),
+        ).fetchone()
+        if row is None:
+            return None
+        return {"min_notional": row[0], "step_size": row[1], "tick_size": row[2]}
+
     def tradeable_universe(
         self,
         capital: float,

@@ -1,0 +1,17 @@
+[project]
+name = "xsmom"
+version = "0.1.0"
+description = "Cross-sectional momentum research on Binance USDS-M perpetuals. Research code; not deployment-ready."
+requires-python = ">=3.11"
+dependencies = ["numpy>=1.26", "requests>=2.31"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+markers = ["slow: touches the 732 MB store or the network"]
+
+[tool.setuptools]
+packages = ["backtest", "live", "pitdata", "dashboard", "xsmom"]

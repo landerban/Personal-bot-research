@@ -213,6 +213,19 @@ def test_every_public_reader_is_time_gated():
     expected = {
         "klines", "latest_close", "trailing_return", "realised_vol",
         "funding", "universe", "min_notional", "tradeable_universe",
+        # Stage 17 I.3, enrolled DELIBERATELY (NOTES 57.7). Returns the
+        # EARLIEST recorded lot/tick/notional filters for a symbol and is
+        # therefore NOT point-in-time -- exactly and only the gap
+        # `min_notional` already carries, because Binance publishes no filter
+        # history. Same table, same earliest row, and audit_filter_coverage()
+        # already quantifies the unverified span. Adding step_size/tick_size
+        # extends that ACCEPTED gap to two more columns; it does not create a
+        # new class of leak.
+        #
+        # This whitelist exists to make such an addition a reviewed act rather
+        # than an accident, and it did its job: the method was caught on its
+        # first run.
+        "symbol_filters",
     }
     unknown = set(readers) - expected
     assert not unknown, f"ungated reader may have been added: {unknown}"
