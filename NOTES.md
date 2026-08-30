@@ -7666,3 +7666,457 @@ Any Sharpe, return or drawdown computed on formed days only carries the
 literal label:
 
 **`DIAGNOSTIC — CONDITIONAL ON FORMATION — NOT STRATEGY PERFORMANCE`**
+
+## 60. Stage 19 — RCM v1 MATHEMATICAL SPECIFICATION, pre-registered 2026-08-31
+
+**No optimizer code was written and no market, return, backtest or
+performance data was accessed in this stage.** Inputs: the ledger, committed
+exchange metadata, algebra. Governed by §59 and §59.11. Gen-1 budget
+**15 of 25** unchanged; Gen-2 **0 of 20** — this stage consumes none.
+Holdout sealed.
+
+### 60.0 The standing rule, and the estimation/selection distinction
+
+Every number and functional form below is justified by **architecture,
+economics, or arithmetic**. None was chosen by comparing performance.
+
+**Estimation is not selection.** Fitting parameters from data by a
+pre-registered PIT procedure — betas, covariances, the momentum-to-return
+calibration — is *estimation*, is legitimate, and consumes no trial.
+Choosing *among candidate procedures* by comparing Sharpe, PnL, drawdown or
+formation rate is *selection* and is forbidden. Nothing in this section may
+later be read as a prohibition on estimating; everything in it prohibits
+selecting.
+
+All quantities are in **daily units** unless stated; annualization uses 365
+(perps trade every calendar day, §2's convention).
+
+### 60.1 Factor model, with ETH orthogonalized
+
+```
+  r_i,t = α_i + β_BTC,i · f_BTC,t + β_ETHperp,i · f_ETHperp,t + ε_i,t
+
+  f_BTC,t     = BTC daily simple return
+  f_ETHperp,t = residual of ETH return regressed on BTC return
+                over the same trailing window (orthogonal by construction)
+```
+
+**Why orthogonalize:** BTC and ETH returns are highly correlated; raw
+two-column OLS yields unstable, sign-flipping coefficients. With
+`f_ETHperp ⟂ f_BTC` in-window, the design matrix is orthogonal, the two
+betas are separately interpretable, and `V_i` is (near-)diagonal.
+
+**The estimation window: 90 days — bound by arithmetic, chosen inside the
+bound.** The frozen 180-day minimum history (§59.3.2) and the frozen long
+momentum window (residuals at lags 2–63, needing 63 daily residuals) impose
+
+```
+  window + 63 ≤ 180   ⇒   window ≤ 117 days.
+```
+
+Within [63, 117]: longer is better purely by estimation-error arithmetic
+(`SE ∝ 1/√T`; Gen-1's 60-day windows produced the §57.8 identifiability
+failures), shorter is better under beta drift. **90** is frozen: it improves
+on 60 by the factor √(60/90) ≈ 0.82 in SE, and leaves 180−(90+63) = 27 days
+(≈ 15%) of slack for data gaps and misalignment. The same 90-day window is
+used for the ETH-on-BTC orthogonalization and every §60.7 covariance input —
+**one estimation window in the whole system**, so no second window exists to
+sweep.
+
+**Estimator, frozen:** equal-weighted OLS on daily simple returns.
+EWLS/robust variants are rejected for v1 on parsimony: each adds a half-life
+or breakpoint knob with no non-performance way to set it. The per-asset
+coefficient covariance
+
+```
+  V_i = σ̂²_ε,i · (XᵀX)⁻¹ ,   X = [f_BTC, f_ETHperp]  (90×2)
+```
+
+is retained for §60.3; with orthogonalized factors it is diagonal up to
+numerical error:  `V_i ≈ diag( σ²_ε/(T·σ²_BTC), σ²_ε/(T·σ²_ETHperp) )`.
+
+### 60.2 Momentum in expected-return units — and the carry-degeneration guard
+
+**The score** (windows and weights frozen in §59.3.2): with residuals ε from
+§60.1,
+
+```
+  M_i = 0.6 · Σ_{t-21..t-2} ε_i  +  0.4 · Σ_{t-63..t-22} ε_i
+  Z_mom,i = cross-sectional z-score of M_i, winsorized at ±3
+```
+
+(±3 is a reporting convention, the same clip every z-score in this project
+has used; recorded in the manifest as convention, not derivation.)
+
+**60.2.1 The calibration to return units.** One PIT procedure, frozen: a
+pooled cross-sectional predictive regression on an **expanding** window,
+
+```
+  ε_i,τ+1 = a_τ + b · Z_mom,i,τ + u_i,τ     pooled over all τ ≤ t in the
+                                            development era, cross-sections
+                                            demeaned
+  μ̂_mom,i,t = b̃_t · Z_mom,i,t
+```
+
+Expanding rather than rolling **eliminates the window knob entirely** — the
+strongest available non-performance justification. Winsorization of the
+dependent variable at its own cross-sectional ±3σ, matching the score's
+clip.
+
+**60.2.2 Shrinkage, derived from estimation arithmetic.** The pooled slope is
+precision-weighted toward zero:
+
+```
+  b̃_t = n_t / (n_t + n₀) · b̂_t ,      n_t = number of daily cross-sections
+                                        pooled so far,  n₀ = 63
+```
+
+`n₀ = 63`: the slope must be supported by at least one full long-momentum
+window of cross-sections before it can carry more weight than the prior —
+the same evidence standard the signal itself is built on. Before 63
+cross-sections exist, `b̃_t` is dominated by the zero prior and the book is
+mostly carry, which the guard below makes loud rather than silent.
+
+**Sign floor, deterministic:** if `b̃_t ≤ 0`, then `μ_mom := 0` for that day
+and the day is flagged. A negative slope is the data claiming reversal;
+trading it would silently run a different strategy, and flooring at the
+estimate's sign boundary neither presumes the hypothesis nor flips it.
+
+**60.2.3 CARRY-DEGENERATION GUARD — mandatory, reported every run.**
+If `b̃_t → 0` then `μ_total ≈ −F` and RCM silently becomes a pure carry
+trade — Gen-1 was exactly this and learned it after the fact (§36: ~60% of
+PnL from funding in some configurations). Standing attribution, every run:
+
+```
+  s_mom(t) = Σ_i |μ_mom,i| / ( Σ_i |μ_mom,i| + Σ_i |F̂_i| )
+```
+
+reported per run and as a trailing 21-day mean. **Threshold: trailing
+21-day mean s_mom < 0.5 ⇒ the book is declared "CARRY REGIME — NOT RCM"**
+and every report carries that flag until it recovers. 0.5 is the semantic
+boundary, not a tuned number: a strategy whose intended return is majority
+funding is by definition not the residual-momentum hypothesis. Consequence:
+**flag and report — never a silent continuation, never an automatic halt.**
+
+**60.2.4 The funding forecast and the sign convention.** Holding horizon is
+one day (§60.4), which spans exactly **3 funding settlements**. Frozen
+estimator:
+
+```
+  F̂_i(t) = 3 × mean( last 21 settlement rates of i )
+```
+
+21 settlements = 7 calendar days: spans a full weekly cycle of the funding
+pattern while remaining inside the short momentum window's time scale, and
+divides the noise of a single settlement by √21 ≈ 4.6. Units: F̂ is a
+1-day expected funding **rate**, the same units as μ_mom.
+
+**Sign convention, explicit (the §58 error, closed):** a positive funding
+rate means **longs pay, shorts receive**. With signed optimizer weights the
+single expression
+
+```
+  μ_i = μ_mom,i − F̂_i        (λ = 1, per §59.3.3)
+```
+
+is automatically direction-correct: portfolio carry = −Σ w_i F̂_i, so a
+short (w<0) of a positive-funding asset *earns* carry with no case split.
+Direction-awareness falls out of the units; no λ exists to tune.
+
+### 60.3 Beta uncertainty is a constraint, not an alpha haircut
+
+**60.3.1 The reliability-multiplier form is REJECTED.**
+`R_i = β²/(β²+SE²)` conflates "beta is small" with "beta is uncertain": a
+precisely-estimated near-zero beta — the *ideal* asset for a neutral book —
+gets R ≈ 0 and is punished hardest. The proposal's §7 form
+`1/(1+c·SE)` avoids that pathology but still deducts a hedging-risk quantity
+from an alpha estimate, mixing units. Both rejected.
+
+**60.3.2 The chance constraint.** For each factor k ∈ {BTC, ETHperp}:
+
+```
+  |β̂_kᵀ w| + z · SE(β_kᵀ w) ≤ ε_β,k ,
+  SE(β_kᵀ w) = sqrt( Σ_i w_i² · V_i[k,k] )
+```
+
+(independent estimation errors across assets — justified because residuals
+are cross-sectionally idiosyncratic by construction; stated as an
+assumption). Uncertain hedges become a continuous **risk cost**; nothing
+about beta uncertainty touches the momentum signal. With orthogonalized
+factors the two per-factor constraints approximately bound the joint
+exposure; the joint quadratic version is deliberately omitted from v1
+(parsimony) and noted.
+
+**60.3.3 Deriving z and ε_β — the arithmetic.**
+
+*ε_β:* the tolerable residual factor exposure comes from the risk
+architecture. The book intends ~10 effective independent positions
+(N_eff targets, §60.5). **Rule: the market factor may contribute at most as
+much variance as any single intended position**, i.e. at most 1/10 of the
+portfolio variance budget:
+
+```
+  (b_net · σ_k)² ≤ σ_target² / 10
+  ⇒  ε_β,k(t) = σ_target / ( √10 · σ̂_k(t) )
+```
+
+with σ̂_k the 90-day factor vol from §60.1 — an *estimated input*, so ε_β is
+a frozen **formula**, not a constant. (Illustration only: at σ_BTC = 40%
+ann and σ_target = 10% ann, ε_β,BTC ≈ 0.079.)
+
+*z = 1.645:* the neutrality claim must hold at the same confidence this
+project has used for every interval since §26 — 90% two-sided / 95%
+one-sided. A reporting-convention constant, aligned with the house standard,
+not swept.
+
+### 60.4 The event timeline — frozen, identical holding intervals
+
+```
+  t 00:00:00 UTC        daily bar closes (close_time 23:59:59.999) — data cutoff
+  t 00:00 + compute     PIT view as_of the close; signal, optimizer, gates
+  t_exec                open of the first 1-minute bar ≥ 00:01 UTC,
+                        + 5 bps adverse (the frozen §56.2 fill model)
+  t+1_exec              the same instant next day — mark
+```
+
+**Holding interval for BOTH `r_shadow` and `r_actual_price`:
+[t_exec, t+1_exec), by construction identical** — both computed
+open-to-open on the same 1-minute execution bars, price-only. Any
+difference between them is therefore attributable to feasibility and
+transition, never to timing (the Gen-1 millisecond-funding class of error,
+§30, closed by construction).
+
+**Funding accrual window:** `(t_exec, t+1_exec]`, containing exactly the
+08:00, 16:00 and next-day 00:00 settlements — 3 settlements, matching F̂'s
+horizon. The 00:00 settlement at entry belongs to the *previous* book
+(Gen-1's intra-step order, retained).
+
+### 60.5 The gates — bounded forms and derived thresholds
+
+**60.5.1 Signal coverage, corrected (a correction to §59.4's formula,
+recorded here by append; §59 is unedited).** The §59.4 wording admits values
+> 1 under renormalization. Frozen bounded form, using pre-feasibility
+weights of surviving names:
+
+```
+  C_signal = Σ_{i ∈ survive} |w_pre,i|·|S_i|  /  Σ_i |w_pre,i|·|S_i|   ∈ [0,1]
+```
+
+Orthogonality note: `C_signal` measures *which alpha was retained*;
+`G_realized/G_target` measures *how much exposure was retained*. The
+density ρ = C_signal / (G_realized/G_target) is **reported** as a
+diagnostic (ρ < 1 ⇒ feasibility preferentially discarded strong signals)
+but not gated in v1.
+
+**60.5.2–60.5.4 The four thresholds, each with its derivation:**
+
+- **`N_eff,long ≥ 6` and `N_eff,short ≥ 6`** (independent, per §59.4).
+  Two arguments: (i) each RCM leg must be strictly broader than the entire
+  Gen-1 leg (5 discrete names) — a leg less diverse than the one whose
+  narrowness RCM exists to escape contradicts the architecture that
+  motivates Gen 2; (ii) at N_eff = 6 no single name carries more than ~17%
+  of leg variance, the largest concentration compatible with calling a leg
+  "cross-sectional" rather than "a bet plus passengers". Starting concept
+  adopted because the architecture argument lands on the same number.
+- **`g_min = G_realized/G_target ≥ 0.70`.** Variance arithmetic: delivered
+  variance scales as g², so the book must deliver **at least half its
+  intended variance budget**: g² ≥ 0.5 ⇒ g ≥ √0.5 ≈ 0.707, rounded to the
+  starting concept 0.70. Below that the strategy is running at less than
+  half its designed risk and is a different strategy.
+- **`C_signal,min = 0.50`.** The majority-identity principle, the same
+  semantic boundary as the carry guard: the traded book must contain at
+  least half of the intended signal mass, else it is not an expression of
+  the signal that motivated it. (Not a variance argument — signal is
+  linear — so the boundary is identity, not arithmetic, and is stated as
+  such.)
+
+A day failing any gate is a **skip**, recorded with the failing gate(s),
+and handled by §60.6. Per §59.4.5, all development-era performance is
+computed on the **full calendar** with formation rate beside every number.
+
+### 60.6 The complete state-transition table
+
+**One common transition for every non-formed category — HOLD-WITH-RISK-CAP —
+plus a staleness ceiling.** Derived from RCM's own architecture, not
+inherited (§59.11.1):
+
+```
+  T(any non-formed day, w_prev):
+    1. hold w_prev unchanged, EXCEPT
+    2. if drifted gross > G_cap: rescale ALL positions by the single scalar
+       that restores gross to G_target (preserves optimizer proportions;
+       re-selects nothing)
+    3. if the day is the M-th CONSECUTIVE non-formed day, M = 7:
+       flatten to cash; remain flat until the next formed day
+```
+
+*Why hold:* the signal's horizon is 21–63 days; the day-over-day target
+autocorrelation is ≈ 62/63, so one stale day costs little tracking error,
+while flattening trades twice (out and back) paying the full §60.7 cost
+term for near-zero informational gain.
+*Why the single-scalar rescale:* it is the unique transformation that
+changes risk without changing selection — any per-name adjustment
+re-decides the book on a day the pipeline declared no decision exists.
+*Why M = 7:* one third of the short momentum window (21/3): a book stale by
+more than a third of the window that motivated it no longer expresses that
+window's signal. This ceiling is what prevents "hold indefinitely on
+repeated solver failure" — the exact mechanism of Gen-1's runaway leverage
+(§13.1) — from recurring.
+*Leverage-drift consequence, stated (§59.11.1.4):* between rescale triggers,
+gross may drift within (0, G_cap]; the drift is bounded above by the hard
+cap and the exposure it represents is bounded in time by M. Layers 2 and 3
+(watchdog, kill switch) remain independent backstops.
+*Per-category deviation:* none. The only nuance: on `D_operational` days
+where the harness cannot trade at all, steps 2–3 are *intended but possibly
+unexecutable*; the unexecuted rescale/flatten is logged as an operational
+failure of the transition, and the kill switch remains the catastrophic
+bound. No named invariant demands a different economic rule per category,
+so none is granted (§59.11.1.2).
+*Concurrent failures:* the transition is common, so `T` is trivially
+deterministic in the failure set (§59.11.1.3).
+
+**60.6.1 Causal precedence for the disjoint calendar (§59.11.2).** Category
+= the category of the **first pipeline stage at which the intended decision
+became impossible**:
+
+```
+  S1 structural-pre   universe/data/factor/metadata insufficiency  → D_structural
+  S2 operational      solver or harness failure                    → D_operational
+  S3 gates            any §60.5 gate fails                         → D_gate
+  S4 execution        execution bar unavailable                    → D_structural
+```
+
+A day with gate failures *and* a missing execution bar is `D_gate`: the
+decision was already dead at S3. Classification is thereby invariant to
+control-flow ordering.
+
+### 60.7 Optimizer — an SOCP with two knobs eliminated
+
+```
+  max_w   μᵀw − η·‖w − w_prev‖₁
+
+  s.t.    Σ_i w_i = 0                          dollar neutrality, EXACT
+          wᵀ Σ w ≤ σ_target,daily²            vol target as a CONSTRAINT
+          |β̂_kᵀw| + 1.645·SE(β_kᵀw) ≤ ε_β,k   k ∈ {BTC, ETHperp}  (60.3)
+          Σ_i |w_i| ≤ G_cap = 3.0             runaway backstop (risk layer)
+          |w_i| ≤ (G_target/2)/6              single-name cap
+```
+
+- **γ is eliminated.** With volatility as a hard constraint at the frozen
+  target, a mean-variance risk-aversion coefficient is redundant; removing
+  it removes an untunable free parameter.
+- **η is not free — it is the cost.** η = 10 bps = the frozen per-side cost
+  stack (5 bps taker + 5 bps slippage assumption, §56.2). The turnover
+  penalty *is* the transaction-cost model at economic value, the same λ=1
+  logic as funding.
+- **Dollar neutrality is an exact equality** — costless in a continuous
+  optimizer and eliminates a tolerance knob.
+- **Single-name cap** `= leg gross / 6`: if every name sat at the cap,
+  N_eff = 6 exactly — the cap and the gate are the same number seen from
+  two sides.
+- **Σ** is the factor-model covariance built from §60.1's single 90-day
+  system: `Σ = B Σ_f Bᵀ + D`, Σ_f diagonal (orthogonal factors), D diagonal
+  idio variances. No second estimation window exists.
+- **Feasibility is guaranteed:** w = 0 satisfies every constraint, so the
+  problem is never infeasible; a degenerate market shows up as a near-zero
+  book that then **fails the gates** — degeneracy is caught by §60.5, not
+  by solver errors.
+- **Quantization is downstream:** the optimizer emits continuous `w_pre`
+  (the §59.11.3 canonical book); the shared sizing module (§57.3) then
+  quantizes, and the gates are evaluated on the sized book.
+
+**Determinism (§59.5):** the problem is an SOCP (the vol and chance
+constraints are second-order cones; the L1 term splits linearly). Frozen:
+deterministic interior-point solver, single-threaded, assets in
+lexicographic order (reproducibility of near-equivalent optima is
+guaranteed by determinism of pipeline + solver, uniqueness is not claimed);
+primal feasibility tolerance 1e-8; duality gap 1e-8; accepted termination
+state: OPTIMAL only — anything else (ALMOST_OPTIMAL included) is
+`D_operational`; shadow weight tolerance 1e-5 per name (three orders above
+solver tolerance — margin, not precision theatre); max factor-constraint
+residual ε_β,k + 1e-6; dollar-neutrality residual ≤ 1e-8·G_target.
+**UNRESOLVED: the concrete solver package and version pin** — choosing it
+requires installing software, which is implementation; the class
+(deterministic SOCP interior-point) is frozen here, the pin is recorded in
+the manifest at first install, before any data run.
+
+### 60.8 Kill criteria — exact quantities, from RCM's own architecture
+
+1. **Formation rate:** trailing **63-day formation rate < 0.60** on the full
+   calendar ⇒ RCM v1 is abandoned. Derivation ties it to the transition
+   ceiling: at p = 0.60 the expected maximum consecutive-failure run over a
+   63-day window is ≈ ln(63)/−ln(0.40) ≈ 4.5 days, comfortably inside the
+   M = 7 forced-flatten ceiling — the strategy operates without routinely
+   being forcibly flattened. Below 0.60, forced flattens become routine and
+   the realized strategy is no longer the specified one. (Gen-1's ~78% is
+   not used; the number falls out of M and the window.)
+2. **The residual-momentum statistic:** pooled cross-sectional **Spearman
+   rank IC** between `Z_mom,i,t` and `ε_i,t+1` over the development era,
+   with a stationary-bootstrap 90% CI. **Criterion: the CI lower bound must
+   exceed 0.** Existence of the effect, not magnitude — the MDE wall (§28)
+   makes magnitude claims dishonest at this history length. **This is a
+   real-data run whose outcome causes a preference (continue vs kill): it
+   consumes one Gen-2 trial when executed**, and its MDE statement per
+   §59.3.1 must accompany the pre-registration of the run itself.
+3. **Forward feasibility rolling gate:** trailing **21-day formation rate
+   < 0.60** during forward validation ⇒ the forward record fails. Same
+   threshold as (1) on the shorter standard window — one number, two
+   horizons, no new knob.
+
+### 60.9 Parameter manifest
+
+```
+  quantity                        value          fixed by
+  ------------------------------  -------------  --------------------------------
+  factor estimation window        90 d           window+63 ≤ 180 arithmetic; §60.1
+  factor estimator                OLS, equal-wt  parsimony (no half-life knob)
+  ETH orthogonalization           on 90 d BTC    collinearity; same window
+  momentum windows / weights      2-21, 22-63 / 0.6, 0.4   frozen §59.3.2
+  z-score winsorization           ±3             house convention (flagged as such)
+  calibration regression          pooled, expanding   eliminates the window knob
+  slope shrinkage                 n/(n+63) to 0  evidence ≥ one momentum window
+  slope sign floor                μ_mom=0 if b̃≤0  deterministic, non-presumptive
+  carry-guard threshold           s_mom < 0.5 (21d)   majority-identity semantics
+  carry-guard consequence         flag + report  §59.3.3 / Stage-19 spec
+  funding forecast                3 × mean(21 settlements)  horizon match; √21 noise
+  funding sign                    +rate: longs pay   exchange definition
+  lambda                          1 (eliminated) §59.3.3, return units
+  chance-constraint z             1.645          house 90%/95% convention
+  ε_β,k                           σ_tgt/(√10·σ̂_k)   factor ≤ one position's variance
+  vol target                      10% ann        frozen §59.3.2
+  G_cap                           3.0            inherited risk-layer backstop
+  single-name cap                 leg gross / 6  = N_eff floor seen from the cap side
+  η (turnover)                    10 bps         the frozen per-side cost stack
+  γ                               eliminated     vol is a constraint
+  dollar neutrality               Σw = 0 exact   equality removes a tolerance knob
+  N_eff per leg                   ≥ 6            broader than the whole Gen-1 leg
+  g_min                           0.70           g² ≥ ½ variance budget
+  C_signal,min                    0.50           majority-identity semantics
+  transition rule                 hold + scalar rescale at G_cap + flatten at M=7
+  M (staleness ceiling)           7 d            21/3: one third of short window
+  formation-rate kill             <0.60 @ 63d    run-length vs M arithmetic
+  forward rolling gate            <0.60 @ 21d    same number, standard window
+  IC criterion                    90% CI lower bound > 0   existence, not magnitude
+  solver class                    deterministic SOCP interior-point, 1 thread
+  primal/gap tolerances           1e-8 / 1e-8    solver-grade
+  shadow weight tolerance         1e-5           3 orders above solver tolerance
+  termination accepted            OPTIMAL only   anything else = D_operational
+```
+
+**UNRESOLVED (honestly, per §9 of the stage spec):**
+
+1. **The concrete solver package and version pin.** The class is frozen;
+   the pin requires installation and is recorded at first install, before
+   any data run.
+2. Nothing else. Every other quantity above carries a non-performance
+   argument. Two entries are conventions rather than derivations and are
+   labelled as such in the manifest (the ±3 winsorization; z = 1.645's
+   specific confidence level).
+
+### 60.10 Status
+
+§59 and everything earlier are unedited. No code exists for any of the
+above. No market, return, snapshot, backtest or performance data was
+accessed. Gen-1 budget **15 of 25**; Gen-2 **0 of 20**. Holdout sealed.
+Next per §59.9: synthetic/structural implementation and null tests — the
+first Gen-2 code, all of it trial-free under §59.3.
