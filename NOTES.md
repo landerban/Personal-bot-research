@@ -7287,3 +7287,226 @@ Proposal committed to the repo. XSMOM remains frozen; its 0/12 failure is
 already recorded (§56.13) as the proposal's §22 asks. Budget **15 of 25**
 (Gen 1). Holdout **sealed** — and question 1 above is now the gating decision
 for everything that follows.
+
+## 59. Stage 18 — RCM GENERATION-2 GOVERNANCE, pre-registered 2026-08-31
+
+**This stage wrote no code and accessed no market data, return data,
+production snapshot, backtest result or performance diagnostic.** It writes
+this one section: the governance under which Strategy Generation 2 (Residual
+Carry Momentum) may be developed. Gen 1 (XSMOM) is frozen and complete.
+Gen-1 budget **15 of 25**, unchanged. Gen-2 budget **0 of 20**. Holdout
+sealed.
+
+### 59.0 Why governance precedes mathematics
+
+RCM was conceived **after** observing the 2026 structural failure.
+Information from the 2025–2026 regime has already shaped the hypothesis class
+— reliability weighting, continuous construction, the avoidance of fixed-rank
+legs are all answers to what that regime did. A policy written after the
+specification would be written by someone who already knows what the market
+did. So the rules come first, while they can still bind.
+
+### 59.1 Data policy
+
+- **Development era: 2020–2024.** Implementation, structural diagnostics,
+  signal decomposition, robustness work, parameter pre-registration.
+- **2025-01 → 2026-07 is SEALED — and the seal is RE-AFFIRMED ON GEN-2
+  GROUNDS, not merely inherited.** That window is *not* a Gen-2 validation
+  period, because RCM's hypothesis class was influenced by that regime's
+  observed structure; treating it as independent evidence would overstate its
+  independence. This answers §58.4 question 1: neither option (b) nor a
+  quiet consumption of the window — the seal binds Gen 2 for Gen-2-specific
+  reasons.
+- **Primary validation is forward-only paper trading**, on data postdating
+  the frozen RCM v1 specification.
+- **The sealed window becomes an optional final historical challenge set**:
+  openable only after RCM v1 is frozen AND credible forward evidence exists.
+  One look, ever, by deliberate user decision.
+- **The seal is enforced structurally, not textually.** Stage 19 must specify
+  — and the implementation must provide — a Gen-2 research runner that **hard
+  rejects** any request whose timestamp range intersects the sealed interval.
+  Opening the challenge set requires an explicit unlock flag PLUS a ledger
+  entry written before execution. The `PITView` principle: a guarantee, not a
+  promise.
+- **The forward boundary is a commit and a timestamp.** The exact RCM-v1
+  freeze commit hash and UTC timestamp are recorded at the freeze; forward
+  validation counts strictly data after it, with **no retroactive backfill**
+  into the forward period.
+
+### 59.2 What forward validation can and cannot establish
+
+**CAN:** feasibility (a recognizable book forms, with breadth, at intended
+risk), machine correctness, execution and cost realism, operational
+integrity — precisely the axes on which Gen 1 failed.
+
+**CANNOT: confirm alpha.** Months of forward paper have negligible
+statistical power — the Gen-1 MDE wall (§28.4, §45.9), which is indifferent
+to data freshness. **A clean forward record is not evidence the edge works
+and must never be cited as grounds for increasing capital.**
+
+### 59.3 Trial budget — a ceiling, not an allowance
+
+**20 Gen-2 trials maximum**, independent of Gen-1's ledger. The intent is
+that RCM v1 consumes **very few**.
+
+**No trial is consumed by** (no performance comparison occurs): PIT
+alignment, solver feasibility, beta-estimator simulation, optimizer
+constraint tests, exchange-filter validation, reconciliation tolerance
+calibration, sizing/quantization tests, return-blind universe measurement,
+null/synthetic harness tests.
+
+**A trial is consumed by** any real-data run whose performance result could
+cause a preference between alpha or portfolio specifications.
+
+**59.3.1 INDETERMINATE is a valid outcome.** If an allowed comparison
+produces a difference too small to resolve at the pre-registered statistical
+precision, the result is **INDETERMINATE** — not a win for the larger point
+estimate. The simpler / pre-registered baseline stands. **Mandatory
+operationalization: the resolvable difference (MDE) and the test are stated
+BEFORE the comparison runs**, so "too small to resolve" cannot be argued
+after seeing numbers. This generalizes the §45 buffer ruling (a point-
+estimate improvement that could not clear a paired CI was correctly not
+adopted) into a standing Gen-2 rule.
+
+**59.3.2 Frozen analytically — never swept.** Fixed by reasoning, with no
+performance comparison, ever:
+
+- *Signal & construction:* momentum windows **2–21 and 22–63
+  (non-overlapping)**; 0.6/0.4 weighting; residual construction; BTC+ETH
+  factors; the cross-sectional normalization and winsorization rule.
+  (The non-overlapping windows supersede the proposal's §5 nested windows —
+  resolving §58.4 question 5 by construction rather than by caveat.)
+- *Estimation:* beta estimation method and window; covariance estimator and
+  window; expected-funding estimator and forecast horizon; liquidity metric
+  and window.
+- *Portfolio:* reliability functional form; conviction mapping; optimizer
+  constraints; solver tie-breaking rule; volatility target; daily rebalance;
+  transaction-cost treatment; the 180-day minimum history.
+
+The estimation block is listed explicitly because freezing the visible knobs
+while leaving estimator choices open would defeat the purpose.
+
+**59.3.3 Funding enters at economic value — λ eliminated by default.**
+Expected momentum and expected funding are expressed in **comparable return
+units**, so funding enters at its economic value:
+
+```
+    μ_total = μ_momentum − F        (λ = 1; not a free parameter)
+```
+
+A λ comparison is permitted **only if** Stage 19 demonstrates the momentum
+signal cannot be put into comparable units — and then it is small,
+pre-registered, trial-logged, and subject to §59.3.1. (This also resolves
+§58.4 question 3's economics concern at the root: a sign-aware λ tuned by
+sweep is replaced by funding entering as a return.)
+
+### 59.4 Feasibility gates — three vacuities, plus leg symmetry
+
+Degradation is permitted **only while the portfolio remains recognizably the
+same strategy.**
+
+1. **Concentration.** `N_eff = (Σ|w_i|)² / Σw_i²`, **computed per leg** —
+   `N_eff,long` and `N_eff,short` with **independent minimums**. Total
+   breadth can hide asymmetric collapse: a nominally neutral book with one
+   meaningful short is not the hypothesis.
+2. **Exposure.** `G_realized / G_target ≥ g_min`.
+3. **Signal coverage.** `Σ|w_i||S_i|` retained after feasibility, relative to
+   the same quantity on the **canonical pre-feasibility book** — the signed
+   continuous target after alpha, risk and factor construction but **before**
+   exchange/min-notional/quantization feasibility. Guards against a book that
+   keeps breadth and gross while discarding the strongest signals because
+   they are hardest to trade.
+
+**Threshold derivation (Stage 19's job).** `N_eff ≥ 6` and
+`G_realized/G_target ≥ 0.70` are **starting concepts, not adopted numbers**.
+Stage 19 *may* use: algebra, the intended diversification and risk
+architecture, exchange rules, synthetic fixtures, return-blind metadata.
+Stage 19 *may NOT* use: historical PnL, Sharpe, realized alpha, historical
+formation rates, or "which threshold would have traded more days."
+
+A day failing any gate is a **skip**, recorded with the failing gate.
+
+**59.4.1 Gate-skips are accidentally protective — the Gen-1 lesson made a
+rule.** §42.6 measured it: the $400 book's flattering 14.78% drawdown existed
+because skipped days sat out the losses; healing the skips moved it to
+24.79%. Therefore **all development-era performance is computed on the full
+calendar, never on formed days only**, and **formation rate is reported
+beside every performance number.** Otherwise the gates that protect against
+vacuity quietly flatter results.
+
+### 59.5 Numerical reconciliation and optimizer determinism
+
+Bit-exactness is not assumed for an optimizer-built book. Stage 19 freezes:
+the solver and its version; deterministic seeding/threading; the weight
+tolerance; **the primal feasibility tolerance; the maximum factor-constraint
+residual; the maximum dollar-neutrality residual; the accepted solver
+termination states; and the deterministic handling of multiple or
+near-equivalent optima.** Weights agreeing within shadow tolerance are
+insufficient if they subtly violate the economic constraints. A mismatch
+beyond tolerance remains stop-and-diagnose. (This resolves §58.4 question 4
+by naming the full determinism surface rather than only a weight tolerance.)
+
+### 59.6 Inheritance from Generation 1
+
+Reused unchanged: the PIT store and lookahead discipline, the crypto universe
+filter and composition guard, the read-only production data path, the fill
+simulator and pre-registered execution model, the shared quantized sizing
+module, the settle/reconciliation primitives, the risk layer, kill switch,
+watchdog, supervisor, dashboard and alerts, the cost log and venue tags, and
+the trial-budget and pre-registration conventions.
+
+Inherited **must-re-verify list for any real-money venue**: the
+`reduce_only_exempt` floor rule (§57.2) and layer-1 stop availability
+(§56.9) — both testnet-measured only.
+
+### 59.7 Kill criteria — exact, with quantities deferred to Stage 19
+
+RCM is **abandoned, not patched**, if:
+
+- formation rate falls below the Stage-19 pre-registered minimum;
+- the Stage-19 pre-registered residual-momentum statistic fails its exact
+  criterion on development data;
+- forward feasibility breaches its pre-registered rolling gate.
+
+**Gen-1's ~78% formation rate is deliberately NOT inherited.** RCM must
+derive its own minimum viable activity level from what it claims to be — a
+daily-rebalanced cross-sectional strategy — via holding-period and turnover
+logic, not from the outcome of the strategy it replaces.
+
+### 59.8 Post-freeze change control
+
+After the RCM-v1 freeze:
+
+- any strategy-layer change altering target weights, eligibility, signals,
+  risk allocation or execution intent creates **RCM v2** and **restarts the
+  forward-validation clock**;
+- a PnL-affecting bug fix **voids the affected forward segment** rather than
+  continuing under the same evidence record;
+- purely operational fixes that **provably do not alter intended targets**
+  may remain v1, with the proof recorded.
+
+This is what prevents forward validation from becoming another development
+dataset.
+
+### 59.9 The research order — fixed
+
+```
+  governance (this section)
+    -> mathematical specification + threshold derivation      (Stage 19)
+    -> synthetic/structural implementation and null tests
+    -> 2020-2024 development
+    -> FREEZE RCM v1  (commit hash + UTC timestamp recorded)
+    -> forward paper validation
+    -> (much later, optional) the sealed challenge set
+```
+
+**No optimizer, signal, or portfolio code exists before Stage 19 exists in
+this ledger.**
+
+### 59.10 Status
+
+No code written. No market, return, snapshot, backtest or performance data
+accessed in this stage. Gen-1 budget **15 of 25** unchanged; Gen-2 budget
+**0 of 20**. Holdout sealed — now under two independent seals: the Gen-1 rule
+(§29/§30) and the Gen-2 re-affirmation (§59.1), which stands on its own
+grounds and survives even if the Gen-1 rule were ever revisited.
