@@ -6346,3 +6346,118 @@ corrections this session made to its own earlier claims (§45.0, §48.0, §48.8,
 §48.10, §48.12, §51.8, §53.1). The corrections are load-bearing: they are the
 evidence that the pre-registration discipline is doing work rather than
 decorating it.
+
+## 55. Stage 15 — unblock, arm, instrument: PRE-REGISTERED 2026-08-30
+
+**Recorded BEFORE any Stage 15 code.** No trials; budget stays **15 of 25**.
+**No strategy parameter is changed.** Holdout sealed.
+
+### 55.1 Part A — the shortlist ranks by PRODUCTION volume
+
+The live candidate shortlist will rank by **production median quote volume**,
+read from the research store (currently through 2026-07-31), intersected with
+what testnet lists and with the §48 crypto filter. It replaces the ranking by
+testnet's synthetic 24-hour volume.
+
+**The grounds, and why this is not a rule change.** §48.1's universe rule is
+"top 15 by point-in-time **median quote volume**, among crypto-asset
+perpetuals". Testnet's synthetic volume **is not that quantity**. The store's
+production volume is. Ranking by the fake number was never an implementation
+of the rule; it was an implementation of a corrupted version of it, and §53.2
+measured the consequence: junk like `我踏马来了USDT` outranking real majors,
+betas with standard errors 6x their estimates, and **0 books formed on 12 of
+12 replay days**. The hedge guard was right to refuse to hedge on noise; the
+input to it was wrong.
+
+So this is a **more faithful implementation of the existing rule**. It is
+still a change prompted by watching paper behaviour, which is why §53.4 left
+it to the user rather than doing it unilaterally, and why the argument is
+recorded here in full rather than assumed.
+
+**What it is NOT:** it is not a performance choice, it is not a parameter
+change, and it does not touch `lookback`, `skip`, N, k, vol target, capital or
+the buffer. Universe *eligibility and ranking source* only.
+
+### 55.2 The 28-day counter RESTARTS at this fix
+
+Days run under the starved shortlist were a plumbing exercise, not phase
+evidence: on those days the book could not form, so criteria 1, 3 and 4 had
+nothing to observe (§53.3, §53.5).
+
+The counter sits at **day 1**, so restarting costs one day now versus arguing
+a graded mixture of evidential and non-evidential days at day 28. Recorded
+here so the restart is a stated decision and not a silent reset, and so the
+eventual verdict rests only on days the book could actually form.
+
+### 55.3 Volume-reference staleness
+
+The store's volumes end 2026-07-31 and will age. **Once the volume reference
+is older than 60 days, the dashboard composition line goes AMBER** with
+"volume reference stale — refresh store". Refreshing is a user-run
+`pitdata` update; **nothing fetches volumes in-cycle from any new source.**
+The store is the reference (STAGE15 "Do not").
+
+Today the reference is 30 days old — inside the window, so no alert.
+
+### 55.4 Part B — alerts fire on TRANSITIONS, never on states
+
+The §51.10 lesson is already paid for: a missed date re-logged its warning on
+every 30-second tick, 45 times. An alerter that pushes on *state* would do the
+same thing to a phone, and a channel that cries wolf gets muted — which is
+worse than no channel, because it fails silently exactly when it matters.
+
+```
+  kill switch fired / flatten_all                      CRITICAL
+  watchdog: supervisor wedged / heartbeat stale        CRITICAL
+  cycle error (incl. funding-reconcile drift)          ALERT
+  shadow-reconcile MISMATCH                            ALERT
+  any other dashboard-RED condition                    ALERT
+  reset / late_cycle / composition or staleness AMBER  INFO (daily digest)
+  daily line: date, traded-or-skip, equity, day N/28   INFO (one push a day)
+```
+
+Each CRITICAL/ALERT fires **once per condition instance**, with a cooldown,
+and a **single "resolved" message** when the condition clears. **A dead
+Telegram API must never block or crash a cycle**: send failures are logged
+locally and retried with backoff, and the cycle proceeds regardless. Trading
+must not depend on a chat server being up.
+
+Secrets (bot token, chat id) live with the other credentials **outside the
+repo**; `scan_secrets` stays clean. **No message may contain a key, and none
+may contain any balance beyond the paper equity number.**
+
+### 55.5 Part C — the fault class being closed
+
+§51.10's `halted` flag and §52.1's `kill_switch_armed: True` literal are one
+fault: **reported state that is not derived from measured state.** Twice is a
+pattern. A test now drives the system through distinct simulated states —
+armed vs fired, drawdown zero vs positive, halted vs running, heartbeat fresh
+vs stale — and asserts every safety-relevant `status.json` field **changes
+accordingly**. A field that stays constant across states it should distinguish
+fails. The field list lives beside the test so new fields are enrolled by
+default rather than by memory.
+
+### 55.6 Part D — collect only, adopt nothing
+
+None of the Part D instrumentation acts on anything.
+
+- **D.1 shadow-maker.** For every taker order actually placed, log the
+  counterfactual post-only price and whether it would have traded through.
+  **No maker order is placed anywhere.** The Stage 2e rule stands: no
+  maker-mode result is reportable until a fill-probability model exists. This
+  builds the dataset such a model would need.
+- **D.2 vol-shortfall diagnosis.** Attribute the persistent ~0.6–1.1 point
+  realised-vol shortfall on train, as a free diagnostic to
+  `diagnostics.jsonl`. **Adopt nothing.** Any estimator change moves position
+  sizes and belongs to the post-holdout era with its own pre-registration.
+- **D.3 regime context.** Cross-sectional dispersion of 14-day returns and
+  mean pairwise correlation to BTC, from feeds the cycle already pulls. Two
+  dashboard lines and a history file. **No thresholds, no filters, no
+  actions.**
+
+### 55.7 The stop condition for Part A
+
+If the replay after the fix still shows book formation at or near **0%**, the
+stage **stops and reports**. It does not stack a second guess on top of the
+first. §53's measurement was worth more than §53's hypothesis, and the same
+applies here.
