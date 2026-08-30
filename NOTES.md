@@ -6461,3 +6461,104 @@ If the replay after the fix still shows book formation at or near **0%**, the
 stage **stops and reports**. It does not stack a second guess on top of the
 first. §53's measurement was worth more than §53's hypothesis, and the same
 applies here.
+
+### 55.8 PART A RESULT — the universe is fixed. The book still does not form. STOP.
+
+**§55.7's stop condition has fired.** The fix is fully implemented, the
+universe it produces is the right one, and book formation is **still 0 of 12**.
+Reported rather than followed by a third attempt.
+
+**My first implementation of Part A was incomplete, and the incompleteness is
+worth recording.** I changed the *shortlist* to rank by production volume and
+re-ran: still 0 of 12. The reason was not the hypothesis but the layer —
+`compute_target_weights` applies `max_liquidity_rank=15` by reading
+`quote_volume` **from the store the feed builds**, which held testnet's
+synthetic volume. So the cap re-ranked the corrected shortlist by the fake
+number and reinstated exactly the junk the shortlist had removed:
+
+```
+  after the shortlist-only fix, the traded top-15 still contained
+    AKEUSDT BEATUSDT ESPORTSUSDT LABUSDT VELVETUSDT SYNUSDT USUSDT
+  unidentified betas inside the traded universe: 5 of 15
+```
+
+Completing the fix at the store layer — the feed now writes **production**
+median quote volume onto each bar, so the cap ranks on the real measure — is
+the same fix applied where the ranking actually happens, not a second guess.
+The result is a deliberate hybrid: **live prices, production liquidity**,
+which is the correct pairing because `quote_volume` is only ever read as a
+liquidity measure while price drives returns.
+
+**The universe is now demonstrably correct:**
+
+```
+  traded top-15: 1000PEPE ADA AKE BANK BNB BTC DOGE ETH HYPE LAB
+                 NEAR SOL WLD XRP ZEC
+  unidentified betas: 2 of 15   (was 5 of 15, and 4 of 14 on the raw
+                                 synthetic ranking)
+```
+
+**And formation is still 0 of 12:**
+
+```
+  unhedgeable_beta                 9
+  below_min_notional_post_hedge    3
+```
+
+### 55.9 Why — and why no further attempt is legitimate
+
+Individual betas among the majors are well identified (SE 0.07–0.29). The
+failures are at the **leg** level: the long or short leg carries a weighted
+beta of 0.04–0.86 against a leg SE of 0.72–1.23.
+
+Two things combine, and neither is a defect:
+
+1. **Momentum selects the extremes**, and on this venue the extreme movers are
+   the recently-listed alts — BANK (SE 1.373), LAB (1.887), AKE (2.515) — whose
+   betas are unidentifiable on 89 days of synthetic price history.
+2. **A leg's SEs add in quadrature while its betas partially cancel.** Mixing
+   high- and low-beta names gives a small net beta with a large combined error,
+   which is precisely the condition `unhedgeable_beta` exists to catch.
+
+**The guard is right and the data cannot support it.** Testnet supplies ~89
+days of synthetic prices; the beta hedge needs identifiable 60-day betas
+across ten names, and this venue provides that for roughly the top eight
+majors only — which momentum does not reliably select.
+
+Every remaining way to force formation is a **strategy change**: relaxing the
+beta guard, dropping the hedge, filtering candidates by estimation quality,
+lengthening the beta window, or raising capital. §46.7 and STAGE12 B.5 forbid
+all of them on paper behaviour, §55.7 forbids stacking another guess, and
+§50.8 already measured the capital route as carrying a *lower* drift-stripped
+edge. **None is attempted.**
+
+### 55.10 What is kept, and the counter
+
+**The Part A change is kept.** It is a more faithful implementation of §48.1's
+unchanged rule regardless of whether it unblocked formation, it was
+pre-registered in §55.1, and it demonstrably produces the correct universe.
+Keeping a correct implementation that failed to achieve a hoped-for side
+effect is not the same as keeping a fix that did not work.
+
+**The counter is restarted to 0 as §55.2 registered.** The restart's *purpose*
+— separating starved days from evidential ones — is not achieved while
+formation remains 0, so the restart is bookkeeping honesty rather than
+progress, and is recorded as such.
+
+**The blocker now belongs to the user**, with three honest options:
+
+1. **Accept it.** Run the phase as a machine exercise — scheduling, recovery,
+   risk layer, funding, reporting, alerting all get tested daily. Grade
+   criteria 1, 3 and 4 **unproven**, never passed. Nothing is learned about
+   execution or slippage.
+2. **Change the venue.** The blocker is testnet's synthetic 89-day price
+   history, not the code. Nothing else fixes beta identification.
+3. **Pre-register a deliberate paper-only deviation** (for instance a longer
+   beta window on the paper book alone), argued and recorded in advance as a
+   venue accommodation, with its results explicitly not transferable to the
+   validated config. Legitimate only if written down *before* it is run, and
+   never carried into the holdout.
+
+**Recommended: 1 or 2. Option 3 is available but earns nothing** — a paper
+phase that only passes after the strategy is bent for the venue tests a
+strategy nobody intends to deploy.

@@ -128,13 +128,32 @@ class LiveFeed:
     # -- build ------------------------------------------------------------
 
     def build(self, symbols: list[str], as_of: int | None = None,
-              bars: int = DEFAULT_BARS) -> tuple[PITView, FeedSnapshot]:
+              bars: int = DEFAULT_BARS,
+              volume_reference: dict[str, float] | None = None,
+              ) -> tuple[PITView, FeedSnapshot]:
         """Fetch `symbols` and return (view, snapshot).
 
         `as_of` defaults to now; only bars whose close_time <= as_of are
         visible through the view, which is the same gate research runs under.
         A symbol that returns no bars is reported in `snapshot.missing` and is
         simply absent from the store -- never imputed.
+
+        `volume_reference` (NOTES 55.1) overwrites each bar's `quote_volume`
+        with the symbol's PRODUCTION median quote volume. This is not
+        cosmetic: `compute_target_weights` ranks the `max_liquidity_rank` cap
+        off `quote_volume` read from THIS store, so without the override the
+        cap re-ranks by testnet's synthetic volume and reinstates exactly the
+        junk the shortlist just removed -- which is why the first Part A
+        attempt still produced 0% book formation.
+
+        The result is a deliberate hybrid: LIVE prices, PRODUCTION liquidity.
+        That is the correct pairing, because price drives the returns while
+        `quote_volume` is only ever read as a liquidity measure, and the
+        liquidity the rule means is the real market's, not the sandbox's.
+
+        A symbol the reference cannot price gets volume 0, so it fails the
+        `min_quote_volume` filter and is not traded. What cannot be ranked by
+        the rule is not admitted by it.
         """
         fetched_at = int(self._clock() * 1000)
         as_of = int(as_of if as_of is not None else fetched_at)
@@ -151,6 +170,10 @@ class LiveFeed:
             if not rows:
                 missing.append(sym)
                 continue
+            if volume_reference is not None:
+                ref = float(volume_reference.get(sym, 0.0))
+                # row: (open_time, close_time, o, h, l, c, volume, quote_volume, trades)
+                rows = [r[:7] + (ref,) + r[8:] for r in rows]
             self.store.insert_klines(sym, "1d", rows)
             snap.bars_per_symbol[sym] = len(rows)
             snap.last_close_time[sym] = max(r[1] for r in rows)

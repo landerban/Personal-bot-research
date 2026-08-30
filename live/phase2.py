@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import logging
 import time
+from functools import lru_cache
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -36,6 +37,7 @@ from pathlib import Path
 from backtest import weights as W
 from backtest.engine import Config
 from backtest.universe_filter import filter_universe
+from backtest.weights import LIQUIDITY_RANK_WINDOW
 from live import reconcile
 from live.client import FilterRejected, TestnetClient
 from live.fixes import (
@@ -53,12 +55,58 @@ BTC = W.BTC
 # NOTES 49.4 limitation 2: pre-narrow before fetching klines. 40 against a
 # top-15 rule. Not a strategy parameter -- a REST budget.
 SHORTLIST = 40
+# NOTES 55.3: once the store's volume reference is older than this the
+# dashboard composition line goes AMBER. Nothing fetches volumes in-cycle
+# from any new source -- the store IS the reference.
+VOLUME_STALE_DAYS = 60
 # Shadow tolerance, STAGE10 §3.
 WEIGHT_TOL = 1e-6
 # Exchange-side reduce-only stop distance. SAFETY, not strategy: it is a
 # backstop that survives this process, this machine and this ISP, and it
 # is deliberately far enough out that it never front-runs the vol target.
 STOP_PCT = 0.20
+
+
+@lru_cache(maxsize=1)
+def production_volumes(db: str | None = None) -> tuple[dict[str, float], float]:
+    """(symbol -> production median quote volume, age of the reference in days).
+
+    Read ONCE from the frozen research store, by the same point-in-time
+    measure `compute_target_weights` ranks on: median quote volume over the
+    trailing LIQUIDITY_RANK_WINDOW days at the store's latest date.
+
+    Why the store and not the venue (NOTES 55.1): testnet quote volume is
+    synthetic. The universe rule says "median quote volume", and the store
+    holds that quantity for the real market. Nothing here fetches volumes
+    in-cycle from any new source -- and the funding-presence filter still uses
+    the live 14-day funding feed for today's candidacy, which is why replays
+    older than that window are unsupported (the withdrawn artifact of 53.1).
+
+    The reference ages. Its age is returned so the caller can raise the
+    NOTES 55.3 staleness alert; it is never silently trusted.
+    """
+    from statistics import median
+
+    from backtest import runner as _runner
+    from pitdata.store import PointInTimeStore
+
+    path = db or str(ROOT / "xsmom.db")
+    store = PointInTimeStore(path, read_only=True)
+    try:
+        end = _runner.data_end_ms(store)
+        store.reset_clock()
+        view = store.view_as_of(end)
+        out: dict[str, float] = {}
+        for sym in view.universe(min_quote_volume=0.0):
+            bars = view.klines(sym, "1d", limit=LIQUIDITY_RANK_WINDOW)
+            if len(bars) >= LIQUIDITY_RANK_WINDOW:
+                out[sym] = float(median(b.quote_volume for b in bars))
+    finally:
+        store.close()
+    age_days = (time.time() * 1000 - end) / DAY_MS
+    log.info("production volume reference: %d symbols, %.0f days old",
+             len(out), age_days)
+    return out, age_days
 
 
 def _utc(ms: int) -> str:
@@ -127,6 +175,7 @@ class Phase2Runner:
         self.cfg = cfg or Phase2Config()
         self._clock = clock
         self.feed = LiveFeed(client, clock=clock)
+        self.volume_ref_age_days = 0.0
 
     # ---------------------------------------------------------- universe
 
@@ -142,9 +191,22 @@ class Phase2Runner:
                   if s.get("status") == "TRADING"
                   and s.get("quoteAsset") == "USDT"]
 
-        tickers = self.c.request("GET", "/fapi/v1/ticker/24hr")
-        vol = {t["symbol"]: float(t.get("quoteVolume") or 0.0) for t in tickers}
-        ranked = sorted(listed, key=lambda s: -vol.get(s, 0.0))
+        # NOTES 55.1: rank by PRODUCTION median quote volume from the research
+        # store, not by testnet's synthetic 24h volume.
+        #
+        # 48.1's rule is "top 15 by point-in-time MEDIAN QUOTE VOLUME". Testnet
+        # volume is not that quantity: 53.2 measured it ranking junk above real
+        # majors, which starved beta identification and produced 0 books on 12
+        # of 12 replay days. Ranking by the real number is a more faithful
+        # implementation of the unchanged rule, not a new rule.
+        vol, self.volume_ref_age_days = production_volumes()
+        ranked = sorted([s for s in listed if s in vol],
+                        key=lambda s: -vol[s])
+        # Anything the store has never priced cannot be ranked by the rule, so
+        # it is appended behind everything it can rank -- never silently
+        # promoted, never silently dropped.
+        unranked = sorted(s for s in listed if s not in vol)
+        ranked += unranked
 
         # The universe and the metadata come from the SAME venue here, so the
         # §48.11 recency hole cannot open: anything testnet lists, testnet's
@@ -167,8 +229,18 @@ class Phase2Runner:
             if len(in_top15) >= 3:
                 bits.append(f"{len(in_top15)} excluded in the unfiltered top-15")
             reason = "; ".join(bits)
+        stale = self.volume_ref_age_days > VOLUME_STALE_DAYS
+        if stale:
+            alert = True
+            reason = ((reason + "; ") if reason else "") + (
+                f"volume reference stale ({self.volume_ref_age_days:.0f}d "
+                f"> {VOLUME_STALE_DAYS}d) -- refresh store")
         guard = {
             "alert": alert, "reason": reason,
+            "volume_ref_age_days": round(self.volume_ref_age_days, 1),
+            "volume_ref_stale": stale,
+            "n_ranked_by_production_volume": len(ranked) - len(unranked),
+            "n_unranked": len(unranked),
             "excluded": [{"symbol": v.symbol, "reason": v.reason}
                          for v in dropped[:50]],
             "ambiguous": [{"symbol": v.symbol, "reason": v.reason}
@@ -183,7 +255,13 @@ class Phase2Runner:
     def decide(self, symbols: list[str], equity: float, as_of: int | None = None):
         """Run the RESEARCH pipeline on live data. Returns (decision|Skip,
         feed snapshot)."""
-        view, snap = self.feed.build(symbols, as_of=as_of)
+        # NOTES 55.1: the store carries PRODUCTION liquidity so the
+        # max_liquidity_rank cap inside compute_target_weights ranks on the
+        # real measure. Without this the cap silently reverts to testnet's
+        # synthetic volume.
+        vol, _ = production_volumes()
+        view, snap = self.feed.build(symbols, as_of=as_of,
+                                     volume_reference=vol)
         cfg = self.cfg.to_backtest_config()
         out = W.compute_target_weights(view, cfg, equity)
         return out, snap
@@ -206,7 +284,8 @@ class Phase2Runner:
             return res
         try:
             shadow_feed = LiveFeed(self.c, clock=self._clock)
-            view2, snap2 = shadow_feed.build(symbols)
+            vol, _ = production_volumes()
+            view2, snap2 = shadow_feed.build(symbols, volume_reference=vol)
             cfg = self.cfg.to_backtest_config()
             again = W.compute_target_weights(view2, cfg, equity)
             shadow_feed.close()
