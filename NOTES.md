@@ -7510,3 +7510,159 @@ accessed in this stage. Gen-1 budget **15 of 25** unchanged; Gen-2 budget
 **0 of 20**. Holdout sealed — now under two independent seals: the Gen-1 rule
 (§29/§30) and the Gen-2 re-affirmation (§59.1), which stands on its own
 grounds and survives even if the Gen-1 rule were ever revisited.
+
+### 59.11 AMENDMENT (Stage 18a, 2026-08-31) — gate-failure semantics and feasibility attribution
+
+**Appended; §59.0–§59.10 are unedited.** No code was written and no market,
+return, snapshot, backtest or performance data was accessed. Gen-1 budget
+**15 of 25**; Gen-2 **0 of 20**. Holdout sealed.
+
+#### 59.11.1 BLOCKING FOR STAGE 19 — gate-failure state semantics are part of the specification
+
+§59.4 defines a gate failure as a **skip** but never says what a skip does to
+an **already-held portfolio**. The candidate answers — flatten to cash, hold
+unchanged, risk-only rescale, partial rebalance, hold-N-days-then-flatten —
+are **materially different strategies**, not implementation details.
+
+> **Gate-failure state semantics are part of the strategy specification.**
+> "Skip" states only that no new gate-passing target exists; it does not by
+> itself specify what happens to an already-held portfolio. **Stage 19 must
+> pre-register the exact state transition** — flatten, hold, risk-only
+> rescale, or another explicitly defined rule — **before any return data are
+> accessed. The rule may not be selected from historical performance.**
+
+**Gen-1's skip semantics are NOT inherited.** §59.6 lists inherited
+infrastructure and is silent here; silence must not become an unexamined
+default. Gen-1's skip was all-or-nothing on a discrete 5L/5S book; RCM's
+continuous optimizer can produce a **partially feasible** book — a state
+Gen-1 never had. The rule is derived from RCM's own architecture.
+
+**A single common transition is PREFERRED.** Gate-specific transitions are
+permitted **only** where Stage 19 establishes that a common transition
+violates a distinct risk or economic invariant, with that invariant named.
+Bespoke behaviour per gate is a state machine's worth of degrees of freedom
+before RCM has demonstrated anything.
+
+**Concurrent gate failures must be deterministic.** Stage 19 specifies either
+one common transition for any non-empty failure set, or an explicit
+precedence/composition rule `T(failed_gates, current_state)`.
+**Implementation order may not determine the economic outcome** — `if/elif`
+ordering is not strategy logic.
+
+**Any "hold" variant must state its leverage-drift consequence explicitly.**
+Gen-1's runaway leverage (§13.1: 20x through a 3x cap, four bankruptcies in
+grid v1) came from exactly this choice being made without being stated.
+
+#### 59.11.2 Exhaustive calendar classification, with causal precedence
+
+Every date is classified into **mutually exclusive, collectively exhaustive**
+categories by a deterministic rule:
+
+```
+  D = D_formed ∪ D_gate ∪ D_structural ∪ D_operational      (disjoint)
+
+  D_gate        failed one or more §59.4 feasibility gates
+  D_structural  insufficient usable universe, missing market data,
+                unavailable execution bar, factor-estimation failure,
+                stale metadata
+  D_operational solver failure, refusal, harness/host issues
+```
+
+**No date may be unaccounted for.**
+
+**Precedence.** A date can satisfy more than one raw failure condition (gates
+fail *and* the execution bar is missing). Since the categories are disjoint,
+**Stage 19 must define deterministic precedence**, and it must reflect
+**causal stage ordering** — the first stage at which the intended decision
+became impossible — never `if/elif` placement. A plausible pipeline is
+`structural eligibility → optimizer → feasibility gates → execution`, but
+Stage 19 defines it.
+
+#### 59.11.3 Attribution diagnostics — two deltas, both fenced
+
+**One object, two uses.** The shadow book **is** the canonical
+pre-feasibility book already defined in §59.4 as the signal-coverage
+denominator. A second definition may not be introduced.
+
+**The shadow return, frozen:**
+
+```
+  r_shadow(t+1) = w_pre(t)ᵀ · r_price(t+1)
+```
+
+Canonical **continuous** pre-feasibility weights; next-rebalance-horizon
+**price** returns; **no fees, no slippage, no quantization**. Funding is
+reported separately and never folded in.
+
+**Domain:** `D_formed ∪ D_gate` only — no shadow target exists on
+`D_structural` or `D_operational` dates. Those counts are reported and
+explicitly excluded.
+
+**Δ_gate — were rejected targets systematically different?**
+
+```
+  Δ_gate = E[r_shadow | formed] − E[r_shadow | gate_failed]     with 90% CI
+```
+
+Stationary-bootstrap interval. **Not significance-tested as pass/fail.**
+
+**Δ_transition — what did the transition rule do about it?**
+
+```
+  Δ_transition = E[ r_actual_price − r_shadow | D_gate ]        with 90% CI
+```
+
+`r_actual_price` is the realised book's **price-only** return under the
+pre-registered transition rule — price-only so it is comparable to
+`r_shadow`. This separates *alpha selection caused by gate timing* (Δ_gate)
+from *the performance effect of the chosen transition* (Δ_transition):
+
+```
+  signal → feasibility selection → state transition → realised strategy
+```
+
+**The decomposition is price-only and does NOT sum to realised net
+performance.** The gap is execution cost, and it is **not neutral across
+transition rules**: flatten *trades* on gate-failed days and pays closing
+costs; hold trades nothing. The execution-cost term is reported as a separate
+line, with the transition rule's own cost consequence named — otherwise a
+positive Δ_transition under flatten reads as free protection when part of it
+was paid for in fees.
+
+**Interpretation — transition-induced exposure selection.**
+
+> **Literal protective abstention exists only under flatten semantics.**
+> Under hold, rescale, or other transitions, gate failures can still create
+> protective or harmful **exposure selection** by preventing the canonical
+> new target from replacing the existing book. Therefore **Δ_gate measures
+> properties of rejected targets**, while the realised performance
+> consequence of gating must be interpreted **jointly with the pre-registered
+> transition rule** (Δ_transition). Every report of either diagnostic states
+> the active transition rule beside it.
+
+And, non-categorically:
+
+> Systematically worse shadow alpha on gate-failed days is **evidence
+> consistent with endogenous time selection induced by feasibility**. It is a
+> potential contributor to performance and **may not be attributed to
+> residual momentum without further decomposition** — volatility, liquidity
+> and listing age can produce the same pattern.
+
+**The fence.**
+
+> Δ_gate and Δ_transition are **attribution only**. Neither may be used to
+> tune feasibility thresholds, nor to choose flatten vs hold vs rescale after
+> seeing returns, nor to convert a feasibility rule into an alpha filter.
+> Any of those creates a **new strategy generation** with its own governance,
+> not an amendment to RCM v1.
+
+#### 59.11.4 The standard reporting tuple
+
+Every performance table row reports: **calendar performance (full calendar,
+§59.4.1); formation rate; feasibility-gate skip rate; structural skip rate;
+operational skip rate; gate composition (which gates, with counts).**
+
+Any Sharpe, return or drawdown computed on formed days only carries the
+literal label:
+
+**`DIAGNOSTIC — CONDITIONAL ON FORMATION — NOT STRATEGY PERFORMANCE`**
