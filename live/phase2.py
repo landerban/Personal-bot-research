@@ -160,6 +160,7 @@ class CycleResult:
     equity: float | None = None
     atomicity: dict = field(default_factory=dict)     # STAGE10 4.1
     stops_placed: list[str] = field(default_factory=list)
+    stops_unsupported: bool = False    # NOTES 56.7: venue capability
     stop_cascade: list[str] = field(default_factory=list)  # 4.2
     funding: dict = field(default_factory=dict)       # 4.3 + criterion 2
     price_pnl: float = 0.0
@@ -359,6 +360,10 @@ def order_id(tag: str, sym: str, clock=time.time) -> str:
     return f"p2-{tag}-{sym}-{int(clock())}"[:36]
 
 
+# Binance: "Order type not supported for this endpoint."
+CODE_ORDER_TYPE_UNSUPPORTED = -4120
+
+
 def _place_stops(runner: "Phase2Runner", positions: dict, res: CycleResult
                  ) -> list[str]:
     """Layer 1 protection (STAGE10 4.2): an exchange-side reduce-only stop per
@@ -366,6 +371,18 @@ def _place_stops(runner: "Phase2Runner", positions: dict, res: CycleResult
 
     It survives this process, this machine and this ISP -- which is the point.
     The distance is deliberately wide: a backstop, never a strategy exit.
+
+    LAYER 1 IS UNAVAILABLE ON THE TESTNET VENUE (NOTES 56.7). Stage 16 Part A
+    established that this venue refuses EVERY conditional order type on
+    /fapi/v1/order with -4120 -- STOP_MARKET, TAKE_PROFIT_MARKET, with or
+    without closePosition or reduceOnly -- even though exchangeInfo.orderTypes
+    advertises them all. §52.4 claimed stops were being placed; on this venue
+    they cannot be, and because no book ever formed the claim was never
+    exercised.
+
+    So a -4120 is recorded ONCE as a venue capability limitation rather than
+    as a per-symbol error every cycle (the §51.10 spam lesson). Layers 2
+    (watchdog) and 3 (kill switch) are unaffected and remain armed.
     """
     from live.client import quantize_price
 
@@ -394,6 +411,14 @@ def _place_stops(runner: "Phase2Runner", positions: dict, res: CycleResult
                 newClientOrderId=order_id("stop", sym, runner._clock))
             placed.append(sym)
         except Exception as e:
+            if getattr(e, "code", None) == CODE_ORDER_TYPE_UNSUPPORTED:
+                if not res.stops_unsupported:
+                    res.stops_unsupported = True
+                    log.warning(
+                        "layer-1 stops UNAVAILABLE on this venue: conditional "
+                        "orders refused on /fapi/v1/order (-4120). Layers 2 "
+                        "(watchdog) and 3 (kill switch) remain armed.")
+                continue
             res.errors.append(f"{sym}: stop not placed: {type(e).__name__}: {e}")
     return placed
 

@@ -6659,3 +6659,94 @@ day since. Nothing is being discarded.
 - Does not tune the fill model beyond §56.2
 - Does not change a strategy parameter
 - Does not touch mainnet trading or the holdout
+
+### 56.7 PART A RESULT — the order machinery genuinely trades. 30 of 30.
+
+```
+  BTCUSDT $55.07   ETHUSDT $24.66   SOLUSDT $14.83     account FLAT after
+  ------------------------------------------------------------------------
+  1  market order          FILLED on all three
+  1b costlog fill row      fees recorded, venue=testnet, demo=True
+  2  limit placed          rests 20% below bid
+  2b limit cancelled       CANCELED, confirmed by query
+  3  stop (layer 1)        REFUSED BY THE VENUE -- see below
+  4  reconcile             exchange position == filled quantity, exactly
+  5  close                 flat
+  6  undersized order      classified FilterRejected, code -4164
+  cleanup                  flat, verified per symbol
+```
+
+Every step produced the expected exchange response **and** the expected local
+record. `flatten_all()` was also exercised against real positions during the
+failed attempts and closed all three correctly — incidental but real evidence
+that the kill switch's flatten path works on live positions.
+
+**It took three attempts, and the two failures were mine.** They are recorded
+because the failures are the evidence that the roundtrip tests something.
+
+### 56.8 Three defects the roundtrip found
+
+**1. My limit orders were sized off the mid, not their own price.** A limit
+resting 20% below the bid carries 20% less notional, which put BTC ($44 at the
+limit price) and ETH under their MIN_NOTIONAL floors and the venue refused
+them. The exchange was right; the sizing was wrong. Fixed: a resting order is
+sized by the price it rests at.
+
+**2. The harness did not fail closed.** An uncaught exception mid-symbol
+skipped that symbol's close step and left **three open positions on the
+account**. A harness whose purpose is to prove fail-closed behaviour must
+itself fail closed. Restructured: every step is individually guarded and
+records against its own name, and `cleanup()` runs in a `finally` — cancel
+everything, close anything, verify flat.
+
+**3. `positionRisk` can lag a filled order.** Observed once: 0.0 returned
+immediately after a `FILLED` market order, correct on a later call; a later
+probe showed 0.14 at +0.0s, so it is intermittent rather than systematic.
+**This matters beyond the roundtrip**: `run_cycle` reads `fetch_state`
+straight after placing orders to compute the filled book, so a lagged read
+would show missing legs and fire a FALSE atomicity breach (§52.4 fix 1). The
+roundtrip now settles before asserting. **The same settle is owed in
+`run_cycle` and is not yet applied** — recorded as outstanding rather than
+quietly assumed harmless.
+
+### 56.9 A venue capability finding: layer-1 stops are UNAVAILABLE
+
+This testnet refuses **every** conditional order type on `/fapi/v1/order`:
+
+```
+  STOP_MARKET + closePosition=true        -4120
+  STOP_MARKET + quantity + reduceOnly     -4120
+  STOP_MARKET + quantity                  -4120
+  TAKE_PROFIT_MARKET + closePosition      -4120
+      "Order type not supported for this endpoint.
+       Please use the Algo Order API endpoints instead."
+```
+
+**And `exchangeInfo.orderTypes` advertises all of them** — `['LIMIT',
+'MARKET', 'STOP', 'STOP_MARKET', 'TAKE_PROFIT', 'TAKE_PROFIT_MARKET',
+'TRAILING_STOP_MARKET']`. The metadata does not describe what this endpoint
+accepts, which is worth knowing generally: capability cannot be inferred from
+`exchangeInfo`.
+
+**This falsifies part of §52.4.** Stage 14a recorded that exchange-side stops
+"are now placed" after every rebalance. On this venue they cannot be. The
+claim was never exercised because no book ever formed (§53), so the code has
+never once succeeded at placing a stop — a check that has never run is not a
+check that passes.
+
+**Consequence, stated plainly: the three-layer protection is two layers on
+this venue.** Layer 1 (an exchange-side stop that survives this process, this
+machine and this ISP) is unavailable. Layer 2 (watchdog) and layer 3 (kill
+switch) are unaffected and remain armed and tested.
+
+`_place_stops` now records a -4120 **once** as a capability limitation rather
+than as a per-symbol error every cycle (the §51.10 spam lesson applied
+forward), and `CycleResult.stops_unsupported` carries it to the daily report.
+
+**Not attempted:** routing stops through the Algo Order API. That is new
+signed-endpoint surface on a venue the paper book is about to stop trading on
+(Parts B–D move execution to simulation), so it would be work spent on a path
+being retired. If real-money trading is ever approached, layer 1 must be
+re-established and re-tested on the venue that will actually carry it.
+
+Suites 138/138. Account flat. Budget 15 of 25. Holdout sealed.
