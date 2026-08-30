@@ -6258,3 +6258,91 @@ however many days the counter shows.
 
 The clock is untouched and keeps running; the counter is honest about days
 elapsed, and this section is what stops those days being mistaken for evidence.
+
+## 54. Artefact map — where everything lives
+
+Added because three items existed only in commit messages, and because a
+reader returning after a gap should not have to reconstruct the layout from
+`git log`.
+
+### 54.1 The running system
+
+```
+  C:/Users/ASUS TUF/Desktop/App/
+      install.bat       one-time: venv, deps, credential + clock check,
+                        power advice, auto-start, verification tick. Idempotent.
+      start_bot.bat     double-click to run
+      stop_bot.bat      clean stop via the stop SENTINEL (51.10). Waits with
+                        `ping`, not `timeout`, because `timeout` aborts when
+                        stdin is redirected -- which happens whenever a
+                        scheduler invokes it.
+      RUNBOOK.md        start / know-it-is-alive / stop / update / lights
+      logs/xsmom.log    rotating, 5 MB x 7
+      .venv/            numpy + requests only
+  app_dist/             VERSIONED copy of the four App files, so `git pull`
+                        can restore them and launcher changes are reviewable
+                        like any other code. .venv and logs are machine state
+                        and are deliberately not versioned.
+```
+
+Auto-start is a **Startup-folder shortcut**, not a Scheduled Task: `schtasks
+/create` needs elevation on this machine. Start-at-boot and restart-on-failure
+need the elevated block in the runbook (§51.7).
+
+### 54.2 State the bot owns (all under `live/state/`)
+
+```
+  status.json        what the bot believes NOW; overwritten each cycle.
+                     The dashboard reads only this.
+  clock.json         the 28-day counter, late days, missed days, resets
+  risk.json          paper equity, peak, curve, testnet resets, cum PnL
+  supervisor.lock    single-instance lock: pid + start time
+  stop               the stop sentinel; present only between request and exit
+  heartbeat          unix time, rewritten every tick; the watchdog reads the
+                     timestamp INSIDE it, never the mtime
+```
+
+### 54.3 Append-only records (repo root)
+
+```
+  paper_daily.jsonl  one daily report block per cycle (STAGE10 7): counter,
+                     equity, drawdown, skips, shadow, funding, atomicity,
+                     stops, composition guard, errors. The AUDIT TRAIL --
+                     status.json is "now", this is the history.
+  paper_log.jsonl    one line per cycle: universe size, decision, deltas,
+                     positions, shadow, guard, errors
+  paper_costs.jsonl  every fill and funding row, tagged venue=testnet
+  trials.jsonl       the trial ledger (15 of 25 spent)
+  diagnostics.jsonl  every free diagnostic: sweeps, proofs, attributions
+```
+
+`paper_log.jsonl`, `paper_costs.jsonl` and `live/state/` are gitignored: they
+are machine state, not source.
+
+### 54.4 Data and provenance
+
+```
+  xsmom.db                              the frozen Stage 1 PIT store (732 MB)
+  xsmom_demeaned.db                     per-symbol demeaned copy, for drift
+  data/exchangeInfo_production_*.json   the user-supplied production dump
+  data/underlying_classes_production.json  derived classifier metadata (882)
+  data/underlying_classes.json          testnet metadata (733)
+  data/train_validate_universe_symbols.json  346 symbols, Test 26 artefact
+  holdout_log.json                      ABSENT, and that is the point
+```
+
+### 54.5 Keys
+
+`%USERPROFILE%/.binance_testnet.env` — **outside the repo**, never written by
+the installer, never committed. `tools/scan_secrets.py` enforces the repo half
+on every run and in the suite. Treat them as already disclosed and rotate when
+the paper phase ends (§46.8).
+
+### 54.6 Where the decisions are
+
+This document. Every stage from §2 to §53 records what was pre-registered,
+what was run, what was found, and what was corrected — including the seven
+corrections this session made to its own earlier claims (§45.0, §48.0, §48.8,
+§48.10, §48.12, §51.8, §53.1). The corrections are load-bearing: they are the
+evidence that the pre-registration discipline is doing work rather than
+decorating it.
