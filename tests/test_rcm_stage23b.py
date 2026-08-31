@@ -284,3 +284,22 @@ def test_evaluators_import_no_reader_and_define_no_second_frozen_object():
                        "proddata", "CalibrationSet"):
             assert banned not in src, f"{name} rebuilds/reaches {banned}"
     print("PASS 23b_no_reader_single_definition")
+
+
+# ------------------------------------------- §64.4 run-stage immutability
+
+def test_lock_hashes_in_notes_match_the_evaluator_files():
+    """§64.4: the lock commit pinned the evaluator code. Any post-lock edit
+    of either evaluator breaks this test — the run stage may not proceed on
+    drifted code without a new pre-registration."""
+    import re
+    notes = (ROOT / "NOTES.md").read_text(encoding="utf-8")
+    locks = dict(re.findall(r"^LOCK (\S+) sha256=([0-9a-f]{64})", notes,
+                            re.MULTILINE))
+    assert set(locks) == {"rcm/eval_formation.py", "rcm/eval_ic.py"}, locks
+    for rel, cited in locks.items():
+        actual = hashlib.sha256((ROOT / rel).read_bytes()).hexdigest()
+        assert actual == cited, (
+            f"{rel} changed after the §64 lock — the pre-registration is "
+            f"void; re-register before any run")
+    print("PASS 23b_lock_immutability")

@@ -47,9 +47,17 @@ stale-book invariant (§62.3) and D_degenerate as a fifth calendar category
 | solver pin | DONE — clarabel 0.11.1 / cvxpy 1.9.2 |
 | determinism, funding observability | DONE |
 
-**What remains before real data: only the pre-registration of trial 1 of
-20 itself** — a future stage under §59's budget rules, with the user's
-sign-off. Named limitations that travel with the spec (not blockers,
+**Trial 1 of 20 is PRE-REGISTERED and LOCKED (§64, Stage 23b) — not
+run.** The two §60.8 kill criteria are completed by §60.12 (three user
+decisions recorded verbatim; criterion 3 reserved for forward
+validation), the two evaluators are built and synthetically attacked
+(37/38 boundary, calendar never compressed, equal-weighted daily
+Spearman, Gen-1's CI construction inherited bit-for-bit), the evaluator
+hashes are pinned in §64.4 with a run-stage immutability test, and
+`trials.jsonl` carries the row (`attempt_id 1`, `valid_trial_count 0`).
+The reading table has four rows and no post-result discretion.
+**STOPPED for both delegates' review of §64; the run is a separate
+stage.** Named limitations that travel with the spec (not blockers,
 §63.6.5): estimation uncertainty in `K_t`/eigenvalues/loadings; the
 `m_eff < 87` caveat; the development-informed naming (§63.1.A.3.1).
 

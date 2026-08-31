@@ -9654,3 +9654,111 @@ evidence**, never deleted.
 
 **No post-result user discretion. No path from a PnL number to keeping a
 signal whose IC criterion failed.**
+
+## 64. Trial 1 of 20 — pre-registration (Stage 23b Part III, 2026-08-31) — LOCKED, NOT RUN
+
+**Written from Stage 23b's Part III specification (no `STAGE23.md` exists;
+the corrections list and deletions there fully determine this section).
+The MDE-as-gate rule, the INDETERMINATE branch, and every post-result
+user-decision branch are DELETED — they do not appear below and may not
+be reintroduced. No return is read by this stage. The run is a separate
+stage. Gen-2 valid trials 0 of 20; attempt_id 1 is hereby pre-registered.
+Holdout sealed; the Gen-2 runner hard-rejects 2025-01→2026-07.**
+
+### 64.1 The one question, and the two criteria
+
+**Question:** does the frozen RCM v1 pipeline, run once over the
+2020–2024 development era, survive both development-applicable kill
+criteria of §60.8 as completed by §60.12?
+
+- **Criterion 1 — formation:** §60.12.2, exactly.
+- **Criterion 2 — residual-momentum IC:** §60.12.3, exactly.
+- **Criterion 3 — the 21-day forward feasibility gate: RESERVED for
+  forward validation, NOT evaluated in trial 1;** its absence is never a
+  pass (§60.12.1).
+
+### 64.2 Quantities, transcribed from §60.12 (the locked criteria)
+
+**Formation.** `evaluation_start` = first UTC date structurally capable
+of a complete decision AND ≥ 12 pre-alpha PIT risk-eligible names (12 =
+2 × frozen 6; the start rule is the recorded USER DECISION). From
+`evaluation_start`, EVERY UTC calendar date counts — `D_structural`
+(including a later fall below 12), `D_operational`, `D_degenerate`, and
+gate-failed dates are non-formed; only `D_formed` counts. For every
+completed 63-calendar-day window: **≤ 37 formed = window FAIL, ≥ 38 =
+PASS (0.60 × 63 = 37.8)**; ANY completed window failing ⇒ criterion 1
+FAIL. Calendar time is never compressed.
+
+**IC.** `IC_t = Spearman_i(Z_mom,i,t, ε_fwd,i,t)` with average ranks;
+`IC̄` the equal-weighted mean over defined dates (the recorded USER
+DECISION on the estimand). Cross-section: the frozen pre-alpha PIT
+risk-eligible universe with complete `ε_fwd` — NOT conditioned on
+capability, formation, weights, gates, or PnL; the 12-name floor does not
+apply. `ε_fwd` is the §60.11.2.2 execution-horizon forward residual,
+betas fixed at the signal date. Undefined dates are excluded, counted,
+and reasoned — never zero. Stationary bootstrap: 2,000 replicates, mean
+block `max(2, n^{1/3})`, **the interval construction inherited
+line-for-line from `backtest/metrics.py :: sharpe_bootstrap_ci`**
+(percentile, two-sided 90%; cited sha256
+`061622ed3e786d6dd6e91e5a16c65a4e82634486414d3fc065c0c3f312551328`;
+bit-exact equivalence proven by test). **Criterion, binary:
+`CI_lower(IC̄) > 0 ⇒ PASS; otherwise FAIL.`** Seed:
+`seed_from_lock_commit(<the §64 lock-commit hash>)` — resolved at run
+time from the commit that introduces this section.
+
+**MDE disclosure (§60.12.3, verbatim in force):** no exact numerical MDE
+is identifiable before Trial 1 under the frozen procedure without
+observing the return-derived dependence structure of the daily IC series;
+no calendar-count proxy is substituted; criterion 2 tests existence/sign
+solely through the frozen two-sided 90% bootstrap CI; the realized CI
+half-width is reported afterward as observed resolving precision and is
+not a second criterion.
+
+**Reading table (§60.12.5, four rows, no discretion):** Formation PASS +
+IC PASS ⇒ §64 commit = RCM v1 freeze (§59.1.6 hash + UTC), forward paper
+begins, valid trials 1/20. Either criterion FAIL with no demonstrable
+implementation defect ⇒ RCM v1 ABANDONED (§59.7), valid trials 1/20.
+Apparent FAIL with a reproduced implementation defect ⇒ attempt VOID,
+valid trials 0/20, fix pinned by a test, next attempt under identical
+locked criteria. Operational run error not shown to be a
+measurement-invalidating defect ⇒ non-VOID attempt, valid trial consumed.
+**Bug-vs-design is decided ONLY by a reproducing test** (failing against
+the pre-fix code, passing after). VOID accounting per §60.12.4:
+`attempt_id` increments on every real-data execution;
+`valid_trial_count` increments only when `void == false`; void rows are
+never deleted.
+
+### 64.3 Reporting plan (unchanged from the standing discipline)
+
+The §59.11.4 reporting tuple with `degenerate_rate` appended
+(position-asserted); every formed-days-only number carries the literal
+`DIAGNOSTIC — CONDITIONAL ON FORMATION — NOT STRATEGY PERFORMANCE`;
+the headline number is FULL-CALENDAR; `Δ_gate` and `Δ_transition` with
+stationary-bootstrap 90% CIs, never significance-gated, transition rule
+named beside each number; the carry-guard `s_mom` daily series with the
+literal `CARRY REGIME — NOT RCM` label wherever it fires; the `K_t` and
+`λ₁/tr` daily series with the §63.5 null references beside them
+(§63.6.7.5); `D_degenerate` days carry their recorded cause. **No Gen-1
+comparison as a headline** — any Gen-1 number appears only as labelled
+context.
+
+### 64.4 The lock
+
+This section's git commit is **the lock commit**: it pins the
+specification (§60.12 + this section) and the evaluator code. Evaluator
+hashes at lock (machine-readable; the run-stage immutability test
+recomputes and compares them):
+
+```
+LOCK rcm/eval_formation.py sha256=dbaa107681115336c8289ba7b6824acb6b791679cc6f3ebcf44910d1cdcbf05d
+LOCK rcm/eval_ic.py sha256=a1f29dccbbecff7e9969f8f3ccd0c62fc102aba022ae5e17bd8c6c82d8ab0935
+```
+
+Trial 1 is logged in `trials.jsonl` as `status: "pre-registered"`,
+`attempt_id: 1`, `valid_trial_count: 0`. The bootstrap seed derives from
+this lock commit's hash at run time (§60.12.3's seed rule). Any change to
+the evaluators or these criteria after this commit voids the lock and
+requires a new pre-registration.
+
+**STOP. Both delegates review §64 as written. The run is a separate
+stage. No return has been read. Gen-2 valid trials: 0 of 20.**
