@@ -9859,3 +9859,99 @@ already-frozen rule, recorded so nothing is decided inside an editor.
     the single real execution.
 
 **Gen-2 valid trials at this registration: 0 of 20. Holdout sealed.**
+
+## 66. FINDING F-2 — the exactly-binding breadth SOC does not survive quantization; the §64 lock is VOIDED and re-registered (2026-09-01)
+
+**Found by the §65.2.11 synthetic dry run BEFORE any real data was read.
+The registered attempt was NOT executed; no return has been touched;
+Gen-2 valid trials remain 0 of 20. This section is appended before any
+amending code exists.**
+
+### 66.1 The finding
+
+The §62.2/§62.8 construction makes the optimizer's per-leg breadth SOC
+bind at **exactly N_eff = 6** on the continuous book — breadth costs
+alpha, so every formed book sits precisely on the boundary, by
+construction. §60.7 then evaluates the gates on the SIZED book, where
+floor-quantization (which only rounds down, per the frozen §57.3 venue
+rule) displaces each weight by up to one step. A book pinned exactly at a
+boundary does not survive an arbitrary perturbation: on the dry run,
+**70 of 70 would-be-formed days failed the N_eff gate, by 6e-4 to 0.11
+(median 4.4e-3), against the frozen 1e-6 tolerance** — a tolerance §62.7
+derived for SOLVER precision, two to five orders of magnitude below the
+quantization displacement.
+
+**Why no earlier suite caught it:** every prior gate fixture passed
+`w_real = w_pre` or a proportional scaling — quantization and the gate
+were never composed until the trial-1 dry run composed them. This is the
+F-1 pattern one stage downstream: the invariant was guaranteed on
+`w_pre` and re-tested after an operation that provably cannot preserve
+an exactly-binding value.
+
+**Also measured, and worth the record:** at the user's $800 the floor
+fear did NOT materialize — the F-1 construction concentrates books to
+~6 effective names per leg, so positions run $65–80 against $5 floors
+and `V_ret ≥ 0.9988` on every dry-run day. The failure is purely the
+boundary arithmetic, not the floor.
+
+### 66.2 USER DECISION — the derived-margin amendment
+
+Three options were put to the risk owner with the consequences stated:
+(a) the derived quantization margin (recommended), (b) evaluating the
+breadth gate on `w_pre`, (c) running as-is with formation failing
+~everywhere on the artifact and RCM v1 abandoned by the locked table.
+**The owner chose (a).** Recorded 2026-09-01, before any amending code.
+
+### 66.3 The derivation — measured displacement, no new number
+
+The approved rule: the sized book's per-leg N_eff is compared against
+`6 − D_t − 1e-6`, where `D_t` is that day's MEASURED quantization
+displacement of the leg's N_eff,
+
+```
+  D_t,leg = max(0, N_eff(w_pre restricted to the leg's surviving names)
+                   − N_eff(w_real,leg))
+```
+
+Substituting `D_t` shows the rule is algebraically equivalent to
+
+```
+  max( N_eff(w_real,leg),
+       N_eff(w_pre restricted to the surviving names) )  ≥  6 − 1e-6
+```
+
+— i.e., breadth is tested on the book actually HELD (its surviving
+support), measured on the optimizer's continuous weights, with the sized
+weights accepted when rounding happened to help. Properties:
+
+- **Sub-step rounding is eliminated EXACTLY, not approximately** — the
+  restricted continuous leg is rounding-free by definition. This is the
+  §62.8 move again: measure the component of the invariant that the
+  venue's expressiveness can actually see; a sub-one-step displacement
+  is the smallest change the venue can represent and cannot encode a
+  concentration decision.
+- **Genuine breadth loss still fails.** A name DROPPED by the floor or
+  quantized to zero never enters the restricted book, so the restricted
+  N_eff falls with it: three drops from a twelve-name leg fail exactly
+  as before.
+- **No new free quantity.** The frozen 6, the frozen 1e-6, and measured
+  arithmetic. The masked residual is bounded by one venue step per name
+  — the venue's own granularity, not a chosen tolerance.
+- All other gates (V_ret, the vol ceiling, coverage) stay exactly as
+  frozen, on the sized book.
+
+### 66.4 Lock consequence and the re-registration plan
+
+Per §64.4 this amendment **voids the §64 lock**: the formation
+definition feeds criterion 1. The plan, executed in order in this
+stage: (i) this append, committed before code; (ii) the gate amendment
+in `rcm/gates.py` with F-2 fixtures (an exactly-binding quantized book
+passes; a genuinely dropped-name book fails; every prior suite green);
+(iii) **re-lock**: a §66.5 append pinning the evaluator hashes
+(unchanged) AND the amended `rcm/gates.py` hash, whose commit is the new
+lock commit; the seed re-derives from it by the frozen §60.12.3 rule;
+(iv) `trials.jsonl` gains a superseding registration row (the §65 row
+is annotated by append, never edited); (v) the dry run green under the
+amended gate; (vi) the single real execution. The criteria text of
+§60.12/§64 is otherwise UNCHANGED — same two criteria, same reading
+table, same no-discretion rule.
