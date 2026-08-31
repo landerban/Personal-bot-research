@@ -8807,3 +8807,118 @@ to the forecast's arbitrary zero level, and the chain is closed — not to be
 revisited unless another synthetic invariant breaks. Still blocking trial 1
 of 20, unchanged: `g_min` (§60.11.6), zero-momentum semantics (§60.11.8),
 residual-correlation robustness (§62.5).
+
+## 63. Stage 21 — three decisions recorded, two implemented, one measured (2026-08-31)
+
+**Prerequisite met: §62.8.3 shows F-1 RESOLVED post-verification. Appended
+before any Stage-21 code. Gen-2 stays 0 of 20; holdout sealed; the Gen-2
+runner's hard rejection of 2025-01→2026-07 stays in force. No performance
+quantity is computed anywhere in this stage.**
+
+### 63.1 The decisions (Part A), verbatim, dated 2026-08-31
+
+#### 63.1.A.1 Zero-momentum semantics — USER DECISION: (a), trade
+
+When `Σ|w_pre|·|μ_mom| = 0`, signal coverage is **N/A** (a distinct value;
+not a gate failure); the book may form under the §62.8 centered construction
+and carries the literal label `CARRY REGIME — NOT RCM` per §60.2.3. The rule
+on record, confirmed. **§60.11.8 RESOLVED.** The `Unresolved` raise in
+`c_signal` is removed by this decision and only by this decision.
+
+#### 63.1.A.2 Exposure retention — USER DECISION: 40% of intended variance
+
+The withdrawn gross gate (§60.11.6) is replaced by
+
+```
+  V_ret = (w_realᵀ Σ w_real) / (w_preᵀ Σ w_pre)  ≥  0.40
+```
+
+Recorded as **the risk owner's preference, stated before any Gen-2 return
+exists** — same class as the 10% vol target and the 30% kill switch; not
+derived from and not adjustable by performance. Units explicit: 40% of
+*variance* ≈ 63.25% of intended *volatility* under proportional scaling; the
+user has been informed. `G_realized / G_pre` stays in the tuple as
+**diagnostic only**. **§60.11.6 RESOLVED** (route: replaced by a
+user-preference gate; the withdrawn g² ≥ ½ derivation stays withdrawn).
+
+**A.2.1 Σ is the optimizer's covariance model, whatever it is at freeze.**
+Not "the diagonal model as of today": Part D exists precisely because the
+diagonal approximation may be replaced before RCM v1 freezes. `w_pre` and
+`V_ret` must always use **the same** estimator — one risk model, two uses.
+The **0.40 is permanently fixed**; the model it is evaluated under is
+whatever the frozen specification adopts.
+
+**A.2.2 Companion invariant — the absolute ceiling still binds.** `V_ret` is
+a lower bound only and does not prevent `V_ret > 1`. The executable book must
+still satisfy the frozen `w_realᵀΣw_real ≤ σ²_target,daily`. `w_pre`
+satisfies it by construction; quantization and composition changes happen
+downstream and could regain risk (dropping a hedging short while its longs
+survive RAISES modeled variance). Enforcing an existing invariant, not a new
+tolerance.
+
+#### 63.1.A.3 Residual-correlation robustness — DELEGATED
+
+To the two reviewers, fixture and criteria both. Process: (i) Part D measures
+development-era residual-correlation **structure**; (ii) the delegates
+jointly record fixture + criteria + derivation in a §63 append **before**
+any stress test executes; (iii) neither changes afterward.
+**§62.5: UNRESOLVED → DELEGATED-PENDING-MEASUREMENT.**
+
+**A.3.1 Naming, fixed now.** The resulting requirement is
+**development-informed robustness calibration** — legitimate because
+2020–2024 is the development set — and **may never later be cited as
+independent evidence that the covariance model generalizes.**
+
+#### 63.1.A.4 Reordering amendment — recorded explicitly
+
+§59.9 fixed `synthetic/structural → 2020–2024 development`, and §60.11.5
+placed the correlated-residual test in the pre-real-data structural work.
+Stage 21 departs from that:
+
+> §63 authorizes **one narrowly scoped development-era structure
+> measurement** before completion of the correlated-residual synthetic
+> stress test. This is a **deliberate amendment** to the prior
+> synthetic→development ordering, justified because no defensible
+> correlation fixture can be derived from existing architecture alone
+> (§62.5). It accesses no alpha or performance result and **authorizes no
+> other development-data use** before the stress requirement is frozen.
+
+Consequence for the §59 no-real-data rule: it stands unweakened for every
+`rcm/` module (the import-level test is unchanged); the one authorized
+measurement module lives OUTSIDE `rcm/`, and its own quarantine is the
+inverse — it may not reach portfolio, gate, optimizer, or PnL code.
+
+### 63.1.5 Implementation interpretations — recorded BEFORE code
+
+The five gaps between Part A and code, closed here so nothing is decided
+inside an editor:
+
+1. **Coverage N/A representation:** the string `"N/A"` — distinct from 0, 1,
+   and NaN as required; JSON-serializable; arithmetic on it fails loudly
+   rather than silently averaging.
+2. **Carry label rule (Part B):** the label fires iff EITHER frozen condition
+   holds — exact-zero momentum mass today (`Σ|w_pre||μ_mom| = 0`) OR the
+   §60.2.3 trailing rule (21-day mean s_mom < 0.5). Absence requires both
+   false. No new threshold; the OR of two existing rules.
+3. **V_ret near-zero-denominator split (Part C):** `w_pre = 0` (exact, after
+   the frozen zero-clean) ⇒ `D_degenerate` as before. `w_pre ≠ 0` with
+   non-finite denominator, or modeled vol below the frozen solver precision
+   RELATIVE to the book — `√(w_preᵀΣw_pre) < SOLVER_TOL · G_pre` — ⇒
+   covariance/model integrity failure: fail closed, `D_structural`, alert.
+   Scale-free on purpose: a legitimately throttled micro-book has per-unit
+   vol ~ idio vol and is NOT flagged; only a nonzero book in a modeled
+   nullspace is. Reuses the frozen 1e-8; no new threshold.
+4. **Absolute ceiling comparison (A.2.2):** evaluated in the gate layer as
+   `w_realᵀΣw_real ≤ σ²_target · (1 + 1e-6)` — the same
+   100×-above-solver-precision relative margin logic §60.7 froze for the
+   shadow tolerance and §62.7 reused for N_eff. The frozen 10% target is
+   unchanged; the comparison is protected from the solver's last digit.
+5. **Single definition of the 0.40:** `rcm/gates.py` config, cited to
+   §63.1.A.2; a grep test asserts exactly one occurrence in `rcm/`.
+
+Manifest delta (§60.11's frozen-parameter table, amended by append):
+
+```
+  g_min  —  WITHDRAWN §60.11.6  →  V_ret ≥ 0.40, user preference §63.1.A.2
+            (evaluated under the optimizer's Σ-of-record, §63.1.A.2.1)
+```
