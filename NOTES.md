@@ -8638,3 +8638,95 @@ of 20: `g_min` (§60.11.6), zero-momentum semantics (§60.11.8), and the
 stress test — **UNRESOLVED per §62.5**, awaiting a defensible derivation or
 a user decision to supply one. Gen-1 **15 of 25**; Gen-2 **0 of 20**.
 Holdout sealed.
+
+### 62.8 AMENDMENT (Stage 19c v2, 2026-08-31) — leg membership must be shift-invariant
+
+**Appended; §62.0–§62.7 unedited. No real data; Gen-2 stays 0 of 20; holdout
+sealed. Status discipline: specified ≠ verified — nothing below is RESOLVED
+until the §62.8.3 verification is appended.**
+
+#### 62.8.1 The bug, in the construction I adopted in §62.2
+
+§62.2 assigns leg membership by raw `sign(μ_i)`. The optimizer is exactly
+dollar-neutral, `1ᵀw = 0`, so for any constant c:
+
+```
+  (μ + c·1)ᵀw = μᵀw + c·1ᵀw = μᵀw
+```
+
+**The economic problem is invariant to a common shift of all expected
+returns; raw sign is not.** `μ = (−.02, −.01, +.01, +.02)` admits 2L/2S;
+`μ + .03·1` is economically identical yet assigns every name long-only, and
+neutrality forces w = 0. The construction's output depended on an arbitrary
+zero level of the forecast.
+
+**Carry-regime interaction:** with `μ_mom = 0`, `μ_total = −F̂`; if all
+funding rates are positive, raw sign makes every name short-only and the
+labelled CARRY REGIME book of §60.11.8(a) cannot form at all. The algebra
+stands alone; no empirical claim about typical funding is made or needed.
+
+#### 62.8.2 The correction — a derivation, not a preference
+
+Let `P = I − (1/N)·1·1ᵀ`, the orthogonal projection onto the dollar-neutral
+subspace. For every feasible w, `μᵀw = (Pμ)ᵀw`, so
+
+```
+  μ̃ = P·μ_total,   i.e.  μ̃_i = μ_total,i − μ̄_total
+  μ̃_i > 0 ⇒ L      μ̃_i < 0 ⇒ S      μ̃_i = 0 ⇒ excluded
+```
+
+is **the canonical component of expected return the feasible set can see**;
+the discarded component lies in a direction it is mathematically insensitive
+to. Mean-centering is not one shift-invariant choice among several
+(median-centering is also shift-invariant) — it is the **unique projection
+implied by the existing constraint**. No coefficient, no threshold, no
+return-data selection, no trial.
+
+- **Total μ, not μ_mom:** membership uses `μ_total = μ_mom − F̂`. With
+  `μ_mom = 0`, above-average funding goes short and below-average long — the
+  common funding level has no value under neutrality, only the
+  cross-sectional difference does. The carry book is well-defined.
+- **Ordering, frozen — no recursive membership:**
+  `PIT structural eligibility → funding/data eligibility → μ_total → μ̄ (once,
+  over that eligible set) → μ̃ → sign partition → optimizer`. The mean is
+  never recomputed after removing centered-sign names — that would be a
+  hidden iterative selection rule.
+
+#### 62.8.4 `D_degenerate` semantics broadened (supersedes §62.4's gloss)
+
+§62.4 glossed w = 0 as "expected returns net of costs do not justify
+exposure". Under the adopted construction w = 0 also arises from **valid
+constraints interacting**: 4 positive vs 26 negative centered names (the long
+leg cannot reach N_eff ≥ 6, so the SOC zeroes it and neutrality zeroes the
+other), or the chance constraint throttling the sign-restricted book
+(§62.7's own fixture).
+
+> **`D_degenerate` = the optimizer stage completed without structural or
+> operational failure but produced no meaningful nonzero admissible target.
+> This may arise from economic no-trade OR from the interaction of valid
+> portfolio constraints, and must not by itself be read as evidence that
+> expected alpha was zero.**
+
+Each `D_degenerate` day records its **cause** — `no_trade` or
+`constraint_interaction` with the binding constraint named — and attribution
+may not say "the model saw no opportunity" without that decomposition.
+
+#### 62.8.5 Wording corrections to §62.2 (append; §62.2 unedited)
+
+- "the ONE admissible candidate" → **"the simplest admissible candidate
+  within the retained convex SOCP architecture"** — mixed-integer
+  complementarity is another coefficient-free route, rejected for complexity,
+  not proven nonexistent.
+- "hold a name only on the side its residual momentum indicates" → **"hold a
+  name only on the side indicated by its cross-sectional total
+  expected-return advantage, after momentum and funding are combined."**
+
+#### 62.8.6 Status before verification
+
+F-1's structural resolution is **specified, not verified**. §62.8.3 (the
+verification append) must show: common-shift invariance failing on the OLD
+raw-sign path and passing on the corrected one, both shift signs, with a
+nonzero w_prev case; sign agreement re-based to `sign(μ̃)`; the carry-regime
+formation fixture; and all §62.7 fixtures green with every frozen quantity
+unchanged. **Only then is F-1 marked RESOLVED.** Still blocking trial 1:
+`g_min`, zero-momentum semantics, residual-correlation robustness.
