@@ -36,16 +36,22 @@ shrinks toward D_degenerate. Also adopted: the G_ref downscale-only
 stale-book invariant (§62.3) and D_degenerate as a fifth calendar category
 (§62.4, broadened §62.8.4). All 219 tests green, zero xfails.
 
-## Blocking trial 1 of 20 — exactly one chain left (§63.4)
+## Trial-1 prerequisites — every row RESOLVED (§63.7.1)
 
 | item | status |
 |---|---|
-| `g_min` (§60.11.6) | RESOLVED — replaced by `V_ret ≥ 0.40` under the optimizer's Σ (§63.1.A.2, user preference; implemented + tested) |
+| `g_min` (§60.11.6) | RESOLVED — replaced by `V_ret ≥ 0.40` under Σ_model (§63.1.A.2, user preference; implemented + tested) |
 | zero-momentum semantics (§60.11.8) | RESOLVED — user decision (a): trades, labelled `CARRY REGIME — NOT RCM`, coverage `"N/A"` (§63.1.A.1; implemented + tested) |
-| correlated-residual stress | DELEGATED (§63.1.A.3) — measurement delivered (§63.3); awaiting the delegates' frozen fixture + criteria, then a later stage executes it |
-| finding F-1 (§61.2) | RESOLVED (§62.8.3) — by construction + projection, no frozen quantity changed |
+| residual-risk model | RESOLVED — delegates withdrew the random-orientation stress gate as unable to render a verdict (§63.6.2) and replaced the diagonal model with the MP-edge residual factor covariance `Ω̂` (§63.6.4), implemented in `rcm/rescov.py` and verified synthetically (§63.7) |
+| finding F-1 (§61.2) | RESOLVED (§62.8.3) — construction invariants re-verified under `Ω̂` (§63.7) |
 | solver pin | DONE — clarabel 0.11.1 / cvxpy 1.9.2 |
 | determinism, funding observability | DONE |
+
+**What remains before real data: only the pre-registration of trial 1 of
+20 itself** — a future stage under §59's budget rules, with the user's
+sign-off. Named limitations that travel with the spec (not blockers,
+§63.6.5): estimation uncertainty in `K_t`/eigenvalues/loadings; the
+`m_eff < 87` caveat; the development-informed naming (§63.1.A.3.1).
 
 ## The Stage-21 measurement packet (for the delegates)
 
@@ -71,7 +77,8 @@ rcm/factors.py      ETH⊥, OLS betas, V_i, factor covariance (one 90d window)
 rcm/momentum.py     score, PIT calibration set-builder, shrinkage, carry guard
 rcm/funding.py      cadence-aware F̂ via Gen-1 machinery; equality observability
 rcm/optimizer.py    SOCP (γ and dollar-tolerance eliminated; η = the cost)
-rcm/gates.py        N_eff/leg, bounded C_signal (S=|μ_mom|), symbolic g_min
+rcm/rescov.py       Ω̂: MP-edge residual factor covariance (§63.6.4) + full model
+rcm/gates.py        N_eff/leg, bounded C_signal (S=|μ_mom|), V_ret ≥ 0.40
 rcm/statemachine.py causal calendar classifier + hold/rescale/flatten(M=7)
 rcm/attribution.py  Δ_gate, Δ_transition, reporting tuple, the literal label
 ```

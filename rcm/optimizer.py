@@ -50,7 +50,10 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from rcm.factors import CovarianceModel
+# §63.6: `cov` is either the diagonal rcm.factors.CovarianceModel (the
+# K=0 independent-error geometry, with per-asset SE arrays) or the
+# rcm.rescov.FullResidualCovarianceModel (Ω̂ with its own SE geometry,
+# se arrays None) — detected by attributes, never imported here.
 
 # frozen (§60.7 / §60.11.3)
 ETA = 0.0010                 # 10 bps per side: 5 fee + 5 slippage (§56.2)
@@ -89,8 +92,14 @@ class OptimizerResult:
     vol_model: float
 
 
-def solve(symbols: list[str], mu: np.ndarray, cov: CovarianceModel,
-          se_btc: np.ndarray, se_eth: np.ndarray,
+def _is_full_model(cov) -> bool:
+    """§63.6.7.2: the full residual-covariance model is detected by its
+    attributes — no import of rcm.rescov here (it imports this module)."""
+    return getattr(cov, "omega_sqrt", None) is not None
+
+
+def solve(symbols: list[str], mu: np.ndarray, cov,
+          se_btc: np.ndarray | None, se_eth: np.ndarray | None,
           sigma_target_daily: float, w_prev: np.ndarray | None = None
           ) -> OptimizerResult:
     import cvxpy as cp
@@ -99,8 +108,23 @@ def solve(symbols: list[str], mu: np.ndarray, cov: CovarianceModel,
     if list(symbols) != sorted(symbols):
         raise ValueError("assets must be lexicographically sorted — solver "
                          "determinism depends on a canonical ordering (§60.7)")
-    if not (len(mu) == len(se_btc) == len(se_eth) == n):
-        raise ValueError("input lengths disagree")
+    full = _is_full_model(cov)
+    if full:
+        # §63.6.4: the chance SE is [(XᵀX)⁻¹]_kk · wᵀΩ̂w — the model's own
+        # geometry. Per-asset SE arrays belong to the independent-error
+        # formula it replaces; passing both would be two risk models.
+        if se_btc is not None or se_eth is not None:
+            raise ValueError("the full residual-covariance model carries "
+                             "its own SE geometry (§63.6.7.2); per-asset "
+                             "SE arrays must be None")
+        if len(mu) != n or cov.omega.shape != (n, n):
+            raise ValueError("input lengths disagree")
+    else:
+        if se_btc is None or se_eth is None:
+            raise ValueError("the diagonal model requires per-asset SE "
+                             "arrays (the K=0 independent-error geometry)")
+        if not (len(mu) == len(se_btc) == len(se_eth) == n):
+            raise ValueError("input lengths disagree")
     w_prev = np.zeros(n) if w_prev is None else np.asarray(w_prev, float)
 
     eps_btc = epsilon_beta(sigma_target_daily, cov.sf_btc)
@@ -115,16 +139,22 @@ def solve(symbols: list[str], mu: np.ndarray, cov: CovarianceModel,
     m_zero = (mu_c == 0).astype(float)
 
     w = cp.Variable(n)
+    if full:
+        resid_leg = cov.omega_sqrt @ w        # ‖Ω̂^{1/2}w‖₂² = wᵀΩ̂w
+        chance_btc = Z_CHANCE * float(np.sqrt(cov.g_btc)) * cp.norm(resid_leg, 2)
+        chance_eth = Z_CHANCE * float(np.sqrt(cov.g_eth)) * cp.norm(resid_leg, 2)
+    else:
+        resid_leg = cp.multiply(cov.d_idio, w)
+        chance_btc = Z_CHANCE * cp.norm(cp.multiply(se_btc, w), 2)
+        chance_eth = Z_CHANCE * cp.norm(cp.multiply(se_eth, w), 2)
     risk_vec = cp.hstack([cov.sf_btc * (cov.b_btc @ w),
                           cov.sf_eth * (cov.b_eth @ w),
-                          cp.multiply(cov.d_idio, w)])
+                          resid_leg])
     constraints = [
         cp.sum(w) == 0,
         cp.norm(risk_vec, 2) <= sigma_target_daily,
-        cp.abs(cov.b_btc @ w) + Z_CHANCE * cp.norm(cp.multiply(se_btc, w), 2)
-        <= eps_btc,
-        cp.abs(cov.b_eth @ w) + Z_CHANCE * cp.norm(cp.multiply(se_eth, w), 2)
-        <= eps_eth,
+        cp.abs(cov.b_btc @ w) + chance_btc <= eps_btc,
+        cp.abs(cov.b_eth @ w) + chance_eth <= eps_eth,
         cp.norm(w, 1) <= G_CAP,
         cp.abs(w) <= NAME_CAP,
         # §62.2 sign pre-assignment: no name may be held against its signal
@@ -149,10 +179,17 @@ def solve(symbols: list[str], mu: np.ndarray, cov: CovarianceModel,
     wv = np.asarray(w.value, float)
     wv[np.abs(wv) < SOLVER_TOL] = 0.0          # deterministic zero-clean
     dollar = abs(float(np.sum(wv)))
-    rb = abs(float(cov.b_btc @ wv)) + Z_CHANCE * float(
-        np.linalg.norm(se_btc * wv))
-    re = abs(float(cov.b_eth @ wv)) + Z_CHANCE * float(
-        np.linalg.norm(se_eth * wv))
+    if full:
+        resid_norm = float(np.linalg.norm(cov.omega_sqrt @ wv))
+        rb = abs(float(cov.b_btc @ wv)) + Z_CHANCE * float(
+            np.sqrt(cov.g_btc)) * resid_norm
+        re = abs(float(cov.b_eth @ wv)) + Z_CHANCE * float(
+            np.sqrt(cov.g_eth)) * resid_norm
+    else:
+        rb = abs(float(cov.b_btc @ wv)) + Z_CHANCE * float(
+            np.linalg.norm(se_btc * wv))
+        re = abs(float(cov.b_eth @ wv)) + Z_CHANCE * float(
+            np.linalg.norm(se_eth * wv))
     if dollar > DOLLAR_RESIDUAL_MAX:
         raise OperationalFailure(
             f"dollar-neutrality residual {dollar:.2e} exceeds "
@@ -169,8 +206,8 @@ def solve(symbols: list[str], mu: np.ndarray, cov: CovarianceModel,
     )
 
 
-def degenerate_cause(symbols: list[str], mu: np.ndarray, cov: CovarianceModel,
-                     se_btc: np.ndarray, se_eth: np.ndarray,
+def degenerate_cause(symbols: list[str], mu: np.ndarray, cov,
+                     se_btc: np.ndarray | None, se_eth: np.ndarray | None,
                      sigma_target_daily: float) -> str:
     """§62.8.4: WHY did the optimizer produce a zero book?
 
@@ -200,9 +237,11 @@ def degenerate_cause(symbols: list[str], mu: np.ndarray, cov: CovarianceModel,
     m_long = (mu_c > 0).astype(float)
     m_short = (mu_c < 0).astype(float)
     m_zero = (mu_c == 0).astype(float)
+    resid_leg = (cov.omega_sqrt @ w if _is_full_model(cov)
+                 else cp.multiply(cov.d_idio, w))
     risk_vec = cp.hstack([cov.sf_btc * (cov.b_btc @ w),
                           cov.sf_eth * (cov.b_eth @ w),
-                          cp.multiply(cov.d_idio, w)])
+                          resid_leg])
     cons = [cp.sum(w) == 0,
             cp.norm(risk_vec, 2) <= sigma_target_daily,
             cp.norm(w, 1) <= G_CAP, cp.abs(w) <= NAME_CAP,

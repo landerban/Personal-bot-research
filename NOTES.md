@@ -9396,3 +9396,73 @@ prerequisite from that fact.
    §59.11.4 reporting tuple is UNCHANGED — its field order is frozen by
    §62.4's position-asserted append discipline; a day-level record is
    where per-day covariance facts belong.
+
+### 63.7 Stage 22 Part II — the estimator implemented and attacked; the updated trial-1 table
+
+**`rcm/rescov.py` implements §63.6.4 verbatim** (rank by the MP-edge rule,
+raw spikes, marginal-preserving remainder, the frozen floating-point
+policy) and `FullResidualCovarianceModel` wires `Ω̂` into the one risk
+model: `Σ_model = BΣ_fBᵀ + Ω̂` in the optimizer's vol constraint AND in
+`V_ret`, and `SE_k²(w) = [(XᵀX)⁻¹]_kk·wᵀΩ̂w` in the chance constraint.
+The optimizer detects the model by attributes; per-asset SE arrays are
+required with the diagonal model and forbidden with the full one — two
+risk models can never be mixed in a single solve.
+
+**Every §63.6/II.2 fixture is present; 258 passed, 0 failed across all
+suites.** Deterministic claims asserted: marginals exact; PSD on a
+rank-deficient N=120 input; `K = 0 ⇒ Ω̂ = D` bit-for-bit; the two-known-
+spike fixture recovers exactly `K = 2` with `L` equal to the constructed
+components at 1e-9; retained eigenvalues bit-identical to the sample
+spectrum (no shrinkage); both floating-point branch points hit
+deterministically plus the garbage-in fail-closed path and exact
+symmetrization equivalence; the estimator's signature contains only
+`(corr, resid_var)` and its output is bit-identical around any downstream
+change; eigenvector sign convention enforced; the CORRECTED neutrality
+pair (a = c·1 annihilated exactly on exactly-neutral books; a = D^{1/2}q
+with q ∝ 1 and heteroskedastic D is NOT annihilated — relative projection
+0.052); chance SE reproduces the independent-error formula exactly at
+K = 0 and strictly exceeds it under an aligned planted mode; V_ret under
+`Ω̂` differs from a diagonal twin (the off-diagonal structure demonstrably
+enters), computed on the same single covariance object as the solve
+(identity-witnessed). The corrected-neutrality relative projection is
+0.051. Informational, reported with NO criterion per the delegates'
+rulings: spherical-null K distribution (P(K=0) = 0.97, E[K] = 0.03,
+max K = 1 at N = 40, 150 draws) and stochastic two-spike recovery
+(K = 2 on 100 of 100 draws, median |q̂₁ᵀv₁| = 0.964 — reported, not
+required).
+
+**F-1/§62.8 re-run under `Ω̂` — invariants, not outcomes:** on all six
+instances (seeds derived from the frozen F-1 seeds), exact dollar
+neutrality, §62.8 centered-sign membership, per-leg N_eff ≥ 6 on nonzero
+legs, the 0.25 cap, `wᵀΣ_model w ≤ σ²`, the new-SE chance bound, and
+common-shift invariance ALL hold; gross and formation change where the
+new covariance legitimately changes modeled risk. Recorded, not compared:
+all six instances retain K = 1 and form at gross 1.05–1.12 (linear/steep
+× seeds 21/22/23), so the invariant assertions are not vacuous — a
+fixture-strength check enforces this.
+
+**Not done, per II.3:** no comparison of `Ω̂` to `D` on any performance
+quantity anywhere; no real returns in any test; trial 1 not
+pre-registered.
+
+#### 63.7.1 Trial-1 prerequisites (Part E of §63.4, updated)
+
+```
+  item                              status
+  F-1 / breadth construction        RESOLVED   §62.8.3
+  zero-momentum semantics           RESOLVED   §63.1.A.1, implemented + tested
+  exposure-retention gate           RESOLVED   §63.1.A.2, V_ret ≥ 0.40 under Σ_model
+  funding observability predicate   RESOLVED   §60.11.1 / §62.7
+  solver pin, determinism           RESOLVED   §61.1
+  residual-risk model               RESOLVED   §63.6 adoption + §63.7 synthetic
+                                               verification (stress gate withdrawn
+                                               §63.6.2; requirement closed §63.6.6)
+```
+
+**Every row is RESOLVED. What remains before real data:** exactly the
+pre-registration of trial 1 of 20 itself — a future stage under §59's
+budget rules, with the user's sign-off. Named residual limitations that
+travel with the spec (limitations, NOT blockers, per §63.6.5): estimation
+uncertainty in `K_t`/eigenvalues/loadings; the `m_eff < 87` caveat; the
+§63.1.A.3.1 development-informed naming. **Gen-2: 0 of 20. Gen-1: 15 of
+25, frozen. Holdout sealed under both seals.**
