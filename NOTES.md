@@ -8436,3 +8436,152 @@ prerequisite stage — not a patch here.
 
 **Gen-1 budget 15 of 25; Gen-2 0 of 20, as this stage was required to end.
 Holdout sealed — and the seal is now code.**
+
+## 62. Stage 19b — architecture amendment after F-1, pre-registered 2026-08-31
+
+**No real market or return data. Gen-2 stays 0 of 20. Holdout sealed.** This
+section records the decisions BEFORE the implementing code exists; §62.7 will
+append the verification results afterwards. §61 is unedited.
+
+### 62.0 Wording correction to §61.2
+
+§61.2's "realistic alpha shapes" and "predicts chronic `D_gate` days under
+real momentum" **overreached**: no Gen-2 real return has been examined. The
+fixtures are **non-flat synthetic alpha profiles**. The established finding
+is: **the current optimizer does not structurally guarantee the frozen
+breadth invariant.** It does *not* establish that real RCM will chronically
+fail formation. The first is sufficient to block progression, and is what
+blocks it.
+
+### 62.1 Part A — the witness, non-vacuous, and the diagnosis
+
+The §61.2 record showed concentrated optimizer outputs but no feasible broad
+alternative — the diagnosis was incomplete. Constructed now, on the identical
+six instances (linear and steep profiles, seeds 21/22/23), **at exactly the
+rejected target's gross** (non-vacuity: a witness that wins by scaling toward
+zero proves nothing, since εw shrinks every risk quantity while preserving
+N_eff; gross equality is coefficient-free and auditable):
+
+```
+  profile  seed  G_reject  reject NeffL/S   witness NeffL/S  vol slack  chance slack
+  linear    21    0.8759     5.42/5.92        6.00/6.00       1.2e-04     1.3e-08
+  linear    22    0.8835     5.85/5.56        6.00/6.00       1.2e-04     8.5e-03
+  linear    23    0.8863     5.71/5.76        6.00/6.00       1.2e-04     1.9e-02
+  steep     21    0.7030     3.67/3.61        6.00/6.00       1.1e-03     3.6e-03
+  steep     22    0.7158     3.81/3.70        6.00/6.00       1.1e-03     1.5e-02
+  steep     23    0.7158     3.79/3.78        6.00/6.00       1.1e-03     2.7e-02
+```
+
+Every §60 constraint satisfied with recorded slack; dollar residual ≤ 8e-17;
+max single weight 0.104 against the 0.25 cap. **A broad gate-passing book
+exists at the rejected gross on all six instances and the optimizer returns
+the concentrated reject anyway: construction/gate incompatibility PROVEN.**
+Part B runs.
+
+### 62.2 Part B — the admissibility judgments
+
+**Principle adopted (B.1):** per-leg effective breadth defines what an RCM
+portfolio is, so construction must be breadth-aware. Rejected: (b)
+re-deriving the floor because a fixture returned 5.4 — fitting the invariant
+to a failed test; (c) tolerating chronic skips — recreates Gen-1's failure
+and contradicts the frozen 0.60 formation-rate criterion.
+
+**Candidates, judged by the B.2 rule** (no new free coefficient; breadth
+enforced on the net portfolio mathematically):
+
+1. **Split-variable SOC form — REJECTED.** `w = w⁺ − w⁻` with per-leg SOCs is
+   coefficient-free but admits padding: `w⁺_i = 0.10, w⁻_i = 0.09` satisfies
+   both leg constraints with a net 0.01 position. Exact complementarity
+   `w⁺_i·w⁻_i = 0` is non-convex and cannot enter the SOCP without changing
+   problem class to mixed-integer/non-convex — a solver-architecture change
+   nobody has derived a need for. **Empirical absence of padding is not
+   sufficient**; rejected as non-exact.
+2. **Concentration penalty — REJECTED.** No prior invariant supplies its
+   coefficient, and "the coefficient that makes the xfail pass" is not a
+   derivation.
+3. **Leg membership pre-assigned by signal sign — the ONE admissible
+   candidate.** Assign each name to L or S by `sign(μ_i)` before the
+   optimizer (`μ_i = 0` ⇒ excluded); constrain `w_i ≥ 0` on L, `w_i ≤ 0` on
+   S. Split variables do not exist, so padding is **impossible by
+   construction**; the per-leg SOCs `‖w_leg‖₂ ≤ (Σ|w_leg|)/√6` act on
+   genuinely disjoint sign-restricted subvectors — **convex, exact,
+   coefficient-free**, using the frozen 6. The mathematical guarantee: any
+   nonzero leg has `N_eff ≥ 6`; an all-zero leg produces `G_pre = 0` and
+   lands in `D_degenerate` (§62.4). **Stated cost:** the optimizer loses the
+   freedom to hold a name against its signal for hedging, so the chance
+   constraint can bind harder and non-formed days can rise — semantically
+   close to what the hypothesis means (hold a name only on the side its
+   residual momentum indicates), but a real cost, measured synthetically by
+   the B.4 hedge-infeasibility fixture and reported, not assumed away.
+
+**B.3 safeguard applied:** exactly one candidate satisfies the admissibility
+rule, so no selection among survivors occurs and no synthetic metric is
+consulted. **ADOPTED, conditional on the B.4 fixtures passing:** the
+sign-pre-assigned construction with per-leg SOC breadth. The F-1 xfail may
+flip **only** through this adoption, and §62.7 must explain the flip.
+
+### 62.3 Part C — the stale-book risk invariant (supersedes §61.3.1)
+
+§61.3.1's clamp-to-`G_cap = 3.0` permitted a book formed at 0.50 gross to
+drift to 3.0 — Gen-1's leverage-drift failure by another route, and I wrote
+it. Adopted instead, coefficient-free:
+
+```
+  G_ref = gross of the last successfully formed executable portfolio
+  while carrying a stale book:  G_t ≤ G_ref
+  on any non-formed day:        α_t = min(1, G_ref / G_t)   applied to all
+```
+
+**Downscale only.** Stale exposure grown past its last valid scale is
+reduced to that scale; stale exposure that has shrunk is **never levered back
+up** — increasing exposure without a current valid decision is adding risk
+without a strategy. No deadband, no threshold. `G_cap` remains the
+catastrophic backstop only. Lifecycle: `G_ref` undefined before any
+formation; set at each successful formation; **cleared by the M=7 forced
+flatten**; re-set at the next formation; persisted as bot-owned state
+(§54.2 class) across restarts.
+
+### 62.4 Part D — `D_degenerate`, a fifth calendar category (supersedes §61.3.2)
+
+A valid `w = 0` is an **economic decision** — expected returns net of costs
+do not justify exposure — not a data failure. §61.3.2's `D_structural`
+misclassified it, and `D_formed` would be worse: repeated zero books would
+let the 0.60 formation-rate criterion read 90% while exposure was held on
+20% of days.
+
+```
+  D = D_formed ∪ D_gate ∪ D_structural ∪ D_operational ∪ D_degenerate
+```
+
+`D_degenerate`: counts in the calendar denominator; **not** formed; **not** a
+gate failure; `r_shadow = 0` exactly; **excluded from Δ_gate** (a zero target
+is not a rejected feasible target); reported as its own field **appended** to
+the §59.11.4 tuple; placed in the causal order at the optimizer stage
+(structural → operational → **degenerate** → gates → execution). Exactly one
+category per date; no NaN.
+
+### 62.5 Part E — the stress fixture: §61.5 is NOT APPROVED; status UNRESOLVED
+
+The §61.5 chain fails Part E's audit, and the audit is right: the
+correlations ρ ∈ {0.3, 0.6} reference no invariant; the 1.5 factor derives
+from Gen-1's §43.3 20% **selection** cap, which §59.6 did not inherit as an
+RCM model-error tolerance; and drawdown headroom does not map linearly to
+volatility-model error under path dependence.
+
+Attempting a re-derivation from RCM-owned invariants, honestly: **no RCM
+invariant speaks to residual correlation strength** (σ_target, G_cap, ε_β
+and the 10% nominal breach say nothing about how correlated crypto residuals
+are), and any vol→drawdown mapping through the 30% kill switch requires a
+distributional assumption nobody has defended. One candidate route is noted
+for a future derivation — bounding the *unmodeled* variance share by the
+same one-position budget that sizes ε_β — but it conflates a hedging budget
+with a model-error budget and is **not defended here**.
+
+**The stress test is UNRESOLVED.** Per Part E, ending this stage with that
+status is acceptable; inventing ρ = 0.5 is not. It remains a real-data
+prerequisite in exactly this state.
+
+### 62.6 Part F — pending user decisions (unchanged, still blocking trial 1)
+
+`g_min` (§60.11.6, routes (a)/(b)) and zero-momentum semantics (§60.11.8,
+delegate recommends (a)).
