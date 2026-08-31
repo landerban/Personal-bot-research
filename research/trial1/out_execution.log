@@ -1,0 +1,75 @@
+lock fa78ddf9c50353e02f0dff9d9d38b648ce6a24bf  seed 1862893454
+store loaded in 28s: 394 classified symbols, 349832 funding stamps snapped
+era complete in 5.4 min; counts {'formed': 22, 'gate': 1031, 'structural': 185, 'operational': 449, 'degenerate': 140}; calib checks 14
+{
+  "lock_commit": "fa78ddf9c50353e02f0dff9d9d38b648ce6a24bf",
+  "seed": 1862893454,
+  "counts": {
+    "formed": 22,
+    "gate": 1031,
+    "structural": 185,
+    "operational": 449,
+    "degenerate": 140
+  },
+  "n_snapped_funding_stamps": 349832,
+  "formation": {
+    "passed": false,
+    "evaluation_start_ms": 1596412800000,
+    "n_windows": 1550,
+    "n_failing_windows": 1550,
+    "first_failing_window_end_ms": 1601769600000,
+    "min_formed_in_any_window": 0
+  },
+  "ic": {
+    "passed": false,
+    "ic_mean": -0.0115333522674228,
+    "ci90": [
+      -0.018553315318894245,
+      -0.004708306484742924
+    ],
+    "n_defined": 1641,
+    "n_excluded": 0,
+    "exclusion_reasons": {},
+    "mean_block": 11.795133490711827,
+    "n_boot": 2000
+  },
+  "reporting_tuple": {
+    "calendar_performance": 4.845017847158161e-06,
+    "formation_rate": 0.0120415982484948,
+    "gate_skip_rate": 0.5643130815544609,
+    "structural_skip_rate": 0.10125889436234264,
+    "operational_skip_rate": 0.24575807334428024,
+    "gate_composition": {
+      "n_eff_long": 909,
+      "n_eff_short": 540,
+      "exposure_retention": 189,
+      "vol_ceiling": 483,
+      "signal_coverage": 91
+    },
+    "degenerate_rate": 0.07662835249042145
+  },
+  "delta_gate": {
+    "point": 0.0005633695449321572,
+    "ci90": [
+      -5.192371053390785e-05,
+      0.001295315038558426
+    ],
+    "n_formed": 22,
+    "n_gate": 1031,
+    "transition_rule": "hold+G_ref/M=7 (frozen)"
+  },
+  "delta_transition": {
+    "point": 9.945301103143672e-05,
+    "ci90": [
+      -0.00028708108154290563,
+      0.0004661379951653781
+    ],
+    "n_gate": 1031
+  },
+  "price_pnl_full_calendar": 0.00885184760675796,
+  "funding_pnl_realized": 0.004254891670408351,
+  "cost_line_frozen_eta": -0.0015747293262257833,
+  "turnover_total": 1.574729326225783,
+  "verdict": "FAIL: RCM v1 ABANDONED per \u00a760.12.5 row 2 unless a measurement-invalidating implementation defect is reproduced by a failing test (row 3); valid trials 1/20"
+}
+VERDICT: FAIL: RCM v1 ABANDONED per §60.12.5 row 2 unless a measurement-invalidating implementation defect is reproduced by a failing test (row 3); valid trials 1/20

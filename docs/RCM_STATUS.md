@@ -1,8 +1,25 @@
 # RCM (Generation 2) — status
 
-_One page. `NOTES.md` §59–§63 is the authority; if they disagree, NOTES wins._
+_One page. `NOTES.md` §59–§67 is the authority; if they disagree, NOTES wins._
 
-## Where it stands
+## RCM v1 IS ABANDONED (Trial 1, NOTES §67, 2026-09-01)
+
+Trial 1 of 20 executed once on 2020–2024 under the §66.5 lock. **Both
+kill criteria failed with no discretion available**: the residual-
+momentum IC is significantly NEGATIVE (IC̄ −0.0115, 90% CI
+[−0.0186, −0.0047], n = 1,641, zero exclusions — one-day residual
+REVERSAL, not momentum), and formation was 22 of 1,827 days with every
+one of 1,550 windows failing. The strategy's own guards agreed in real
+time (sign floor active 64% of days; every decision day carried the
+literal `CARRY REGIME — NOT RCM` label). Findings F-2 (breadth SOC vs
+quantization, fixed pre-run by the derived-margin rule) and F-3 (the
+frozen dollar-residual ceiling unmet at real scale; proven unable to
+flip either criterion) are on the record. "Flip the sign" is a new
+generation, not a patch (§59.7/§67.5). **Gen-2 valid trials: 1 of 20
+spent. The holdout (2025-01→2026-07) was never opened by either
+generation and remains sealed — one look, ever, unspent.**
+
+## Where it stood before trial 1 (historical)
 
 **Zero trials spent (0 of 20). No real data has touched any `rcm/` code
 path** — an import-level test enforces it. Stage 21 recorded the user's

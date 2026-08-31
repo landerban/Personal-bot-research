@@ -10012,3 +10012,125 @@ edited. The amended-gate dry run forms 61 of 70 synthetic days with the
 gate/degenerate paths still exercised, and the full suite is green
 (278 passed). **The single real execution follows this commit. Gen-2
 valid trials 0 of 20; holdout sealed.**
+
+## 67. TRIAL 1 OF 20 — EXECUTED. Both criteria FAIL. RCM v1 IS ABANDONED. (2026-09-01)
+
+**One real-data execution, under the §66.5 lock (commit `fa78ddf9`, seed
+1862893454), era 2020-01-01 → 2024-12-31, capital $800 (§65.1 USER
+DECISION). 1,827 calendar days, none unaccounted; 14 calibration
+equivalence asserts against the frozen builder, all passed; 349,832
+funding stamps boundary-snapped per the §19.1 precedent; the sealed
+interval was never touched (the era-end day's forward interval was
+excluded rather than read, §65). The verdict below is the §60.12.5 table
+read mechanically. No discretion was available and none was used.**
+
+### 67.1 Criterion 2 — the residual-momentum IC: FAIL, decisively
+
+```
+  IC̄ = −0.0115    90% CI [ −0.0186, −0.0047 ]    ENTIRELY BELOW ZERO
+  n_defined = 1,641 dates   exclusions: 0   mean block 11.8   B = 2,000
+  criterion: CI_lower > 0 ⇒ PASS.  CI_lower = −0.0186.  FAIL.
+```
+
+The signal as frozen — residual momentum at lags 2–21/22–63, 0.6/0.4,
+cross-sectional z, forward execution-horizon residual — predicts
+**negatively**: residual REVERSAL, not momentum, at the one-day horizon
+on the development era. This is not a power failure; the interval
+excludes zero on the WRONG side with 1,641 equal-weighted dates and
+nothing excluded. Per the §60.12.3 MDE disclosure, the realized
+resolving precision is reported: CI half-width **0.0069** — the
+procedure could resolve effects of that size, and the measured −0.0115
+lies outside it. Criterion 2 is unconditioned on the portfolio, the
+capital, the floors, and the solver: **no property of the sizing or the
+optimizer touches this number.**
+
+**The strategy's own guards agreed in real time:** the §60.2.2 sign
+floor zeroed the calibrated slope on **1,048 of 1,642 decision days
+(64%)**; mean s_mom was **0.051**; and **every one of the 1,642 decision
+days carried the literal `CARRY REGIME — NOT RCM` label.** The system
+spent the entire era correctly declaring that the residual-momentum
+hypothesis was not present in its own book.
+
+### 67.2 Criterion 1 — formation: FAIL, categorically
+
+```
+  evaluation_start 2020-08-03    completed windows 1,550
+  windows failing: 1,550 of 1,550    min formed in any window: 0
+  formed days: 22 of 1,827 (1.2%)
+  calendar: gate 1,031 (56.4%) | operational 449 (24.6%) |
+            structural 185 (10.1%) | degenerate 140 (7.7%) | formed 22
+  gate composition: n_eff_long 909, n_eff_short 540, vol_ceiling 483,
+                    exposure_retention 189, signal_coverage 91
+  degenerate causes: constraint_interaction:breadth 85, no_trade 39,
+                     constraint_interaction:chance 16
+```
+
+At $800 the floor did exactly what the §65.1 registration warned:
+**material drops, not rounding** — on n_eff-failed days the surviving
+min-leg breadth had median **4.16** (p5 = 1.0) against the frozen 6, far
+beyond anything the §66.3 rounding rule addresses. `vol_ceiling` failed
+483 days — dropped hedge names regaining modeled risk, §63.1.A.2.2's
+mechanism measured at scale. `V_ret` spanned 0.000 to 2.098 (p5/p95).
+
+### 67.3 FINDING F-3 — the frozen dollar-residual ceiling at real scale; shown non-invalidating
+
+The 449 `D_operational` days are ONE failure repeated: the post-solve
+dollar-neutrality check (`residual ≤ 1e-8 · G_cap = 3e-8`, frozen §60.7)
+rejecting Clarabel residuals of **3e-8 to 1.3e-7** on real 100–260-name
+problems — the F-2 class at the solve layer: a frozen numerical ceiling
+calibrated on 20–30-name synthetic fixtures, unmet by the same solver's
+honest arithmetic at ten times the dimension. Recorded as a finding.
+
+**Row-3 diligence, discharged by margin arithmetic:** crediting ALL 449
+days as formed gives at most 471 of 1,827 (26%) against the 60% bar,
+with completed windows still at zero formed days — criterion 1 fails
+under any reclassification; and criterion 2 involves no solve at all.
+**No reproducible defect can flip either criterion, so the attempt is
+NOT void** (§60.12.5 rows 3–4), and F-3 is a post-mortem observation,
+not an escape.
+
+### 67.4 The §64.3 reporting, full calendar
+
+```
+  calendar performance (price-only, full calendar): +4.8e-06/day mean;
+      cumulative price +0.89%, realized funding +0.43%, frozen-cost line
+      −0.16% (turnover 1.57 gross-units over the era) — the book existed
+      on 1.2% of days; these lines describe near-permanent flatness
+  Δ_gate       = +5.6e-04/day   90% CI [−5.2e-05, +1.3e-03]   (n 22/1031)
+  Δ_transition = +9.9e-05/day   90% CI [−2.9e-04, +4.7e-04]   (n 1031)
+      transition rule beside both: hold + G_ref downscale-only + M=7
+      flatten (frozen). Neither interval excludes zero; neither is
+      significance-gated; both are DIAGNOSTIC — CONDITIONAL ON
+      FORMATION — NOT STRATEGY PERFORMANCE.
+  K_t: median 2, p95 3, max 4 (vs MP edge; §63.5 references in the
+      per-day file) — the real residuals carry 2–3 modes beyond BTC/ETH⊥,
+      consistent with the §63.3 measurement.
+  Per-day records: research/trial1/out/daily.jsonl (committed), causes
+      on every degenerate day, coverage N/A where momentum mass was zero.
+```
+
+### 67.5 THE VERDICT — §60.12.5 row 2
+
+> **Either criterion FAIL, no demonstrable implementation defect ⇒
+> RCM v1 ABANDONED (§59.7); valid trials 1/20.**
+
+Both failed. **RCM v1 is ABANDONED. Generation-2 valid trials: 1 of 20
+consumed.** Per §59.7 the strategy is abandoned, not patched. Stated for
+the record because it is the tempting move: the significantly NEGATIVE
+IC is not a tradable discovery inside this governance — "flip the sign"
+is a NEW hypothesis class requiring its own generation, governance,
+budget and pre-registration; §60.2.2's sign floor exists precisely
+because trading the reversal is a different strategy. No path from this
+result to keeping any part of the signal exists (§60.12.5).
+
+**What was learned, priced at one trial:** (i) one-day-horizon residual
+momentum on crypto majors is measurably a small REVERSAL on 2020–2024;
+(ii) the carry guard, the sign floor, the calendar, the causes, and the
+attribution machinery all worked as specified on real data the first
+time; (iii) $800 cannot express a 6-effective-name-per-leg book against
+$5 floors (median surviving breadth 4.16); (iv) F-3. The holdout was
+NEVER opened for either generation: 2025-01 → 2026-07 remains sealed,
+with one look, ever, still unspent.
+
+**Gen-1: frozen, 15 of 25. Gen-2: RCM v1 abandoned, 1 of 20 valid
+trials spent. Holdout sealed.**
