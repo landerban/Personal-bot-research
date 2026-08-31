@@ -8,7 +8,10 @@ denominator's canonical pre-feasibility book. No second definition exists.
     Δ_gate         = E[r_shadow | formed] − E[r_shadow | gate_failed]
     Δ_transition   = E[r_actual_price − r_shadow | D_gate]
 
-Domain: D_formed ∪ D_gate only. Both deltas carry stationary-bootstrap 90%
+Domain: D_formed ∪ D_gate only — D_degenerate is EXCLUDED from Δ_gate
+(§62.4: a valid zero target is not a rejected feasible target; its
+r_shadow is 0 exactly and belongs to no comparison). Both deltas carry
+stationary-bootstrap 90%
 CIs and are NEVER significance-tested as pass/fail. The decomposition is
 price-only and does NOT sum to realized net performance — the gap is
 execution cost, which is not neutral across transition rules (flatten pays
@@ -123,6 +126,11 @@ def reporting_tuple(calendar: list[Calendar], calendar_perf: float,
         "structural_skip_rate": counts[Calendar.STRUCTURAL] / n if n else 0.0,
         "operational_skip_rate": counts[Calendar.OPERATIONAL] / n if n else 0.0,
         "gate_composition": dict(gate_counts),
+        # §62.4: appended (extending §59.11.4 by appending, never reordering).
+        # A degenerate day is neither formed nor a gate failure — a valid
+        # zero-exposure decision, visible on its own line so a 90% formation
+        # rate cannot hide 20% exposure.
+        "degenerate_rate": counts[Calendar.DEGENERATE] / n if n else 0.0,
     }
 
 

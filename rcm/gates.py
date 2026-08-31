@@ -21,6 +21,12 @@ from dataclasses import dataclass
 import numpy as np
 
 N_EFF_MIN = 6.0              # per leg, §60.5 (architecture-derived, retained)
+# Numerical hygiene, NOT a threshold change: the §62.2 construction makes
+# the per-leg SOC bind at exactly 6, and interior-point precision leaves
+# the realized value ~4e-8 under. The frozen 6 is compared with the same
+# margin logic §60.7 used for the shadow tolerance: 100x above solver
+# precision (1e-8), far below anything economically meaningful.
+N_EFF_NUMERICAL_TOL = 1e-6
 
 
 class Unresolved(RuntimeError):
@@ -111,9 +117,9 @@ def evaluate(w_pre: np.ndarray, w_real: np.ndarray,
     cov = c_signal(w_pre, mu_momentum, survive)
 
     failed = []
-    if nl < cfg.n_eff_min:
+    if nl < cfg.n_eff_min - N_EFF_NUMERICAL_TOL:
         failed.append("n_eff_long")
-    if ns < cfg.n_eff_min:
+    if ns < cfg.n_eff_min - N_EFF_NUMERICAL_TOL:
         failed.append("n_eff_short")
     if g_ratio < cfg.g_min:
         failed.append("exposure")

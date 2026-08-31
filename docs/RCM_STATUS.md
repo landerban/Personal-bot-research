@@ -6,17 +6,20 @@ _One page. `NOTES.md` §59–§61 is the authority; if they disagree, NOTES wins
 
 **Synthetic-only. Zero trials spent (0 of 20). No real data has touched any
 RCM code path** — an import-level test enforces it. The math spec is frozen
-(§60 + §60.11 corrections); the machine is built and attacked (198 passed +
-1 deliberate xfail); the seal on 2025-01→2026-07 is enforced in code with a
+(§60 + §60.11 corrections); the machine is built and attacked (210 passed, no xfails); the seal on 2025-01→2026-07 is enforced in code with a
 committed-ledger-entry unlock and a no-back-dating check.
 
-## The one live finding
+## F-1: proven, then resolved by construction (Stage 19b, §62)
 
-**F-1 (§61.2):** the linear optimizer objective concentrates with alpha
-dispersion; the N_eff ≥ 6 gate then rejects the day. Flat alpha ~9.9 (pass),
-linear 5.4–5.9 (fail), steep ~3.7 (fail). Predicts chronic gate-skips on
-real momentum. Kept as a strict xfail; resolution is the user's,
-Stage-19-class.
+The incompatibility was proven by a same-gross witness (broad book feasible
+at the exact rejected gross, all six instances), then resolved by ADOPTING
+the sign-pre-assigned construction with exact per-leg SOC breadth — the one
+candidate admissible under §62.2 (coefficient-free, mathematically exact on
+the net portfolio; the split-variable form was rejected for fundamental
+padding). Stated cost, measured: when neutrality needs a name held against
+its signal, the book shrinks toward D_degenerate. Also adopted: the G_ref
+downscale-only stale-book invariant (§62.3) and D_degenerate as a fifth
+calendar category (§62.4). All 210 tests green, zero xfails.
 
 ## Blocking real data (trial 1 of 20)
 
@@ -24,7 +27,7 @@ Stage-19-class.
 |---|---|
 | `g_min` (§60.11.6) | OPEN — user route (a)/(b) |
 | zero-momentum semantics (§60.11.8) | OPEN — user; delegate recommends (a) |
-| correlated-residual stress (§61.5) | PROPOSED, awaiting approval; not run |
+| correlated-residual stress | UNRESOLVED (§62.5 — the §61.5 chain was not approved; no invariant-derived replacement exists yet) |
 | finding F-1 (§61.2) | OPEN — user |
 | solver pin | DONE — clarabel 0.11.1 / cvxpy 1.9.2 |
 | determinism, funding observability | DONE |

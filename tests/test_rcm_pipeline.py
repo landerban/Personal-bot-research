@@ -162,18 +162,14 @@ def test_c_signal_is_bounded_and_detects_hypothesis_discard():
 
 # --------------------------------------------- optimizer -> gate compatibility
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="FINDING F-1 (NOTES 61): architecture incompatibility, found "
-           "synthetically as 60.11.3.4 intended. The linear objective "
-           "concentrates with alpha dispersion; only the vol constraint "
-           "spreads. Measured N_eff on 20 names: flat alpha ~9.9 (passes), "
-           "linear 5.4-5.9 (fails, every seed), steep 3.6-3.8 (fails badly). "
-           "The more informative the signal shape, the more the optimizer "
-           "concentrates and the gate rejects the day. Resolution is a "
-           "Stage-19-class decision for the user; NOT patched here. "
-           "strict=True: if this starts passing, something changed and must "
-           "be explained.")
+# THE F-1 XFAIL FLIPPED HERE, and only here (Stage 19b order-of-work 6).
+# Explanation (NOTES 62.2/62.7): the incompatibility was PROVEN by a
+# same-gross witness on all six instances, then resolved by ADOPTING the
+# sign-pre-assigned construction with exact per-leg SOC breadth — the single
+# candidate admissible under the 62.2 rule (no new coefficient; net-portfolio
+# guarantee mathematical, not empirical). Nothing was tuned to make this
+# pass: the frozen 6, sigma_target, eps_beta and the 0.25 cap are unchanged;
+# the CONSTRUCTION changed, by a recorded adoption.
 def test_pipeline_produces_a_broad_gatepassing_book_when_one_is_feasible():
     """§60.11.3.4 REQUIRED fixture: the 0.25 cap is a safety ceiling, not a
     breadth mechanism — so verify the optimizer does not return a needlessly
@@ -188,9 +184,12 @@ def test_pipeline_produces_a_broad_gatepassing_book_when_one_is_feasible():
     longs = np.where(out.w > 0, out.w, 0.0)
     shorts = np.where(out.w < 0, -out.w, 0.0)
     nl, ns = n_eff(longs), n_eff(shorts)
-    assert nl >= 6 and ns >= 6, (
+    # >= 6 to solver precision: the SOC binds AT the frozen 6, and
+    # interior-point tolerance leaves ~4e-8. Same margin logic as the
+    # shadow tolerance (rcm/gates.py N_EFF_NUMERICAL_TOL).
+    assert nl >= 6 - 1e-6 and ns >= 6 - 1e-6, (
         f"architecture incompatibility: optimizer returned a concentrated "
-        f"book (N_eff {nl:.1f}L/{ns:.1f}S) where a broad one was feasible")
+        f"book (N_eff {nl:.2f}L/{ns:.2f}S) where a broad one was feasible")
     v = evaluate(out.w, out.w, mu, GateConfig(g_min=0.65))
     assert v.passed, v.failed_gates
     print(f"PASS rcm_opt_gate_compat (N_eff {nl:.1f}L / {ns:.1f}S)")
@@ -207,7 +206,7 @@ def test_calendar_precedence_is_causal_not_control_flow():
     assert classify({"structural_pre", "operational", "gates"}) is \
         Calendar.STRUCTURAL
     assert classify({"operational", "gates"}) is Calendar.OPERATIONAL
-    assert classify({"degenerate_target", "gates"}) is Calendar.STRUCTURAL
+    assert classify({"degenerate_target", "gates"}) is Calendar.DEGENERATE
     # permutation invariance is structural: input is a set
     a = classify({"gates", "operational"})
     b = classify({"operational", "gates"})
@@ -217,28 +216,44 @@ def test_calendar_precedence_is_causal_not_control_flow():
     print("PASS rcm_calendar_precedence")
 
 
-def test_transition_is_one_common_rule_hold_rescale_flatten():
-    w_prev = np.array([0.1, -0.1, 0.05, -0.05])
-    for cat in (Calendar.GATE, Calendar.STRUCTURAL, Calendar.OPERATIONAL):
-        t = transition(cat, None, w_prev, drifted_gross=0.3,
-                       consecutive_nonformed=0)
+def test_transition_is_one_common_rule_under_the_G_ref_invariant():
+    """§62.3: while stale, G_t <= G_ref via alpha = min(1, G_ref/G_t).
+    Downscale only; G_cap is a backstop, never the rescale reference."""
+    w_prev = np.array([0.1, -0.1, 0.05, -0.05])       # gross 0.30
+    g_ref = 0.30
+    for cat in (Calendar.GATE, Calendar.STRUCTURAL, Calendar.OPERATIONAL,
+                Calendar.DEGENERATE):
+        t = transition(cat, None, w_prev, drifted_gross=0.30,
+                       consecutive_nonformed=0, g_ref=g_ref)
         assert t.action == "hold" and np.array_equal(t.w_next, w_prev)
-    # over the cap: single-scalar rescale, proportions preserved
-    big = w_prev * 20                                  # gross 6.0 > 3.0
-    t = transition(Calendar.GATE, None, big, drifted_gross=6.0,
-                   consecutive_nonformed=0)
+        assert t.g_ref_next == g_ref
+    # drift ABOVE G_ref: single-scalar downscale to G_ref — NOT to G_cap.
+    # This is the case 61.3.1 got wrong: a 0.50-gross book drifting to 1.2
+    # was previously allowed to run to 3.0.
+    grown = w_prev * 4                                 # gross 1.20 > 0.30
+    t = transition(Calendar.GATE, None, grown, drifted_gross=1.20,
+                   consecutive_nonformed=0, g_ref=g_ref)
     assert t.action == "rescale"
-    assert np.sum(np.abs(t.w_next)) == pytest.approx(G_CAP)
-    ratios = t.w_next / big
+    assert np.sum(np.abs(t.w_next)) == pytest.approx(g_ref)
+    ratios = t.w_next / grown
     assert np.allclose(ratios, ratios[0]), "must be ONE scalar"
-    # the M=7 staleness ceiling
-    t7 = transition(Calendar.OPERATIONAL, None, w_prev, drifted_gross=0.3,
-                    consecutive_nonformed=M_FLATTEN - 1)
+    assert 1.20 < G_CAP, "fixture must be below the cap to prove the point"
+    # drift BELOW G_ref: NEVER levered back up
+    shrunk = w_prev * 0.5                              # gross 0.15 < 0.30
+    t2 = transition(Calendar.GATE, None, shrunk, drifted_gross=0.15,
+                    consecutive_nonformed=0, g_ref=g_ref)
+    assert t2.action == "hold" and np.array_equal(t2.w_next, shrunk)
+    # the M=7 staleness ceiling CLEARS G_ref (§62.3 lifecycle)
+    t7 = transition(Calendar.OPERATIONAL, None, w_prev, drifted_gross=0.30,
+                    consecutive_nonformed=M_FLATTEN - 1, g_ref=g_ref)
     assert t7.action == "flatten" and not t7.w_next.any()
-    # formed resets the counter
-    tf = transition(Calendar.FORMED, w_prev * 0.5, w_prev, 0.3, 5)
+    assert t7.g_ref_next is None
+    # formed resets the counter and SETS G_ref to the new gross
+    tf = transition(Calendar.FORMED, w_prev * 0.5, w_prev, 0.30, 5,
+                    g_ref=None)
     assert tf.action == "form" and tf.consecutive_nonformed == 0
-    print("PASS rcm_transition_common_rule")
+    assert tf.g_ref_next == pytest.approx(0.15)
+    print("PASS rcm_transition_G_ref_invariant")
 
 
 # ------------------------------------------------------------- attribution
@@ -266,13 +281,17 @@ def test_attribution_recovers_planted_deltas_and_names_the_rule():
 
 def test_reporting_tuple_has_all_six_fields_and_the_literal_label():
     cal = ([Calendar.FORMED] * 6 + [Calendar.GATE] * 2
-           + [Calendar.STRUCTURAL] + [Calendar.OPERATIONAL])
+           + [Calendar.STRUCTURAL] + [Calendar.DEGENERATE])
     row = reporting_tuple(cal, calendar_perf=0.01,
                           gate_counts={"exposure": 2})
     for f in ("calendar_performance", "formation_rate", "gate_skip_rate",
               "structural_skip_rate", "operational_skip_rate",
               "gate_composition"):
         assert f in row, f
+    # §62.4: degenerate_rate APPENDED after the original six, never reordered
+    assert list(row)[-1] == "degenerate_rate"
+    assert row["degenerate_rate"] == pytest.approx(0.1)
+    # a degenerate day is NOT formed: 90% formation cannot hide 10% zero-books
     assert row["formation_rate"] == pytest.approx(0.6)
     m = formed_days_metric(1.23, "sharpe_formed_only")
     assert m["label"] == DIAGNOSTIC_LABEL

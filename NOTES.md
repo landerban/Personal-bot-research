@@ -8585,3 +8585,56 @@ prerequisite in exactly this state.
 
 `g_min` (§60.11.6, routes (a)/(b)) and zero-momentum semantics (§60.11.8,
 delegate recommends (a)).
+
+### 62.7 Verification — the Stage-20 suite re-run under the amended architecture
+
+**Implemented after the §62.1–§62.6 decisions were committed, exactly as
+recorded there. Suites: 210 passed, 0 failed, 0 xfailed.** All Gen-1 suites
+green; live paper state provably untouched; no real data touched any RCM
+path. **Gen-2 remains 0 of 20.**
+
+**The F-1 xfail flipped — and only through the adopted Part-B form.** The
+sign-pre-assigned construction with exact per-leg SOC breadth
+(`‖w_leg‖₂ ≤ Σ|w_leg|/√6` on sign-restricted subvectors) passes the original
+F-1 fixture on **all six instances** (linear and steep, seeds 21/22/23), with
+every frozen quantity unchanged — the 6, σ_target, ε_β, the 0.25 cap, G_cap —
+verified by a dedicated fixture. Nothing was tuned; the construction changed,
+by the §62.2 adoption.
+
+**B.4 fixtures, all green:**
+
+- **Sign agreement** (the padding analog for this form): no name is ever held
+  against its signal, and zero-signal names hold exactly nothing — asserted
+  per position, not sampled.
+- **The hedge-infeasibility fixture reports the stated cost:** with all
+  long-signal names at beta 1.6 and short-signal names at 0.4, the chance
+  constraint throttles gross to ~ε_β/0.6 — a near-degenerate book. This is
+  the §62.2 stated cost of the form, measured and reported, not hidden: on
+  days when neutrality genuinely requires holding a name against its signal,
+  the restricted construction shrinks toward `D_degenerate` instead.
+- **G_ref lifecycle:** set at formation; a book formed at 0.30 gross that
+  drifts to 2.9 (still under G_cap) is scaled back to **0.30, not allowed to
+  run to 3.0** — the exact hole in my §61.3.1; shrunk exposure is never
+  levered back up; the M=7 flatten clears the reference.
+- **D_degenerate's five properties:** in the denominator; not formed (90%
+  formation cannot hide 10% zero-books — asserted); not a gate failure;
+  `r_shadow = 0` exactly; **excluded from Δ_gate** — proven by planting ±99
+  on degenerate days and asserting the statistic does not move at all. The
+  causal slot (structural → operational → degenerate → gates → execution)
+  verified, including the operational-beats-degenerate ordering.
+- The reporting tuple carries **`degenerate_rate` appended after the
+  original six fields** — position asserted, not just presence.
+
+**One numerical-hygiene note, recorded because it looks like a threshold
+change and is not:** the adopted SOC binds at exactly 6, and interior-point
+precision leaves realized N_eff ≈ 6 − 4e-8. The gate comparison uses
+`6 − 1e-6` — the same 100×-above-solver-precision margin logic §60.7 froze
+for the shadow tolerance. The frozen 6 is unchanged; the comparison is
+protected from its own solver's last digit.
+
+**Status.** The architecture now structurally guarantees the breadth
+invariant it previously only checked after the fact. Still blocking trial 1
+of 20: `g_min` (§60.11.6), zero-momentum semantics (§60.11.8), and the
+stress test — **UNRESOLVED per §62.5**, awaiting a defensible derivation or
+a user decision to supply one. Gen-1 **15 of 25**; Gen-2 **0 of 20**.
+Holdout sealed.

@@ -1,5 +1,7 @@
 """
-§60.7 + §60.11.3: the RCM optimizer — an SOCP with two knobs eliminated.
+§60.7 + §60.11.3 + §62.2: the RCM optimizer — an SOCP with two knobs
+eliminated, and breadth as part of CONSTRUCTION (Stage 19b, adopted after
+FINDING F-1 was proven by a same-gross witness).
 
     max_w   μᵀw − η·‖w − w_prev‖₁
     s.t.    Σ w_i = 0                              exact dollar neutrality
@@ -10,8 +12,19 @@
 
 γ does not exist (vol is a constraint). η is not free — it IS the frozen
 10 bps per-side cost stack. w = 0 is always feasible, so the problem is never
-infeasible: a degenerate market produces a near-zero book that then fails the
-GATES, which is where strategy semantics live.
+infeasible: a degenerate market produces a zero book, which is D_degenerate
+(§62.4) — an economic decision, not a failure.
+
+THE §62.2 CONSTRUCTION (adopted after F-1):
+  * leg membership is PRE-ASSIGNED by sign(μ): w_i ≥ 0 where μ_i > 0,
+    w_i ≤ 0 where μ_i < 0, w_i = 0 where μ_i = 0. No split variables exist,
+    so the padding degeneracy of the w⁺/w⁻ form is impossible by
+    construction, and holding a name against its signal is excluded — the
+    stated, measured cost of the form.
+  * per-leg breadth is a CONSTRAINT, exact and coefficient-free:
+    ‖w_leg‖₂ ≤ (Σ|w_leg|)/√6  ⟺  any nonzero leg has N_eff ≥ 6, using the
+    frozen 6 and nothing else. A market that cannot support six names a side
+    yields the zero book, honestly.
 
 DETERMINISM (§60.7): Clarabel interior-point, deterministic by construction;
 assets must arrive lexicographically sorted (asserted — the caller cannot
@@ -82,6 +95,12 @@ def solve(symbols: list[str], mu: np.ndarray, cov: CovarianceModel,
     eps_btc = epsilon_beta(sigma_target_daily, cov.sf_btc)
     eps_eth = epsilon_beta(sigma_target_daily, cov.sf_eth)
 
+    # §62.2: leg pre-assignment by signal sign, before the solver sees it
+    mu = np.asarray(mu, float)
+    m_long = (mu > 0).astype(float)
+    m_short = (mu < 0).astype(float)
+    m_zero = (mu == 0).astype(float)
+
     w = cp.Variable(n)
     risk_vec = cp.hstack([cov.sf_btc * (cov.b_btc @ w),
                           cov.sf_eth * (cov.b_eth @ w),
@@ -95,6 +114,15 @@ def solve(symbols: list[str], mu: np.ndarray, cov: CovarianceModel,
         <= eps_eth,
         cp.norm(w, 1) <= G_CAP,
         cp.abs(w) <= NAME_CAP,
+        # §62.2 sign pre-assignment: no name may be held against its signal
+        cp.multiply(m_long, w) >= 0,
+        cp.multiply(m_short, w) <= 0,
+        cp.multiply(m_zero, w) == 0,
+        # §62.2 exact per-leg breadth: nonzero leg ⇒ N_eff ≥ 6 (frozen)
+        cp.norm(cp.multiply(m_long, w), 2)
+        <= (m_long @ w) / np.sqrt(6.0),
+        cp.norm(cp.multiply(m_short, w), 2)
+        <= -(m_short @ w) / np.sqrt(6.0),
     ]
     prob = cp.Problem(cp.Maximize(mu @ w - ETA * cp.norm(w - w_prev, 1)),
                       constraints)
