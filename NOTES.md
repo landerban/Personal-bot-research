@@ -8287,3 +8287,152 @@ agent records it and does not re-decide it.
   zero momentum mass   UNRESOLVED — user decision        §60.11.8
   stress thresholds    UNRESOLVED — Stage 20 pre-registers  §60.11.5
 ```
+
+## 61. Stage 20 — RCM v1 synthetic implementation: built, attacked, one real finding
+
+**2026-08-31.** The first Generation-2 code: `rcm/` (seal, timeline, factors,
+momentum, funding, optimizer, gates, state machine, attribution) plus 30
+adversarial/null tests. **No real market or return data touched any RCM code
+path** — an import-level test enforces it. Suites **198 passed + 1 xfailed**
+(the xfail IS a finding, below); all Gen-1 suites green; live paper state
+provably untouched. **Gen-2 budget 0 of 20 — unchanged, as required.**
+
+### 61.1 The solver pin (resolving §60.7's one UNRESOLVED item)
+
+**Clarabel 0.11.1 via cvxpy 1.9.2, pinned exactly in `pyproject.toml`.**
+Engineering rationale, not strategy: the problem is an SOCP; assembling cone
+matrices by hand is a correctness risk the modeling layer eliminates, and
+determinism follows from a fixed problem-construction order (assets
+lexicographic, asserted) plus a deterministic interior-point solver.
+Verified: identical inputs give identical weights to < 1e-9; non-OPTIMAL
+termination raises `OperationalFailure`; post-solve residuals checked at the
+frozen maxima. w = 0 confirmed always feasible — a zero-alpha market yields a
+near-zero book, caught by the gates, never by a solver exception.
+
+### 61.2 FINDING F-1 — the optimizer and the N_eff gate are incompatible on
+realistic alpha shapes
+
+The §60.11.3.4 required fixture **failed, and the failure is the deliverable**:
+
+```
+  alpha profile   N_eff long   N_eff short   6/6 gate
+  flat |μ|         ~9.9          ~9.8          PASS
+  linear           5.4 – 5.9     5.6 – 5.9     FAIL  (every seed)
+  steep (μ²)       3.7           3.6 – 3.8     FAIL  (badly)
+```
+
+**Mechanism:** the objective is linear in w, so it concentrates in proportion
+to alpha dispersion; only the quadratic vol constraint spreads. **The more
+informative the signal's cross-sectional shape, the more the optimizer
+concentrates — and the gate then rejects the day.** Under real momentum
+(graded, often steep profiles) this predicts chronic `D_gate` days: RCM's
+version of Gen-1's formation failure, found synthetically before a single
+real return, which is exactly what §60.11.3.4 said synthetic testing is for.
+
+**Not patched** (Stage 20 §6: tuning a frozen quantity to make a fixture pass
+is forbidden). The fixture is kept as a **strict xfail** so the suite stays
+readable while the failure stays asserted — if it ever starts passing,
+something changed and must be explained. **Resolution is a Stage-19-class
+decision for the user**, options stated without preference:
+
+- (a) add a concentration control to the optimizer objective/constraints —
+  an architecture change requiring its own §59.4.4-compliant derivation;
+- (b) re-derive the N_eff floor — only with a non-performance argument;
+- (c) accept chronic gate-skips and rely on the transition rule — noting
+  this runs directly against the 0.60 formation-rate kill criterion (§60.8).
+
+### 61.3 Two mechanical resolutions, recorded and vetoable
+
+Both were forced by §60.11 withdrawing symbols that §60.6 still referenced;
+both are implementation-mechanical with stated rationale, neither is silent:
+
+1. **The §60.6 rescale target.** "Restore gross to G_target" references a
+   symbol §60.11.3 withdrew. Implemented as **clamp to G_cap = 3.0** — the
+   minimal intervention that enforces the cap without re-deciding selection.
+2. **`degenerate_target`'s calendar category = `D_structural`.** §60.11.8.1
+   demanded exactly one category without naming it. `D_structural` is the
+   attribution-consistent choice: §59.11.3.3 defines the shadow domain by
+   "a shadow target exists", and a zero target is precisely a day on which
+   none does. Mapping it to `D_gate` would inject meaningless zeros into
+   Δ_gate.
+
+### 61.4 What the fixtures established (each is a test that fails if false)
+
+- **The seal is structural**: any one-day intersection with
+  [2025-01-01, 2026-07-31] refuses; unlock needs an explicit token AND a
+  marker in **committed** git history (working-tree entries count for
+  nothing); an entry committed after the request is refused — no
+  back-dating. The commit timestamp, not the entry's text, is the authority.
+- **No RCM module can reach real data** (import-level, plus no venue or
+  store names in source).
+- **The calibration is PIT**: the §60.11.2.3 boundary pair behaves exactly
+  as specified (D−2 admissible, D−1 excluded), and a poison-pill unclosed
+  cross-section with a planted slope of 100 does not move `b̂`.
+- **One horizon exists**: `r_shadow`, `r_actual_price` and the calibration
+  outcome share one interval function; a one-minute offset is detectable.
+- **Funding is cadence-aware with no new knob**: an 8h symbol yields 3
+  forward settlements, a 4h symbol 6, from the same code path; a holey
+  window makes the candidate unavailable (never zero-funded); an AST test
+  proves the module contains no numeric constant beyond the day length and
+  the frozen 7.
+- **ETH⊥ works and matters**: exact in-window orthogonality, and the fixture
+  shows raw two-column OLS swinging >0.3 in beta across half-samples.
+- **Chance-constraint coverage ≈ nominal under independence** (breach ~10%
+  where binding) — the correlated case is precisely the deferred §61.5 test.
+- **UNRESOLVED raises**: `g_min` (no default exists), zero momentum mass
+  (user decision pending, cannot fall through into an unlabelled carry
+  book), uncertified funding windows.
+- **Null canaries**: noise in ⇒ `b̂ ≈ 0`, `b̃` smaller, carry flag fires with
+  the literal label; shuffling outcomes destroys a genuine planted slope
+  (+0.004 → ~0); the machine manufactures no alpha.
+- **Transitions and precedence**: one common rule verified across all three
+  non-formed categories; the single-scalar property asserted; M=7 flatten
+  and counter-reset verified; classification is a pure function of the
+  failure set (permutation-invariant by construction).
+- **Attribution recovers planted values**: Δ_gate and Δ_transition to
+  tolerance, CIs bracket, the transition rule is named beside every number,
+  the reporting tuple carries all six fields, and the formed-days label is
+  the literal §59.11.4 string.
+- **The Stage-17 quantization trap reproduces inside RCM** ($5.04 intended →
+  $4.91 executable → rejected) because RCM uses the same shared module.
+
+### 61.5 The correlated-residual stress test — PROPOSED, NOT RUN (§60.11.5.3)
+
+**Fixture (fixed now):** 30 synthetic assets in 3 blocks of 10; intra-block
+residual correlation ρ ∈ {0.3, 0.6} (two runs), cross-block 0; betas
+~N(1, 0.3²) with per-asset SEs as configured in the §61.4 fixtures; the
+frozen optimizer and gates unchanged.
+
+**Failure criteria (fixed now), with the invariant chain:** the Gen-1 risk
+architecture accepted a 20% design drawdown cap against a 30% kill switch —
+a headroom factor of **1.5** (§43.3 / §29, inherited unchanged by §59.6).
+Under-modelled volatility consumes that headroom multiplicatively, so:
+
+1. **σ_realized / σ_model ≤ 1.5** on the solved book under the fixture; and
+2. **chance-constraint breach frequency ≤ 2·Φ(−z/1.5) = 2·Φ(−1.097) ≈ 27.3%**
+   — the same 1.5 factor propagated through the normal map at the frozen
+   z = 1.645. One invariant, two consequences; no new tolerance invented.
+
+**Per §60.11.5.3–4:** neither fixture nor criteria may change after the
+result; passing establishes robustness **only to this scenario**, not to the
+real market. **Awaiting the user's approval (ledger entry) before any
+execution. Not run.** On failure: a residual covariance treatment becomes a
+prerequisite stage — not a patch here.
+
+### 61.6 Real-data prerequisites — what still blocks trial 1 of 20
+
+```
+  OPEN    g_min                    §60.11.6 — route (a) or (b), user
+  OPEN    zero-momentum semantics  §60.11.8 — user decision (delegate: (a))
+  OPEN    stress test              §61.5 — approval, run, pass (or covariance
+                                   treatment adopted)
+  OPEN    FINDING F-1              §61.2 — optimizer/gate incompatibility,
+                                   Stage-19-class resolution
+  DONE    solver pin               clarabel 0.11.1 / cvxpy 1.9.2, recorded
+  DONE    determinism tests        green at the frozen tolerances
+  DONE    funding observability    resolved by reusing Gen-1 machinery with
+                                   an equality rule — no new parameter
+```
+
+**Gen-1 budget 15 of 25; Gen-2 0 of 20, as this stage was required to end.
+Holdout sealed — and the seal is now code.**

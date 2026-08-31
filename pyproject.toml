@@ -3,7 +3,9 @@ name = "xsmom"
 version = "0.1.0"
 description = "Cross-sectional momentum research on Binance USDS-M perpetuals. Research code; not deployment-ready."
 requires-python = ">=3.11"
-dependencies = ["numpy>=1.26", "requests>=2.31"]
+# cvxpy/clarabel are PINNED exactly (Stage 20 / NOTES 61): the optimizer's
+# determinism guarantees are stated against these versions.
+dependencies = ["numpy>=1.26", "requests>=2.31", "cvxpy==1.9.2", "clarabel==0.11.1"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
@@ -14,4 +16,4 @@ addopts = "-q"
 markers = ["slow: touches the 732 MB store or the network"]
 
 [tool.setuptools]
-packages = ["backtest", "live", "pitdata", "dashboard", "xsmom"]
+packages = ["backtest", "live", "pitdata", "dashboard", "xsmom", "rcm"]
