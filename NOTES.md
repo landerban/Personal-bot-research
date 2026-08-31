@@ -9222,3 +9222,177 @@ design; `m_eff` is not estimated; cross-sectional vs temporal dependence
 is the delegates' distinction to handle in the fixture. The stress test
 remains unrun; trial 1 remains not pre-registered; **Gen-2 0 of 20;
 holdout sealed.**
+
+### 63.6 Delegates' joint append — residual-correlation robustness: withdrawal of the orientation gate, and the residual factor covariance estimator (2026-08-31)
+
+**The §63.1.A.3 delegation converges here. Recorded before any Part II
+code. §63.0–§63.5 unedited. Gen-2 stays 0 of 20; holdout sealed; no real
+returns are read by anything this section authorizes for Stage 22.**
+
+#### 63.6.1 The eight fixture-construction corrections (I.1)
+
+1. `diag(Ω_true) = D`; 2. `Σ_true = BΣ_fBᵀ + Ω_true`; 3. total-trace
+shares `(0.3067, 0.0445, 0.0368)` from the §63.3 medians — the `_ex1`
+quantities are secondary-spectrum diagnostics only; 4. any p95
+combination is a *componentwise p95 spectral envelope*; 5. stress modes
+hedge-orthogonal and weight-agnostic — only the `1` direction is exactly
+annihilated, betas are chance-bounded; 6. analytic beta coverage
+`SE_true,k²(w) = [(XᵀX)⁻¹]_kk · wᵀΩw`; 7. per-instance grading, tail
+informational, seeds derived from the frozen F-1 seeds; 8. the pairwise-
+correlation comparison is a distortion report.
+
+#### 63.6.2 Design diagnostic — the random-orientation gate cannot judge (I.2)
+
+**A design diagnostic, NOT execution of the deferred stress test.** With
+correction #1 enforced and modes uniform in the hedge-orthogonal
+complement (`N = 117`, median shares, unit-variance `D`, 4,000
+orientation draws): `wᵀΩ_true w / wᵀDw` has **mean 1.01, median 0.86,
+std 0.46; `P(ratio > 1) = 34%`; `P(all six base instances pass) ≈ 8%`**.
+`E[wᵀΩ_true w] ≈ wᵀDw`: the fixture is trace-neutral for a
+weight-agnostic book and adds only orientation scatter.
+
+**Provenance, reproduced in-repo** as
+`research/orientation_diagnostic.py`, sha256
+`3634ddc953181e0eeca907b22a13c9e096f1584f3d4a2d3e8f537ac4841115d0`, with
+the simplifications recorded exactly: `default_rng(0)`, 4,000 draws,
+`N = 117`, shares `(0.3067, 0.0445, 0.0368)`, `D = I`; books are random
+standard-normal vectors demeaned and unit-normalized — **not the six F-1
+books** (the "all six pass ≈ 8%" figure is `(1 − 0.344)⁶` under an
+independence assumption, not a measurement on the F-1 instances); modes
+are three standard-normal vectors demeaned and QR-orthonormalized — the
+complement of `span{1}` **only**, betas omitted for illustration.
+**Recovered provenance:** the delegates' prose did not fix the RNG draw
+order inside the loop; drawing the BOOK before the modes each iteration
+reproduces every quoted digit (mean 1.0102, median 0.8614, std 0.4563,
+`P>1` = 0.3435, all-six 0.0801) while modes-first does not
+(0.989/0.855/0.416/0.322) — book-first is recorded as the order used.
+**Informational extension, run this session** (authorized by I.2's
+"may"): the ACTUAL six F-1 books under the full `span{1, β_btc, β_eth}`
+complement give mean 1.037–1.048, median 0.910–0.920, `P>1` 0.385–0.403 —
+the trace-neutrality conclusion is unchanged on the real books; no
+criterion attaches.
+
+**Statement, narrowed:**
+
+> A tolerance-free, weight-agnostic random-orientation fixture **cannot
+> support a deterministic PASS/FAIL judgment about covariance adequacy**;
+> it can only characterize sensitivity to unoriented misspecification.
+> Criterion (ii) inherits the same property through `wᵀΩ_true w` in
+> `SE_true`.
+
+**Decision: the random-orientation PASS/FAIL gate of §60.11.5 / §62.5 is
+withdrawn as unable to render a verdict — neither passed nor failed.**
+
+#### 63.6.3 The finding — stated to the evidence, not beyond it (I.3)
+
+> The diagonal residual-covariance assumption is **strongly and
+> pervasively contradicted** by the development structural measurement
+> under the registered spherical null (§63.5: median `R_λ1 = 7.625`, p5
+> `3.128`; `R_F` median 2.924). Retaining it as the sole RCM v1
+> residual-risk model is therefore **not supported by the evidence
+> available before freeze.**
+
+Not claimed: that `D` is misspecified "at every date" (the `m_eff < 87`
+caveat stands; a sample covariance is not the population covariance).
+
+#### 63.6.4 The specification change — residual factor covariance (I.4)
+
+Pre-freeze (§59.8: no version bump). Development-informed — the
+§63.1.A.3.1 caveat travels with it: never citable as independent evidence
+of generalization. **Estimation, not selection (§60.0):** fully
+pre-registered, PIT, never compared to the diagonal model on any
+performance quantity.
+
+**Universe, frozen:** correlation estimation runs on the **PIT
+risk-eligible set before any momentum score, expected-return sign,
+portfolio weight, gate outcome, or performance conditioning** — the same
+set and complete-case alignment as §63.2.
+
+**Estimator, in correlation space:**
+
+```
+  D_t   = diag(σ̂²_ε,1 … σ̂²_ε,N)         the residual variances RCM already uses
+  C_t   = Q_t Λ_t Q_tᵀ                    90-day residual sample correlation, λ₁ ≥ … ≥ 0
+  λ_+,t = (1 + √(N_t / 87))²              MP edge in raw eigenvalue units (≡ s_MP+ · N_t)
+  K_t   = #{ j : λ_j,t > λ_+,t }          rank by the preregistered MP-edge rule; no fixed K
+  L_t   = Σ_{j ≤ K_t} λ_j,t q_j,t q_j,tᵀ
+  r_t   = 1 − diag(L_t)
+  C_tᴿᶜᴹ = L_t + diag(r_t)
+  Ω̂_t   = D_t^{1/2} C_tᴿᶜᴹ D_t^{1/2}
+```
+
+**Properties, proven here:**
+- **Marginals:** `diag(C_tᴿᶜᴹ) = diag(L_t) + (1 − diag(L_t)) = 1`, so
+  `diag(Ω̂_t) = diag(D_t)` exactly — only correlation structure is added.
+- **PSD:** `L_t` is a subset of the nonnegative eigencomponents of `C_t`,
+  so `C_t − L_t ⪰ 0`; a PSD matrix has a nonnegative diagonal, hence
+  `r_t = diag(C_t − L_t) ≥ 0`; both terms of `C_tᴿᶜᴹ` are PSD, and a
+  congruence `D^{1/2}·D^{1/2}` preserves PSD, so `Ω̂_t ⪰ 0`. ∎
+- **`K_t = 0 ⇒ C_tᴿᶜᴹ = I ⇒ Ω̂_t = D_t`** — the diagonal model is the
+  automatic boundary case; no fallback rule.
+- **Raw spikes, frozen:** eigenvalues above the edge are retained at
+  their observed sample values; **no shrinkage, de-biasing, clipping, or
+  performance-selected regularization** in RCM v1. The MP-edge rule is an
+  **estimator choice** — pre-registered, not performance-selected, but a
+  choice, and recorded as one.
+- `m_eff < 87` (§63.5.4) may inflate `K_t` by one on some dates —
+  recorded, not corrected.
+
+**Floating-point policy, frozen (numerical hygiene, not regularization):**
+symmetrize `C ← (C + Cᵀ)/2` before `eigh`. Remainder: analytically
+`r_i ≥ 0`; if `r_i < −SOLVER_TOL` (the frozen §60.7 tolerance) ⇒
+**covariance integrity failure, fail closed, `D_structural`, alert**; if
+`−SOLVER_TOL ≤ r_i < 0` ⇒ set to exactly zero as **numerical zero-clean
+only**, maximum correction recorded per date. Not statistical clipping;
+no model choice introduced.
+
+**Downstream, consistent:** `Σ_model = BΣ_fBᵀ + Ω̂_t` in the optimizer
+AND in `V_ret` (§63.1.A.2.1: one risk model, two uses). Chance
+constraint: `SE_k²(w) = [(XᵀX)⁻¹]_kk · wᵀΩ̂_t w`, replacing the
+independent-error `Σ_i w_i² V_i[k,k]` whose assumption §60.11.5 flagged.
+
+#### 63.6.5 Estimation uncertainty — a limitation, not a gate (I.5)
+
+> Estimation uncertainty in `K_t`, retained eigenvalues, and loading
+> vectors remains a **model-risk limitation of RCM v1**. No additional
+> robustness margin is introduced by the delegates. Any future variance
+> buffer or uncertainty-set tolerance (e.g. `wᵀΣ̂w ≤ σ²/c`, `c > 1`) is a
+> **risk-owner decision** and constitutes a separately governed
+> specification change.
+
+The 10% target was always a predicted quantity; no finite-window
+estimator guarantees ex-post variance. The delegates do not manufacture a
+prerequisite from that fact.
+
+#### 63.6.6 Governance closures (I.6)
+
+- §60.11.5 / §62.5 stress requirement: **closed by withdrawal and model
+  change** — status DELEGATED → **RESOLVED**.
+- §63.2 D.4 prohibition: **superseded** — it guarded against choosing a
+  gate's criterion around its answer; there is no gate. PIT estimation of
+  `Ω̂_t` on development data is the model's normal operation.
+- No loading measurement for design purposes occurred or is authorized.
+
+#### 63.6.7 Implementation interpretations — recorded BEFORE Part II code
+
+1. **Module:** `rcm/rescov.py` implements §63.6.4 verbatim; it is an
+   `rcm/` module and stays under the no-real-data import test.
+2. **Model object:** `FullResidualCovarianceModel` (B, Σ_f, `Ω̂`, its
+   symmetric PSD square root, and the design scalars
+   `g_k = [(XᵀX)⁻¹]_kk` — one common design, so the g's are model-level
+   scalars, not per-asset arrays). The existing diagonal
+   `CovarianceModel` remains valid as the `K_t = 0` geometry; the
+   optimizer detects the model by its attributes (no import cycle) and
+   requires per-asset SE arrays with the diagonal model and forbids them
+   with the full model — never both.
+3. **Ω^{1/2}:** symmetric eigh-based root; an eigenvalue below
+   `−SOLVER_TOL` fails closed as integrity failure, in `[−SOLVER_TOL, 0)`
+   zero-cleaned — the same frozen policy as the remainder.
+4. **Determinism:** eigenvector sign fixed by making each retained
+   vector's largest-|entry| component positive; tested.
+5. **"The daily tuple gains `K_t` and `λ_1/tr`":** implemented as the
+   estimator's per-day report record carrying `K_t`, `λ_1/tr`, and the
+   §63.5 references (`λ_+` raw and as share) beside them. The aggregate
+   §59.11.4 reporting tuple is UNCHANGED — its field order is frozen by
+   §62.4's position-asserted append discipline; a day-level record is
+   where per-day covariance facts belong.
