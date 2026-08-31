@@ -58,20 +58,35 @@ def test_adopted_construction_passes_f1_on_every_seed(shape, seed):
 def test_no_name_is_ever_held_against_its_signal():
     """B.4 padding-analog for the sign-pre-assigned form: padding is
     impossible BY CONSTRUCTION, which shows up as sign agreement between
-    every position and its signal — and zero-signal names hold nothing."""
+    every position and its signal — and zero-signal names hold nothing.
+
+    RE-BASED BY §62.8 (Stage 19c): "signal" means the CENTERED forecast
+    sign(μ̃), μ̃ = P·μ_total — raw sign was the §62.8.1 shift-invariance bug,
+    so exclusion is asserted on μ̃_i = 0, not μ_i = 0. The fixture is dyadic
+    (values k·2⁻¹¹, shift 2⁻⁸) so every sum and mean is EXACT in float and
+    the planted μ̃ = 0 names are exactly zero after the optimizer's own
+    centering. The shift makes raw and centered signs disagree on 10 of 20
+    names — the assertions have teeth ONLY against the centered signal."""
+    n = 20
+    k = np.zeros(n)
+    k[[0, 1, 2, 4, 5, 6, 7, 8, 9]] = [9, 8, 7, 6, 5, 4, 3, 2, 1]
+    k[[10, 12, 13, 14, 15, 16, 17, 18, 19]] = [-1, -2, -3, -4, -5, -6, -7,
+                                               -8, -9]
+    mu_c = k * 2.0 ** -11            # indices 3, 11 planted at mu-tilde == 0
+    mu = mu_c + 2.0 ** -8            # a common shift: invisible to the book
+    assert mu.mean() == 2.0 ** -8, "dyadic mean must be exact"
+    assert np.sum(np.sign(mu) != np.sign(mu_c)) == 10
     symbols, cov, se, rng = market(seed=31)
-    mu = 0.003 * rng.standard_normal(len(symbols))
-    mu[3] = 0.0
-    mu[11] = 0.0
     out = solve(symbols, mu, cov, se, se, SIGMA_D)
+    assert out.gross > 0.1, "the book must form for the assertions to bite"
     for i, w in enumerate(out.w):
-        if mu[i] > 0:
-            assert w >= -1e-12, f"{symbols[i]} long-signal held short"
-        elif mu[i] < 0:
-            assert w <= 1e-12, f"{symbols[i]} short-signal held long"
+        if mu_c[i] > 0:
+            assert w >= -1e-12, f"{symbols[i]} centered-long held short"
+        elif mu_c[i] < 0:
+            assert w <= 1e-12, f"{symbols[i]} centered-short held long"
         else:
-            assert w == 0.0, f"{symbols[i]} zero-signal holds a position"
-    print("PASS 19b_sign_agreement")
+            assert w == 0.0, f"{symbols[i]} mu-tilde-zero holds a position"
+    print("PASS 19b_sign_agreement (re-based to sign(mu-tilde) per 62.8)")
 
 
 def test_hedge_infeasibility_fixture_reports_the_stated_cost():

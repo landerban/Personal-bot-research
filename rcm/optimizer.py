@@ -15,12 +15,23 @@ FINDING F-1 was proven by a same-gross witness).
 infeasible: a degenerate market produces a zero book, which is D_degenerate
 (§62.4) — an economic decision, not a failure.
 
-THE §62.2 CONSTRUCTION (adopted after F-1):
-  * leg membership is PRE-ASSIGNED by sign(μ): w_i ≥ 0 where μ_i > 0,
-    w_i ≤ 0 where μ_i < 0, w_i = 0 where μ_i = 0. No split variables exist,
-    so the padding degeneracy of the w⁺/w⁻ form is impossible by
-    construction, and holding a name against its signal is excluded — the
-    stated, measured cost of the form.
+THE §62.2 CONSTRUCTION, CORRECTED BY §62.8 (shift invariance):
+  * membership by RAW sign(μ) was a bug: the exactly dollar-neutral
+    objective satisfies (μ + c·1)ᵀw = μᵀw, so the problem is invariant to a
+    common shift while raw sign is not — a +0.006 shift collapsed a
+    0.90-gross book to zero (recorded in §62.8.3). Membership is therefore
+    assigned by the CENTERED forecast μ̃ = P·μ_total, P = I − (1/N)·1·1ᵀ —
+    the unique projection implied by the neutrality constraint itself, not
+    a preference among centers. Computed ONCE over the eligible set passed
+    in; never recomputed after removing centered-sign names (§62.8.2).
+  * w_i ≥ 0 where μ̃_i > 0, w_i ≤ 0 where μ̃_i < 0, w_i = 0 where μ̃_i = 0.
+    No split variables exist, so padding is impossible by construction; a
+    name is held only on the side of its cross-sectional total expected-
+    return advantage, momentum and funding combined (§62.8.5 wording).
+  * the objective also uses μ̃: identical on the feasible set (the discarded
+    component is invisible to any dollar-neutral w) and numerically
+    shift-invariant, so the solver sees the same problem whatever the
+    forecast's arbitrary level.
   * per-leg breadth is a CONSTRAINT, exact and coefficient-free:
     ‖w_leg‖₂ ≤ (Σ|w_leg|)/√6  ⟺  any nonzero leg has N_eff ≥ 6, using the
     frozen 6 and nothing else. A market that cannot support six names a side
@@ -95,11 +106,13 @@ def solve(symbols: list[str], mu: np.ndarray, cov: CovarianceModel,
     eps_btc = epsilon_beta(sigma_target_daily, cov.sf_btc)
     eps_eth = epsilon_beta(sigma_target_daily, cov.sf_eth)
 
-    # §62.2: leg pre-assignment by signal sign, before the solver sees it
+    # §62.8: center ONCE over the eligible set (the caller's input vector),
+    # then partition by the centered sign. The mean is never recomputed.
     mu = np.asarray(mu, float)
-    m_long = (mu > 0).astype(float)
-    m_short = (mu < 0).astype(float)
-    m_zero = (mu == 0).astype(float)
+    mu_c = mu - mu.mean()
+    m_long = (mu_c > 0).astype(float)
+    m_short = (mu_c < 0).astype(float)
+    m_zero = (mu_c == 0).astype(float)
 
     w = cp.Variable(n)
     risk_vec = cp.hstack([cov.sf_btc * (cov.b_btc @ w),
@@ -124,7 +137,7 @@ def solve(symbols: list[str], mu: np.ndarray, cov: CovarianceModel,
         cp.norm(cp.multiply(m_short, w), 2)
         <= -(m_short @ w) / np.sqrt(6.0),
     ]
-    prob = cp.Problem(cp.Maximize(mu @ w - ETA * cp.norm(w - w_prev, 1)),
+    prob = cp.Problem(cp.Maximize(mu_c @ w - ETA * cp.norm(w - w_prev, 1)),
                       constraints)
     prob.solve(solver=cp.CLARABEL)
 
@@ -154,3 +167,52 @@ def solve(symbols: list[str], mu: np.ndarray, cov: CovarianceModel,
         beta_residual_btc=rb, beta_residual_eth=re,
         vol_model=cov.portfolio_vol(wv),
     )
+
+
+def degenerate_cause(symbols: list[str], mu: np.ndarray, cov: CovarianceModel,
+                     se_btc: np.ndarray, se_eth: np.ndarray,
+                     sigma_target_daily: float) -> str:
+    """§62.8.4: WHY did the optimizer produce a zero book?
+
+    A D_degenerate day must record its cause; "the model saw no opportunity"
+    may not be claimed without this decomposition. The cascade uses only
+    structure and the existing frozen tolerances — no new threshold:
+
+      1. breadth: fewer than 6 names carry a nonzero centered forecast on a
+         side, so the per-leg SOC zeroes that leg and neutrality zeroes the
+         other — constraint_interaction, counted, not measured.
+      2. chance: re-solve the identical instance WITHOUT the chance
+         constraints (a diagnostic solve, synthetic-safe); if a nonzero book
+         appears, the chance constraints were binding at zero.
+      3. otherwise: no_trade — the centered forecast does not justify
+         exposure against the frozen cost term.
+    """
+    mu_c = np.asarray(mu, float) - np.asarray(mu, float).mean()
+    n_long = int(np.sum(mu_c > 0))
+    n_short = int(np.sum(mu_c < 0))
+    if n_long < 6 or n_short < 6:
+        return (f"constraint_interaction:breadth "
+                f"({n_long} long-side / {n_short} short-side candidates "
+                f"vs the frozen 6)")
+    import cvxpy as cp
+    n = len(symbols)
+    w = cp.Variable(n)
+    m_long = (mu_c > 0).astype(float)
+    m_short = (mu_c < 0).astype(float)
+    m_zero = (mu_c == 0).astype(float)
+    risk_vec = cp.hstack([cov.sf_btc * (cov.b_btc @ w),
+                          cov.sf_eth * (cov.b_eth @ w),
+                          cp.multiply(cov.d_idio, w)])
+    cons = [cp.sum(w) == 0,
+            cp.norm(risk_vec, 2) <= sigma_target_daily,
+            cp.norm(w, 1) <= G_CAP, cp.abs(w) <= NAME_CAP,
+            cp.multiply(m_long, w) >= 0, cp.multiply(m_short, w) <= 0,
+            cp.multiply(m_zero, w) == 0,
+            cp.norm(cp.multiply(m_long, w), 2) <= (m_long @ w) / np.sqrt(6.0),
+            cp.norm(cp.multiply(m_short, w), 2) <= -(m_short @ w) / np.sqrt(6.0)]
+    prob = cp.Problem(cp.Maximize(mu_c @ w - ETA * cp.norm(w, 1)), cons)
+    prob.solve(solver=cp.CLARABEL)
+    if (prob.status == "optimal" and w.value is not None
+            and float(np.sum(np.abs(w.value))) > SOLVER_TOL * 100):
+        return "constraint_interaction:chance"
+    return "no_trade"

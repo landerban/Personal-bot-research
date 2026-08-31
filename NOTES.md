@@ -8730,3 +8730,80 @@ nonzero w_prev case; sign agreement re-based to `sign(μ̃)`; the carry-regime
 formation fixture; and all §62.7 fixtures green with every frozen quantity
 unchanged. **Only then is F-1 marked RESOLVED.** Still blocking trial 1:
 `g_min`, zero-momentum semantics, residual-correlation robustness.
+
+#### 62.8.3 Verification — appended after the runs, as §62.8.6 required
+
+*(Numbered out of order by design: §62.8.3 was reserved in the
+pre-verification commit for this append. Everything above is byte-identical;
+sha256 of the file before this append is recorded in the commit message.)*
+
+**Step 1 — the OLD raw-sign path, recorded FAILING before removal** (synthetic
+instance, 20 names, μ = linspace(+0.004, −0.004), seed-21 market):
+
+```
+  c=+0.006: gross 0.9011 -> 0.0000, max|dw|=0.1040, membership identical: False
+  c=-0.006: gross 0.9011 -> 0.0000, max|dw|=0.1040, membership identical: False
+```
+
+Economically identical problems; the book vanished under a constant shift.
+The bug was real, measured, and is on the record.
+
+**Step 2 — the corrected path (μ̃ = P·μ_total, mean computed once), PASSING:**
+
+```
+  w_prev=0       c=+0.006: max|dw|=1.02e-13  membership identical: True  gross 0.9011
+  w_prev=0       c=-0.006: max|dw|=8.14e-14  membership identical: True  gross 0.9011
+  w_prev nonzero c=+0.006: max|dw|=1.88e-14  membership identical: True  gross 0.9766
+  w_prev nonzero c=-0.006: max|dw|=6.15e-15  membership identical: True  gross 0.9766
+```
+
+Machine precision, both shift signs, turnover term included. The old path is
+removed; the permanent 4-way parametrized test (`tests/test_rcm_stage19c.py`)
+pins the invariant at ≤ 1e-8 with membership equality asserted.
+
+**§3.2 sign agreement, re-based to sign(μ̃).** The 19b fixture now plants
+μ̃ = 0 (not raw 0) via a dyadic construction — every value k·2⁻¹¹, shift
+2⁻⁸, so all sums and means are EXACT in float and the planted names are
+exactly zero after the optimizer's own centering. Raw and centered signs
+disagree on 10 of 20 names in the fixture; the book (gross 0.8961) follows
+μ̃ on every name and the two μ̃ = 0 names hold exactly nothing.
+
+**§3.3 carry-regime formation.** μ_mom ≡ 0, F̂ = linspace(5, 85) bps, all
+positive: the construction now FORMS the book raw sign made impossible —
+gross 0.8838, shorts exactly the above-average-funding names, N_eff ≥ 6 both
+legs — and the zero-momentum-mass state still raises UNRESOLVED downstream,
+because §60.11.8 remains the user's decision. Formation is the construction's
+property; the semantics stay escalated.
+
+**§62.8.4 cause decomposition, verified — with one property worth recording:**
+
+- `breadth`: the ledger's own example (4 positive / 26 negative centered
+  names) yields the zero book and the cause string names the counts against
+  the frozen 6.
+- `chance`: the chance constraint is bounded, not conic — near w = 0 it is
+  always slack, so it can THROTTLE a book but never zero one by itself. At
+  SE = 1e4 the fixture leaves a 1.5e-5-gross micro-book (a gate-failure day
+  once `g_min` exists, NOT D_degenerate); only when the throttle falls below
+  solver precision (SE = 1e6) does the zero-clean produce the exact-zero
+  book, and the diagnostic re-solve without the chance constraints then
+  names `constraint_interaction:chance`. §62.7's hedge-infeasibility fixture
+  is therefore gate territory, not degenerate — a clarification of the
+  §62.8.4 example, verified rather than assumed.
+- `no_trade`: a ±1e-6 centered forecast against the frozen η = 10 bps yields
+  the zero book with the economic cause.
+
+**§3.4 full re-run.** **219 passed, 0 failed** (210 from §62.7 + exactly the
+9 new 19c tests). Every frozen quantity unchanged: the 6, σ_target, ε_β,
+G_cap = 3.0, the 0.25 name cap, η = 0.0010, z = 1.645, SOLVER_TOL = 1e-8,
+N_EFF_NUMERICAL_TOL = 1e-6. Working tree touched only `rcm/optimizer.py` and
+the RCM test files; live paper state untouched; `scan_secrets` clean over
+159 tracked files. **No real data touched any RCM path. Gen-2 remains
+0 of 20. Holdout sealed.**
+
+**FINDING F-1: RESOLVED.** The breadth requirement is now part of the
+optimizer's CONSTRUCTION (sign-pre-assigned legs with exact per-leg SOC,
+membership by the projection μ̃ = P·μ_total), the construction is invariant
+to the forecast's arbitrary zero level, and the chain is closed — not to be
+revisited unless another synthetic invariant breaks. Still blocking trial 1
+of 20, unchanged: `g_min` (§60.11.6), zero-momentum semantics (§60.11.8),
+residual-correlation robustness (§62.5).
