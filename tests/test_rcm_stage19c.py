@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from rcm.factors import CovarianceModel  # noqa: E402
-from rcm.gates import Unresolved, c_signal, n_eff  # noqa: E402
+from rcm.gates import COVERAGE_NA, c_signal, n_eff  # noqa: E402
 from rcm.optimizer import degenerate_cause, solve  # noqa: E402
 
 SIG = 0.10 / np.sqrt(365)
@@ -85,8 +85,9 @@ def test_carry_regime_book_forms_under_all_positive_funding():
     """μ_mom ≡ 0, every F̂ > 0 (varying): under raw sign every name was
     short-only and the CARRY REGIME book could not exist. Centered, the
     above-average-funding names go short (collecting it), below-average go
-    long, and a broad book forms — with coverage still raising UNRESOLVED
-    downstream because §60.11.8's user decision is pending."""
+    long, and a broad book forms. Downstream: coverage is the distinct N/A
+    per the user's §63.1.A.1 decision (originally this asserted the
+    §60.11.8 UNRESOLVED raise; re-based when the decision was recorded)."""
     symbols, cov, se, rng = market(seed=44)
     f_hat = np.linspace(0.0005, 0.0085, 20)            # all positive, varying
     mu_total = 0.0 - f_hat                             # μ_mom = 0
@@ -99,11 +100,10 @@ def test_carry_regime_book_forms_under_all_positive_funding():
     nl = n_eff(np.where(out.w > 0, out.w, 0))
     ns = n_eff(np.where(out.w < 0, -out.w, 0))
     assert nl >= 6 - 1e-6 and ns >= 6 - 1e-6
-    # downstream: zero momentum mass still raises until the user decides
-    with pytest.raises(Unresolved, match="zero momentum mass"):
-        c_signal(out.w, np.zeros(20), np.abs(out.w) > 0)
+    # downstream: zero momentum mass -> coverage N/A (§63.1.A.1, decided)
+    assert c_signal(out.w, np.zeros(20), np.abs(out.w) > 0) is COVERAGE_NA
     print(f"PASS 19c_carry_book_forms (gross {out.gross:.3f}, "
-          f"N_eff {nl:.1f}L/{ns:.1f}S, downstream UNRESOLVED preserved)")
+          f"N_eff {nl:.1f}L/{ns:.1f}S, downstream coverage N/A)")
 
 
 # ------------------------------------------- §62.8.4 the cause decomposition

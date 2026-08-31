@@ -119,18 +119,31 @@ def mu_mom(slope: Slope, z_scores: np.ndarray) -> np.ndarray:
 
 @dataclass
 class CarryGuard:
-    """§60.2.3: the standing attribution that stops RCM silently becoming a
-    carry trade. s_mom < 0.5 (trailing 21d mean) => every report carries the
-    literal flag. Never a halt; never silent."""
+    """§60.2.3 + §63.1.5.2: the standing attribution that stops RCM silently
+    becoming a carry trade. The label fires iff EITHER frozen condition
+    holds — no new threshold, the OR of two existing rules:
+
+      1. §60.2.3 trailing: 21-day mean s_mom < 0.5, or
+      2. §63.1.A.1 exact zero momentum mass TODAY: Σ|μ_mom| = 0, or, when
+         the caller supplies the canonical book, Σ|w_pre|·|μ_mom| = 0 —
+         the user's decision (a): such a day TRADES, labelled, coverage N/A.
+
+    Never a halt; never silent; absence requires both conditions false."""
     history: list = field(default_factory=list)
 
-    def update(self, mu_momentum: np.ndarray, f_hat: np.ndarray) -> dict:
+    def update(self, mu_momentum: np.ndarray, f_hat: np.ndarray,
+               w_pre: np.ndarray | None = None) -> dict:
         m = float(np.sum(np.abs(mu_momentum)))
         f = float(np.sum(np.abs(f_hat)))
         s = m / (m + f) if (m + f) > 0 else 0.0
         self.history.append(s)
         trailing = float(np.mean(self.history[-CARRY_WINDOW:]))
-        flagged = trailing < CARRY_THRESHOLD
+        zero_mass = m == 0.0
+        if w_pre is not None:
+            zero_mass = zero_mass or float(
+                np.sum(np.abs(np.asarray(w_pre, float))
+                       * np.abs(np.asarray(mu_momentum, float)))) == 0.0
+        flagged = (trailing < CARRY_THRESHOLD) or zero_mass
         return {"s_mom": s, "s_mom_trailing": trailing,
-                "carry_flag": flagged,
+                "carry_flag": flagged, "zero_momentum_mass": zero_mass,
                 "label": CARRY_LABEL if flagged else None}

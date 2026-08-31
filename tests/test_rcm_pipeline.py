@@ -21,7 +21,7 @@ from rcm.attribution import (  # noqa: E402
 )
 from rcm.factors import CovarianceModel  # noqa: E402
 from rcm.gates import (  # noqa: E402
-    DegenerateTarget, GateConfig, Unresolved, c_signal, evaluate, n_eff,
+    COVERAGE_NA, DegenerateTarget, GateConfig, c_signal, evaluate, n_eff,
 )
 from rcm.momentum import (  # noqa: E402
     CARRY_LABEL, CalibrationSet, CarryGuard, calibrate, mu_mom, zscores,
@@ -110,29 +110,42 @@ def test_chance_constraint_coverage_is_near_nominal_10pct():
 
 # ------------------------------------------------------------------- gates
 
-def test_gate_g_min_is_unresolved_and_raises_without_a_value():
-    """§60.11.6: no default exists in code. Evaluating without a configured
-    g_min raises; supplying one works."""
+def _gate_cov(n, idio=0.02):
+    return CovarianceModel(b_btc=np.zeros(n), b_eth=np.zeros(n),
+                           sf_btc=0.03, sf_eth=0.015,
+                           d_idio=np.full(n, idio))
+
+
+def test_gate_exposure_retention_replaced_g_min():
+    """§63.1.A.2: the withdrawn g_min gate is replaced by V_ret >= 0.40 under
+    the optimizer's Σ. The default config carries the frozen preference; the
+    gross ratio survives as diagnostic only (never in failed_gates)."""
     w_pre = np.array([0.1, 0.1, 0.1, -0.1, -0.1, -0.1])
     mu = np.array([1, 1, 1, -1, -1, -1.0]) * 1e-3
-    with pytest.raises(Unresolved, match="g_min is UNRESOLVED"):
-        evaluate(w_pre, w_pre, mu, GateConfig())          # g_min=None
-    v = evaluate(w_pre, w_pre, mu, GateConfig(g_min=0.65))
-    assert isinstance(v.passed, bool)
-    print("PASS rcm_gate_gmin_unresolved")
+    sig = 0.10 / np.sqrt(365)
+    assert GateConfig().v_ret_min == 0.40
+    v = evaluate(w_pre, 0.5 * w_pre, mu, GateConfig(), _gate_cov(6), sig)
+    assert v.v_ret == pytest.approx(0.25) and \
+        "exposure_retention" in v.failed_gates
+    assert v.g_ratio == pytest.approx(0.5)
+    assert not any("g_ratio" in g or g == "exposure" for g in v.failed_gates)
+    print("PASS rcm_gate_vret_replaced_gmin")
 
 
-def test_zero_momentum_mass_raises_until_the_user_decides():
-    """§60.11.8.2: pure-carry state escalated; NaN never decides."""
+def test_zero_momentum_mass_is_coverage_na_per_the_user_decision():
+    """§63.1.A.1 (user decision (a), superseding the §60.11.8 raise):
+    pure-carry state returns the distinct N/A — never 0, 1, or NaN, and
+    never a gate failure."""
     w_pre = np.array([0.2, -0.2])
-    with pytest.raises(Unresolved, match="zero momentum mass"):
-        c_signal(w_pre, np.zeros(2), np.array([True, True]))
-    print("PASS rcm_zero_momentum_unresolved")
+    cov = c_signal(w_pre, np.zeros(2), np.array([True, True]))
+    assert cov is COVERAGE_NA and not isinstance(cov, float)
+    print("PASS rcm_zero_momentum_na")
 
 
 def test_degenerate_target_is_a_named_state_with_no_nan():
     with pytest.raises(DegenerateTarget, match="G_pre = 0"):
-        evaluate(np.zeros(4), np.zeros(4), np.ones(4), GateConfig(g_min=0.5))
+        evaluate(np.zeros(4), np.zeros(4), np.ones(4), GateConfig(),
+                 _gate_cov(4), 0.10 / np.sqrt(365))
     print("PASS rcm_degenerate_target")
 
 
@@ -190,7 +203,8 @@ def test_pipeline_produces_a_broad_gatepassing_book_when_one_is_feasible():
     assert nl >= 6 - 1e-6 and ns >= 6 - 1e-6, (
         f"architecture incompatibility: optimizer returned a concentrated "
         f"book (N_eff {nl:.2f}L/{ns:.2f}S) where a broad one was feasible")
-    v = evaluate(out.w, out.w, mu, GateConfig(g_min=0.65))
+    v = evaluate(out.w, out.w, mu, GateConfig(), cov,
+                 0.10 / np.sqrt(365))
     assert v.passed, v.failed_gates
     print(f"PASS rcm_opt_gate_compat (N_eff {nl:.1f}L / {ns:.1f}S)")
 
@@ -346,14 +360,16 @@ def test_shuffled_return_canary():
 
 
 def test_zero_alpha_nonzero_funding_never_forms_an_unlabelled_carry_book():
-    """§60.11.8 status is UNRESOLVED ⇒ the state RAISES; it can never fall
-    through into an unlabelled carry book."""
+    """§63.1.A.1 (superseding the §60.11.8 raise): the state now TRADES —
+    but it can never fall through into an UNLABELLED carry book. Coverage is
+    the distinct N/A and the literal label is mandatory."""
     w_pre = np.array([0.15, 0.1, -0.1, -0.15])
-    with pytest.raises(Unresolved, match="zero momentum mass"):
-        c_signal(w_pre, np.zeros(4), np.ones(4, dtype=bool))
+    assert c_signal(w_pre, np.zeros(4), np.ones(4, dtype=bool)) is COVERAGE_NA
     guard = CarryGuard()
-    g = guard.update(np.zeros(4), f_hat=np.array([2e-4, 1e-4, -1e-4, -3e-4]))
+    g = guard.update(np.zeros(4), f_hat=np.array([2e-4, 1e-4, -1e-4, -3e-4]),
+                     w_pre=w_pre)
     assert g["carry_flag"] is True and g["label"] == CARRY_LABEL
+    assert g["zero_momentum_mass"] is True
     print("PASS rcm_canary_pure_carry")
 
 
