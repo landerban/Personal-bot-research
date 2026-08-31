@@ -9192,3 +9192,33 @@ spectrum, `F_RMS,null` for the Frobenius distance; no single scalar
 is unsafe: dollar and factor neutrality may cancel part of the common
 structure — that is the stress test's question, still unrun. The D.4
 prohibition stands; the stress fixture is not frozen here.
+
+#### 63.5.5 Ratio results — computed exactly as registered
+
+Run 2026-08-31, `research/nullcorrection.py`, inputs
+`diagnostics.jsonl` only; 1,827 rows processed, 1,642 defined (identical
+to §63.3 — no row dropped, null rows pass through null); per-date values
+in `research/residcorr_out/null_ratios.jsonl`, committed.
+
+```
+  ratio    p5      p25     p50     p75     p95
+  R_λ1    3.128   5.696   7.625   9.856  12.532
+  R_F     2.345   2.667   2.924   3.353   3.932
+```
+
+(The §3 expectations of ~7.7 and ~3.1 were ratios of aggregate medians;
+the medians of the per-date ratios land at 7.63 and 2.92 — the small gap
+is the difference between a ratio of medians and a median of ratios,
+nothing else.)
+
+> **The spherical finite-sample cross-sectional independence null is
+> strongly contradicted; the magnitude of the excess is now correctly
+> benchmarked against the `m = 87` analytical null.**
+
+Even at the 5th percentile of dates, the leading-mode share is 3.1× the
+MP edge and the Frobenius distance 2.3× its RMS null scale. The §63.5.4
+caveat travels with this: the null is spherical/i.i.d. conditional on the
+design; `m_eff` is not estimated; cross-sectional vs temporal dependence
+is the delegates' distinction to handle in the fixture. The stress test
+remains unrun; trial 1 remains not pre-registered; **Gen-2 0 of 20;
+holdout sealed.**

@@ -52,9 +52,15 @@ stale-book invariant (§62.3) and D_degenerate as a fifth calendar category
 `research/residcorr_out/diagnostics.jsonl` — 1,827 daily rows, 1,642 with
 a defined matrix. Headline aggregates (§63.3): daily median off-diagonal
 residual correlation has median 0.255 across dates (p5–p95: 0.18–0.38);
-λ₁ share median 0.307 vs diagonal expectation ≈ 0.0085 at the median
-N_t = 117. D.4 prohibition stands: no strategy component may run under the
-measured covariance before the fixture is frozen.
+λ₁ share median 0.307. Stage 21a (§63.5) corrected the benchmark to the
+finite-sample `m = 87` independence null (`null_ratios.jsonl`): the
+leading-mode share is a median **7.6× the Marchenko–Pastur edge** (p5
+3.1×), the Frobenius distance a median **2.9× its RMS null scale** — the
+spherical independence null is strongly contradicted at every percentile.
+Caveat on record: the null is spherical/i.i.d. conditional on the design;
+`m_eff` under temporal dependence is not estimated. D.4 prohibition
+stands: no strategy component may run under the measured covariance
+before the fixture is frozen.
 
 ## Module map
 
