@@ -296,7 +296,11 @@ def test_lock_hashes_in_notes_match_the_evaluator_files():
     notes = (ROOT / "NOTES.md").read_text(encoding="utf-8")
     locks = dict(re.findall(r"^LOCK (\S+) sha256=([0-9a-f]{64})", notes,
                             re.MULTILINE))
-    assert set(locks) == {"rcm/eval_formation.py", "rcm/eval_ic.py"}, locks
+    # §66.5 re-lock (F-2): the formation definition lives partly in
+    # rcm/gates.py, so the amended gate is pinned beside the evaluators;
+    # dict() keeps the LAST lock line per file — the §66.5 values.
+    assert set(locks) == {"rcm/eval_formation.py", "rcm/eval_ic.py",
+                          "rcm/gates.py"}, locks
     for rel, cited in locks.items():
         actual = hashlib.sha256((ROOT / rel).read_bytes()).hexdigest()
         assert actual == cited, (

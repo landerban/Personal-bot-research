@@ -32,7 +32,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from rcm.factors import CovarianceModel
-from rcm.optimizer import SOLVER_TOL
+from rcm.optimizer import SHADOW_WEIGHT_TOL, SOLVER_TOL
 
 N_EFF_MIN = 6.0              # per leg, §60.5 (architecture-derived, retained)
 # Numerical hygiene, NOT a threshold change: the §62.2 construction makes
@@ -154,9 +154,28 @@ def evaluate(w_pre: np.ndarray, w_real: np.ndarray,
             f"singularity. Fail closed: D_structural, alert (§63.1.5.3).")
     v_ret = (vol_real ** 2) / (vol_pre ** 2)
 
+    # FINDING F-2 (§66.3): the construction pins the continuous book at
+    # EXACTLY N_eff = 6, so sub-step floor-rounding on the sized book
+    # displaces it below 6 on arithmetic alone. The gated breadth is the
+    # measured-displacement form — algebraically max(N_eff of the sized
+    # leg, N_eff of w_pre restricted to the leg's SURVIVING names): the
+    # rounding component is eliminated exactly, a dropped name still
+    # removes its breadth in full, and no new quantity exists (the frozen
+    # 6 and 1e-6 are unchanged).
+    # §66.3.1 dust clause: a name below the frozen §60.7 shadow weight
+    # tolerance is, by the system's own equality semantics, not
+    # distinguishable from an excluded name — its disposal by quantization
+    # cannot constitute breadth loss. Only MATERIAL drops leave the
+    # restricted book.
     longs = np.where(w_real > 0, w_real, 0.0)
     shorts = np.where(w_real < 0, -w_real, 0.0)
-    nl, ns = n_eff(longs), n_eff(shorts)
+    dust = np.abs(w_pre) < SHADOW_WEIGHT_TOL
+    keep_long = (w_real > 0) | ((w_pre > 0) & dust)
+    keep_short = (w_real < 0) | ((w_pre < 0) & dust)
+    pre_long_surv = np.where(keep_long, np.abs(w_pre), 0.0)
+    pre_short_surv = np.where(keep_short, np.abs(w_pre), 0.0)
+    nl = max(n_eff(longs), n_eff(pre_long_surv))
+    ns = max(n_eff(shorts), n_eff(pre_short_surv))
     g_ratio = float(np.sum(np.abs(w_real))) / gp
     survive = np.abs(w_real) > 0
     coverage = c_signal(w_pre, mu_momentum, survive)

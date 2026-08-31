@@ -9987,3 +9987,28 @@ The file content and the append-only chain are intact; the MESSAGE
 misquoted the chain. Struck here, on the record. Standing rule applied
 from this commit onward: a hash is quoted only after it has been
 printed, never predicted.
+
+### 66.5 THE RE-LOCK — trial 1 re-registered under the F-2-amended gate
+
+**The git commit introducing this subsection is the NEW lock commit for
+trial 1 of 20**, superseding §64.4's (voided by F-2, §66.4). It pins the
+§60.12/§64 criteria — textually unchanged: same two criteria, same
+boundaries, same four-row no-discretion reading table — together with
+the evaluators (byte-identical to the §64.4 lock) and the F-2-amended
+gate module. Hashes at lock (machine-readable; the immutability test
+compares all three):
+
+```
+LOCK rcm/eval_formation.py sha256=dbaa107681115336c8289ba7b6824acb6b791679cc6f3ebcf44910d1cdcbf05d
+LOCK rcm/eval_ic.py sha256=a1f29dccbbecff7e9969f8f3ccd0c62fc102aba022ae5e17bd8c6c82d8ab0935
+LOCK rcm/gates.py sha256=ceb66cd19d359092add37707860febea218ee7abdcee29993f3dad8722f5f030
+```
+
+The bootstrap seed derives from THIS commit's hash at run time by the
+frozen §60.12.3 rule. `trials.jsonl` gains a superseding registration
+row in this commit (attempt 1, still unexecuted — no real data has been
+read); the §65 row stands in the file, annotated by this append, never
+edited. The amended-gate dry run forms 61 of 70 synthetic days with the
+gate/degenerate paths still exercised, and the full suite is green
+(278 passed). **The single real execution follows this commit. Gen-2
+valid trials 0 of 20; holdout sealed.**
