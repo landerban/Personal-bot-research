@@ -8922,3 +8922,114 @@ Manifest delta (§60.11's frozen-parameter table, amended by append):
   g_min  —  WITHDRAWN §60.11.6  →  V_ret ≥ 0.40, user preference §63.1.A.2
             (evaluated under the optimizer's Σ-of-record, §63.1.A.2.1)
 ```
+
+### 63.2 The residual-correlation measurement protocol — FROZEN BEFORE READING (D.0)
+
+**Appended and committed before the measurement module executes. Every
+object below is defined now; nothing is decided after seeing output. This
+is the one development-data use §63.1.A.4 authorizes.**
+
+#### 63.2.1 Scope, nature, quarantine (D.1)
+
+Development window **2020-01-01 → 2024-12-31** (UTC calendar dates,
+inclusive). Estimation under §60.0 — **not a trial; Gen-2 stays 0 of 20.**
+No Sharpe, PnL, formation rate, attribution, portfolio quantity, or
+comparison between specifications is computed anywhere in the module.
+
+- **Module:** `research/residcorr.py` — OUTSIDE `rcm/`, so the §59
+  no-real-data import test keeps full force over every `rcm/` module.
+- **Output:** `research/residcorr_out/diagnostics.jsonl`, one JSON line per
+  date, committed. (The repo-root `diagnostics.jsonl` is Gen-1's backtest
+  postmortem log; the Part-D file gets its own path so nothing is
+  clobbered — location recorded here, before running.)
+- **Quarantine (import-level test):** the module may import ONLY
+  `rcm.factors` (the frozen §60.1 estimators, reused verbatim), `rcm.seal`,
+  `backtest.universe_filter` (committed classification snapshot), and the
+  standard library / numpy. BANNED: `rcm.optimizer`, `rcm.gates`,
+  `rcm.statemachine`, `rcm.attribution`, `rcm.momentum`, `backtest.engine`,
+  `backtest.weights`, `backtest.runner`, `backtest.metrics`,
+  `backtest.sizing`, and every `live.*` trading module. AST-checked.
+- **Data:** the committed Gen-1 store `xsmom.db`, `klines` table,
+  `interval='1d'`, opened READ-ONLY (`mode=ro`). No network call exists in
+  the module.
+- **Seal:** every load range is passed to `rcm.seal.assert_range_allowed`
+  and the module hard-caps its end date at 2024-12-31. A test requests one
+  day into 2025 and must be refused (D.5).
+
+#### 63.2.2 Universe at each date t — frozen rules, nothing new
+
+1. Classification-eligible per the committed snapshot via
+   `backtest.universe_filter.classify` (§48 rules: COIN USDT perpetual,
+   no TradFi/Pre-IPO/Pre-Market, EXCLUDED_SYMBOLS, ambiguity excludes).
+2. **§59.3.2 minimum history:** ≥ 180 daily closes strictly before t.
+3. **Complete aligned window:** all 91 daily closes present for days
+   t−91 … t−1 (UTC), giving 90 return observations. **No pairwise
+   deletion** — incomplete names are excluded from that date's matrix and
+   counted.
+4. **BTCUSDT and ETHUSDT are excluded from the cross-section** — their
+   in-window residuals are identically zero by construction (BTC on f_BTC;
+   ETH on the pair that defines ETH⊥), so inclusion is mathematically
+   undefined, not a modelling choice.
+5. Names whose in-window residual variance is exactly zero are excluded
+   and counted (correlation undefined otherwise).
+
+Per-date reported counts: `n_class_ok` (rule 1), `n_hist_ok` (rules 1–2),
+`n_dropped_incomplete` (rule 3), `n_dropped_zero_var` (rule 5), and `N_t`
+(the matrix dimension).
+
+**Caveats recorded for the delegates, not fixable here:** (i) asset-class
+metadata is a committed 2026 snapshot — asset class is time-invariant per
+§48.4 ("recency is not the test"), but names absent from the snapshot
+resolve to ambiguous→excluded; (ii) the store's symbol coverage is the
+measured universe — names delisted before ingest are absent, a
+store-level survivorship caveat that carries into the packet. Listing age
+and window completeness ARE point-in-time, from the klines themselves.
+
+#### 63.2.3 Computation per date t — the frozen §60.1 system, verbatim
+
+Daily simple returns r_τ = close(τ)/close(τ−1) − 1 for τ = t−90 … t−1
+(the last CLOSED bar at the decision cutoff is t−1). Factors: f_BTC = BTC
+return; f_ETH⊥ = `orthogonalize_eth(f_btc, f_eth)` over the same 90
+observations. Per name: `estimate_betas` (equal-weighted OLS with
+intercept, frozen §60.1 estimator) then `residual_series` — both from
+`rcm.factors`, no re-implementation. C_t = Pearson correlation matrix of
+the N_t × 90 residual matrix.
+
+#### 63.2.4 Statistics per date (D.2 — exactly these, nothing else)
+
+1. `N_t`
+2. Off-diagonal upper-triangle correlations: percentiles **5, 25, 50, 75,
+   95** (numpy linear interpolation, frozen). "The tails" = the 5th/95th;
+   no other definition. Null when N_t < 2.
+3. Eigenvalue shares λ_k/Σλ for k = 1, 2, 3, 5 (eigvalsh, sorted
+   descending), each reported beside the diagonal-model expectation 1/N_t.
+   Null where k > N_t.
+4. One-factor residual spectrum: λ_k/Σ_{j≥2}λ_j for k = 2, 3, 5 —
+   reported, not adopted. Null where k > N_t.
+5. Frobenius distance ‖C_t − I‖_F.
+
+Dates where N_t < 2 still emit a row (counts + nulls); no date is silently
+skipped. **Time variation:** the raw daily series, as-is. **No regime
+statistic, no clustering, no narrative label** — the delegates read the
+series; they do not receive a story.
+
+**Aggregates** (appended to NOTES when the run completes): for each
+per-date statistic, percentiles 5/25/50/75/95 over all dates where it is
+defined, plus the count of defined dates.
+
+#### 63.2.5 What this is and is not (D.3, recorded together)
+
+D.2 is **not** a basis for choosing alpha, signal, portfolio, or
+performance parameters. It **is explicitly the development-informed
+calibration input for the residual-correlation robustness fixture and
+acceptance criterion** (§63.1.A.3). Both statements are true; naming per
+§63.1.A.3.1: development-informed robustness calibration, never later
+citable as independent evidence that the covariance model generalizes.
+
+#### 63.2.6 Prohibition and stop (D.4, D.6)
+
+Before fixture and criteria are frozen by the delegates in a §63 append,
+**no one may run the optimizer, the gates, or any strategy component under
+the measured correlated covariance** to observe whether the diagonal model
+"passes." D.2 exposes residual structure only. After the measurement:
+**STOP** — the stress test is not run in Stage 21.
