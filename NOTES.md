@@ -9466,3 +9466,191 @@ travel with the spec (limitations, NOT blockers, per §63.6.5): estimation
 uncertainty in `K_t`/eigenvalues/loadings; the `m_eff < 87` caveat; the
 §63.1.A.3.1 development-informed naming. **Gen-2: 0 of 20. Gen-1: 15 of
 25, frozen. Holdout sealed under both seals.**
+
+#### 63.7.2 Input-`C` eigenvalue policy (Stage 23 Part 0; appended before code)
+
+§63.6.4 froze the remainder and Ω^{1/2} policies but left the INPUT
+correlation's own spectrum unpoliced: a materially non-PSD `C` reaching
+`estimate` is a data/construction defect, not a matrix to repair. Frozen,
+same policy family as §63.6.4, no new threshold:
+
+> `λ_min(C) < −SOLVER_TOL` ⇒ **covariance integrity failure — fail
+> closed, `D_structural`, alert.** `λ_min(C) ∈ [−SOLVER_TOL, 0)` is
+> floating-point roundoff on an analytically-PSD object: **proceed, with
+> no correction of any kind.** In particular, **no PSD projection and no
+> nearest-correlation adjustment exist anywhere in RCM v1** — either of
+> those would be a silent model change.
+
+Both branches carry tests (the roundoff branch on a planted
+`λ_min = −5e-9` spectrum).
+
+### 60.12 Completing §60.8's two development criteria — user decisions recorded (Stage 23b Part I, 2026-08-31; appended out of numeric order per the append-only rule)
+
+**Appended before evaluator code, before §64, before any return is read.
+Gen-2 stays 0 of 20; holdout sealed. Governing: §60.8 as frozen, amended
+here only by completion of its ambiguities — every completion is either a
+recorded USER DECISION, a derived quantity, or an inherited Gen-1
+precedent, each labelled as which one it is.**
+
+*(Process note, recorded honestly: no `STAGE23.md` exists in `Claude/`;
+Stage 23b's Part III fully specifies §64's required content — structure,
+corrections, and deletions — so §64 is written from Stage 23b directly.
+Nothing in §64 originates with the coding agent.)*
+
+#### 60.12.1 Scope (I.1)
+
+Trial 1 evaluates the **two** development-applicable kill criteria of
+§60.8: the 63-day formation criterion and the residual-momentum IC
+criterion. §60.8's third criterion (the 21-day forward feasibility gate)
+is **reserved for forward validation** and recorded as NOT evaluated in
+trial 1 — its absence can never be read as a pass.
+
+#### 60.12.2 Criterion 1 — formation, completed (I.2)
+
+**Structural capability (derived):** `N_eff,leg ≥ 6` on both legs is
+impossible with fewer than **12** names in the pre-alpha PIT
+risk-eligible set (`N_eff ≤ #names`). 12 = 2 × the frozen 6; derived,
+not chosen.
+
+**`evaluation_start` — USER DECISION, recorded verbatim:**
+
+> `evaluation_start` = the first UTC calendar date on which the frozen
+> RCM pipeline is structurally capable of a complete decision **and** the
+> pre-alpha PIT risk-eligible set contains at least 12 names.
+
+Recorded as an interpretation choice approved by the owner before any
+return was read — not algebra.
+
+**Calendar time is never compressed.** From `evaluation_start` onward
+every UTC calendar date counts in the window denominator —
+`D_structural` (including a later fall below 12 names),
+`D_operational`, `D_degenerate`, and gate-failed dates all count as
+non-formed; only `D_formed` enters the numerator. Rationale: the 0.60
+threshold was derived against real consecutive-day failure runs and the
+`M = 7` stale-book ceiling (§60.6/§60.8); compressing dead days out of
+the index would hide exactly what it detects.
+
+**The rule, exact:**
+
+```
+  FR_t = #{ D_formed in [t−62, t] } / 63    for every completed 63-calendar-day
+                                             window with t ≥ evaluation_start + 62
+  0.60 × 63 = 37.8  ⇒  ≤ 37 formed days = window FAIL;  ≥ 38 = window PASS
+  ANY completed window failing ⇒ criterion 1 FAIL
+```
+
+"Trailing" is read as **every completed window** — the stricter reading
+of an ambiguous frozen sentence, chosen in the conservative direction.
+The reserved forward gate inherits the same semantics over 21 calendar
+days (`0.60 × 21 = 12.6` ⇒ ≤ 12 fails, ≥ 13 passes) once 21 forward
+dates exist.
+
+#### 60.12.3 Criterion 2 — the IC statistic, completed (I.3)
+
+**Estimand — USER DECISION, recorded verbatim:**
+
+> Equal-weighted daily cross-sectional Spearman IC:
+> `IC_t = Spearman_i( Z_mom,i,t , ε_fwd,i,t )`, and
+> `IC̄ = (1/T) Σ_t IC_t`, every eligible date weighted equally
+> irrespective of cross-section size.
+
+Recorded as a **user-approved statistical-design completion** of §60.8's
+ambiguous "pooled cross-sectional Spearman" — explicitly **not** claimed
+to follow from the word "pooled." The alternative (one Spearman over all
+asset-date pairs) is a different, coherent estimand weighting large
+cross-sections more heavily; considered and not chosen. **Withdrawn as
+false:** the earlier claim that pooled Spearman "would not admit a
+coherent stationary bootstrap" — date blocks can be resampled carrying
+their cross-sections.
+
+**Evaluation cross-section:** the frozen pre-alpha PIT risk-eligible
+universe at `t` with a complete `ε_fwd,i,t`. **Not conditioned** on
+portfolio capability, formation, weights, sign partition, gates, or PnL —
+criterion 2 tests the SIGNAL, not feasibility: a 10-name date cannot form
+a book but its ten observations still bear on whether residual momentum
+predicts next-day residuals. Criterion 1's 12-name rule does NOT apply.
+
+**`ε_fwd`:** the §60.11.2.2 execution-horizon forward residual, betas
+fixed at the signal date. Ex-post use of `t+1` outcomes is proper for a
+kill-criterion evaluation and does not conflict with the §60.11.2 PIT
+set-builder, which governs `b_t` calibration inside the strategy.
+
+**Ties:** average ranks.
+
+**Undefined dates:** `IC_t` mathematically undefined (fewer than two
+valid paired observations, or a constant rank vector) ⇒ the date is
+**excluded** from the mean and the bootstrap, and **counted and reported
+with its reason**. It never becomes zero silently.
+
+**Stationary bootstrap** on the chronologically ordered defined `IC_t`
+series:
+- 2,000 replicates — Gen-1 precedent (confirmed);
+- mean block length `n^{1/3}` with the Gen-1 floor `max(2, n^{1/3})`,
+  `n` = number of defined dates — Gen-1 precedent (confirmed), recomputed
+  for this series;
+- **interval construction inherited from Gen-1's CODE, located and
+  cited:** `backtest/metrics.py :: sharpe_bootstrap_ci` — Politis–Romano
+  (1994) stationary bootstrap, vectorized geometric-block index walk with
+  wraparound, **percentile interval** at (1−0.90)/2 and 1−(1−0.90)/2,
+  with the `n < 30 ⇒ NaN` and `< n_boot/10` finite-replicate guards.
+  File sha256 at citation time:
+  `061622ed3e786d6dd6e91e5a16c65a4e82634486414d3fc065c0c3f312551328`.
+  The evaluator ports this construction line-for-line, generalized ONLY
+  in the statistic (mean of the series instead of annualised Sharpe); a
+  test proves bit-exact equivalence against the Gen-1 function on a
+  shared fixture and pins the cited file hash;
+- two-sided 90% — inherited convention (`CI_lower > 0` is equivalent to a
+  one-sided 5% test);
+- **seed derived deterministically from the §64 lock-commit hash** —
+  recorded as NEW ENGINEERING GOVERNANCE for reproducibility, not
+  precedent: `seed = int(sha256(lock_commit_hex)[:8], 16)`.
+
+**Criterion, binary:** `CI_lower(IC̄) > 0 ⇒ PASS`; otherwise **FAIL**. No
+INDETERMINATE branch: §59.3.1's rule governs comparisons between
+specifications; this is a kill test against the null `IC = 0`, and §60.8
+made it binary.
+
+**MDE disclosure — frozen in place of a fabricated number
+(the §59.3.1 operationalization for this criterion):**
+
+> No exact numerical MDE is identifiable before Trial 1 under the frozen
+> stationary-bootstrap IC procedure without observing the return-derived
+> dependence structure of the daily IC series. No calendar-count proxy is
+> substituted. Criterion 2 tests existence/sign solely through the frozen
+> two-sided 90% bootstrap CI. The realized CI half-width is reported
+> afterward as observed resolving precision and is not a second
+> criterion.
+
+#### 60.12.4 VOID accounting — USER DECISION: inherit Gen-1 (I.4)
+
+```
+  attempt_id         += 1 for every real-data execution
+  valid_trial_count  += 1 only if void == false
+```
+
+A demonstrably defective execution (defect reproduced by a failing test
+against the pre-fix code that passes after the fix) is marked
+`void: true`, remains permanently in `trials.jsonl`, and does not consume
+valid budget — Gen-1 precedent (all 13 Gen-1 void rows retained, budget
+unconsumed). A corrected run is the next attempt and remains valid Trial
+1 if none has completed. "Struck from the record" = struck **as
+evidence**, never deleted.
+
+#### 60.12.5 The reading table — fixed, four rows, no discretion (I.5)
+
+```
+  result                                        consequence
+  Formation PASS + IC PASS                      §64 commit = RCM v1 freeze (§59.1.6
+                                                hash + UTC); forward paper begins;
+                                                valid trials 1/20
+  Either criterion FAIL, no demonstrable        RCM v1 ABANDONED (§59.7); valid
+  implementation defect                         trials 1/20
+  Apparent FAIL with reproduced                 attempt VOID; valid trials 0/20; fix
+  implementation defect                         pinned by test; next attempt under
+                                                identical locked criteria
+  Operational run error not shown to be a       non-VOID attempt; valid trial
+  measurement-invalidating defect               consumed
+```
+
+**No post-result user discretion. No path from a PnL number to keeping a
+signal whose IC criterion failed.**
