@@ -9105,3 +9105,90 @@ frozen criteria; (iii) if it passes, trial 1 may be pre-registered under
 §59's budget rules. Nothing else is open. Trial 1 is NOT pre-registered
 here (Part E instruction). **Gen-2: 0 of 20. Gen-1: 15 of 25, frozen.
 Holdout sealed under both seals.**
+
+### 63.5 Stage 21a — analytic null correction to §63.3 (2026-08-31; no data read)
+
+**Appended before the ratio computation runs. §63.3 is unedited. This
+stage reads NO returns: every quantity below is arithmetic on `N_t`, `T`,
+and the regression dimension, all already recorded. It adds no statistic
+to the data; it corrects the benchmark against which already-recorded
+statistics are read. Gen-2 stays 0 of 20; holdout sealed.**
+
+#### 63.5.1 Wording correction to §63.3 (append; §63.3 unedited)
+
+> `1/N_t` is the **population identity share**, retained only as a
+> population reference. Because each matrix is estimated from 90
+> observations after three regression degrees of freedom (`m = 87`),
+> finite-sample spectral concentration under independence is materially
+> larger; the analytical `m = 87` independence null is reported separately
+> (§63.5).
+
+With `T = 90` and residuals from the common three-regressor OLS design
+(`1`, `f_BTC`, `f_ETH⊥`), every residual vector lies in the same
+`m = 87`-dimensional subspace; the sample correlation matrix is
+**rank-deficient by construction** for `N_t > 87`, and its spectrum is
+uneven under independence.
+
+#### 63.5.2 Per-date analytic null references (functions of `N_t` only)
+
+```
+  m = T − 3 = 87
+
+  Marchenko–Pastur upper edge share:   s_MP+(N_t) = (1 + √(N_t/m))² / N_t
+  Frobenius RMS null scale:            F_RMS,null(N_t) = √( N_t(N_t−1) / m )
+```
+
+**Derivation of `F_RMS,null`:** under the spherical independence null, two
+independent normalized residual vectors in the common `m`-dimensional
+subspace have `E[ρ_ij²] = 1/m` (verified this session by Monte Carlo,
+0.0111 ≈ 1/87 on 2,000 pairs), hence `E[‖C−I‖_F²] = N(N−1)/m`. The
+reported quantity is `√E[‖C−I‖_F²]` — a **root-mean-square null scale,
+NOT `E[‖C−I‖_F]`** (`E[√X] ≠ √E[X]`), and it is named accordingly.
+
+**Character of the MP edge:** an **asymptotic** reference under a
+spherical Wishart independence model as `N, m → ∞` with `N/m` fixed. At
+`N ≈ 117, m = 87` it is an analytical approximation — **not an exact
+finite-sample quantile and not a hypothesis-test critical value**; `λ_max`
+fluctuates around it under the null.
+
+Worked values at the median `N_t = 117`, verified before this append:
+`s_MP+ = 0.0399` (vs population `1/N = 0.0085` — the finite-sample null is
+already ~4.7× the population reference), `F_RMS,null = 12.49`.
+
+#### 63.5.3 Ratio computation — registered here, run next
+
+```
+  R_λ1(t) = eig1_share(t) / s_MP+(N_t)
+  R_F(t)  = frobenius_dist(t) / F_RMS,null(N_t)
+```
+
+computed for every §63.3 date with a defined matrix, from
+`research/residcorr_out/diagnostics.jsonl` ONLY (module
+`research/nullcorrection.py`; import-level test: no data reader — no
+sqlite, no network, no rcm/backtest/live import at all). Per-date values
+go to the sibling file `research/residcorr_out/null_ratios.jsonl` — the
+committed §63.3 measurement record is never rewritten; "appended per
+date" is implemented as a sibling keyed by `t_ms`. Summary: the §63.3
+percentiles (p5/p25/p50/p75/p95 across dates), appended below when the
+run completes. Expected from the recorded medians: `R_λ1 ≈ 7.7`,
+`R_F ≈ 3.1`.
+
+#### 63.5.4 What the null assumes, and scope
+
+The corrected null is a **spherical/i.i.d. residual model conditional on
+the common regression design**. Temporal autocorrelation or
+heteroskedasticity in idiosyncratic residuals would reduce the effective
+temporal sample size (`m_eff < 87`) and widen the independence spectrum
+**without any cross-asset dependence**. This stage does not estimate
+`m_eff` — that would require a new assumption or a new data-derived
+statistic, exceeding the amendment's scope. **Cross-sectional dependence
+≠ temporal dependence** is recorded for the delegates and left open.
+
+The correction does not change the qualitative §63.3 finding and does not
+soften it; it changes the quantitative language available for fixture
+design — each statistic now has its own valid reference (`s_MP+` for the
+spectrum, `F_RMS,null` for the Frobenius distance; no single scalar
+"corrected null" spans both). It does not, by itself, say the portfolio
+is unsafe: dollar and factor neutrality may cancel part of the common
+structure — that is the stress test's question, still unrun. The D.4
+prohibition stands; the stress fixture is not frozen here.
