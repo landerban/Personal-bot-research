@@ -9762,3 +9762,100 @@ requires a new pre-registration.
 
 **STOP. Both delegates review §64 as written. The run is a separate
 stage. No return has been read. Gen-2 valid trials: 0 of 20.**
+
+## 65. Trial 1 of 20 — THE RUN STAGE (2026-09-01), registered before execution
+
+**Authorization: the user opened the run stage 2026-09-01 ("you are open
+for trial 1 proceed in separate run stage") after the §64 lock. This
+section is appended and committed BEFORE any runner code exists and
+BEFORE any return is read. The criteria are §60.12 + §64, verbatim,
+untouched — the lock immutability test is green at this registration and
+the evaluator hashes match §64.4. The reading table has four rows and no
+post-result discretion; whatever the evaluators return is the verdict.**
+
+### 65.1 Run parameters resolved at registration
+
+- **Lock commit:** `8923b1df08e6f5449439c4ab304f92f578940d20` (§64.4).
+- **Bootstrap seed:** `seed_from_lock_commit(lock)` = **2805281367** —
+  the §60.12.3 rule, resolved and recorded here.
+- **Capital for the sizing/quantization step — USER DECISION, recorded
+  verbatim: $800.** No Gen-2 capital existed anywhere in the ledger; the
+  gap was raised to the risk owner BEFORE execution with the tradeoff
+  stated explicitly — at $800 the $5 floors and step sizes bite hard
+  (positions ≈ $8), and under §60.12.5 a formation FAIL abandons RCM v1
+  with no discretion even if the failure is floor-driven; the alternative
+  of a floor-inert capital was offered and declined. The owner chose $800
+  (continuity with the Gen-1 paper tier). Same decision class as §16.3.
+- **Era:** 2020-01-01 → 2024-12-31 UTC. Every read is routed through
+  `rcm.seal.assert_range_allowed` and hard-capped at 2024-12-31; the
+  sealed interval is structurally unreachable.
+
+### 65.2 Operationalizations — mechanical readings closed before the run
+
+None of these is a strategy decision; each is the assembly reading of an
+already-frozen rule, recorded so nothing is decided inside an editor.
+
+1. **Runner location:** `research/trial1/` — outside `rcm/` (it reads
+   real data; the `rcm/` no-real-data import test keeps full force). It
+   imports the frozen `rcm` modules because executing them on development
+   data IS the authorized trial; the D.4-era prohibition was superseded
+   in §63.6.6.
+2. **Factor assets are not positions.** BTCUSDT/ETHUSDT have identically
+   zero in-model residual variance, so `rcm.rescov.estimate` fails closed
+   on them (§63.6.4 positive-variance requirement). Their exclusion from
+   the tradable cross-section is construction-forced, not a choice.
+3. **IC cross-section** (criterion 2) = §63.2.2 structural eligibility
+   (classification, ≥180d history, complete 91-close window, positive
+   in-window residual variance) with complete `ε_fwd` — funding
+   observability is NOT required (the criterion tests the signal; `F̂`
+   does not appear in it). **The strategy universe** additionally
+   requires §60.11.1 funding-window certification; names failing it are
+   unavailable that day and counted.
+4. **`Ω̂` is estimated on the strategy (tradable) set** at each date —
+   the risk model must cover exactly the solve universe; this set is
+   pre-alpha (no momentum score, sign, weight, or gate has been computed
+   at that stage), satisfying §63.6.4's universe rule.
+5. **Calibration at scale:** the pooled slope uses incremental
+   accumulation of the IDENTICAL demeaned per-cross-section sums that the
+   frozen `CalibrationSet.build` + `calibrate` compute, with
+   admissibility by the frozen §60.11.2 rule (newest admissible signal
+   day = D−2 via `rcm.timeline`). Equivalence against the frozen builder
+   is asserted on a subsample of decision dates during the run — a
+   fidelity check on the same statistics, not a second estimator.
+6. **Sizing:** decision reference price = close(t−1);
+   `backtest.sizing.size_from_weight` per name at $800 (open_increase
+   class for a target book); a rejected/quantized-away name contributes
+   `w_real,i = 0`; an accepted name contributes its executable notional
+   over capital, signed. Names with no `symbol_filters` row have no
+   floor (the §18.4 annotation carries); the filters table is a 2026
+   snapshot — NOT point-in-time — an inherited, recorded limitation.
+7. **Execution availability (§60.6.1 S4):** a gate-passing day where any
+   name with nonzero `w_real` lacks an execution bar (00:01, fall-forward
+   00:02/00:03, never backward) is `D_structural`.
+8. **Held-book mechanics:** held weights drift by relative prices; a held
+   name with no bar marks at its last price (zero return contribution
+   that day — Gen-1's PIT-safe data-gap rule); the frozen transition
+   applies on every non-formed day (hold; `G_ref` downscale-only; M=7
+   flatten); `w_prev = 0` at era start and after a flatten.
+9. **`capable` (for `evaluation_start`)** = the pipeline reached the
+   optimizer stage without structural-pre failure; `n_eligible` = the
+   pre-alpha strategy-set count. Per-day unexpected harness exceptions
+   classify `D_operational` per §59.11.2 with the error recorded — the
+   spec's own category, not silent absorption.
+10. **Reporting assembly (§64.3):** full-calendar price-only line
+    (exec-open to exec-open on the held book), realized funding line
+    (actual settlement rates on held positions over each §60.4 accrual
+    window), and the frozen-cost line (turnover × η = 10 bps/side) as
+    separate lines that are never summed into a blended headline;
+    `Δ_gate`/`Δ_transition` via the frozen `rcm.attribution` with the
+    transition rule named; the §59.11.4 tuple with `degenerate_rate`;
+    the carry `s_mom` series; the `K_t`/`λ₁` series beside their §63.5
+    references; every `D_degenerate` day with its recorded cause.
+11. **Attempt accounting:** the `started` row is appended to
+    `trials.jsonl` in THIS commit, before execution; an errored run still
+    spends the attempt (§60.12.4). To protect the attempt from trivial
+    crashes, the runner is dry-run end-to-end on a fully SYNTHETIC
+    in-memory store first — no real data, no attempt consumed — before
+    the single real execution.
+
+**Gen-2 valid trials at this registration: 0 of 20. Holdout sealed.**
