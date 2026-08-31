@@ -125,6 +125,15 @@ def estimate(corr: np.ndarray, resid_var: np.ndarray) -> ResCov:
                                "positive — fail closed (§63.6.4)")
     c = (c + c.T) / 2.0                      # frozen symmetrization
     lam_asc, q_asc = np.linalg.eigh(c)
+    # §63.7.2 input-spectrum policy: a materially non-PSD input correlation
+    # is a data/construction defect, never a matrix to repair. Roundoff
+    # band [−SOLVER_TOL, 0) proceeds UNCORRECTED — no PSD projection or
+    # nearest-correlation adjustment exists anywhere in RCM v1.
+    if float(lam_asc[0]) < -SOLVER_TOL:
+        raise IntegrityFailure(
+            f"input correlation eigenvalue {float(lam_asc[0]):.3e} < "
+            f"-{SOLVER_TOL} — materially non-PSD input: covariance "
+            f"integrity failure, fail closed, D_structural (§63.7.2)")
     lam = lam_asc[::-1]
     q = q_asc[:, ::-1]
     edge = mp_edge_raw(n)
