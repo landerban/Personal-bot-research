@@ -8120,3 +8120,170 @@ above. No market, return, snapshot, backtest or performance data was
 accessed. Gen-1 budget **15 of 25**; Gen-2 **0 of 20**. Holdout sealed.
 Next per §59.9: synthetic/structural implementation and null tests — the
 first Gen-2 code, all of it trial-free under §59.3.
+
+### 60.11 AMENDMENT (Stage 19a v3, 2026-08-31) — corrections, contamination-audited
+
+**Appended; §60.0–§60.10 are unedited.** No code; no market, return, backtest
+or performance data accessed. Gen-2 **0 of 20** — no RCM performance result
+exists, so these corrections cannot have been informed by one. Standing
+principle: contradictions are corrected now; unresolved tolerances stay
+**UNRESOLVED**; the coding agent makes no strategy-definition decision.
+
+#### 60.11.1 BLOCKING — funding forecast: cadence-aware, horizon-matched, no new knob
+
+**Supersedes** §60.2.4's `F̂ = 3 × mean(last 21 settlements)` and §60.4's
+"exactly three settlements" sentence. Both hardcoded an 8-hour cadence; the
+Gen-1 ledger (§30) established PIT cadence *inference* precisely because a
+fixed cadence was wrong.
+
+```
+  F̂_i(t) = Σ_{s ∈ Ŝ_i,(t_exec, t+1_exec]}  f̂_i,s
+```
+
+- `Ŝ_i` — the settlement schedule inferred point-in-time from settlement
+  timestamps known at `t`, **using the existing Gen-1 cadence-inference
+  implementation**. Stage 20 invents no new estimator.
+- `f̂_i,s` — estimated from **exactly the trailing 7 calendar days** of
+  settlements, preserving §60.2.4's weekly-cycle intent while removing its
+  cadence dependence.
+- **Observability, with no minimum-count parameter:** the full trailing
+  7-calendar-day window must be certified sufficiently observed by the
+  **existing** funding-cadence / missing-settlement machinery; if it cannot
+  be, the candidate is **unavailable for that decision**. Zero is never
+  substituted (the Gen-1 precedent, §2d 5: absent funding history makes a
+  name ineligible; otherwise the leg trades cost-free).
+- On a cadence change mid-lookback: the settlement set follows PIT
+  timestamps; the forward schedule follows the most recent inferred cadence.
+
+#### 60.11.2 BLOCKING — calibration: PIT set-builder AND one horizon
+
+**Supersedes** §60.2.1's pooling over all `τ ≤ t`. **The pooled slope as
+specified was contaminated by future information** — at the decision cutoff,
+the newest outcome interval had not closed — and its magnitude and sign are
+not admissible evidence of anything; every quantity derived from it is
+invalid for that timestamp. Non-directional severity: contamination is
+disqualifying whichever way it points.
+
+1. **The sample:** `D_t = { (τ, i) : outcome_end(τ, i) ≤ decision_cutoff(t) }`.
+2. **The outcome object — a definition gap closed.** §60.1 defines the factor
+   model on daily-close returns; §60.4 defines strategy returns on the
+   00:01→00:01 execution interval. The calibration target is the **forward
+   residual on the execution horizon**:
+
+   ```
+   ε_fwd,i,τ = r_exec,i,τ − β̂_BTC,i,τ·f_exec,BTC,τ − β̂_ETH⊥,i,τ·f_exec,ETH⊥,τ
+   ```
+
+   with betas fixed from information available at the signal date and
+   `r_exec`, `f_exec` measured over the **identical** execution-to-execution
+   interval used by `r_shadow` and `r_actual_price` — one horizon everywhere,
+   so closing the timestamp leak does not leave a close-to-close vs
+   open-to-open mismatch behind it.
+3. **Actual timestamps, not index offsets:** at the 00:00:00 UTC decision on
+   day D (execution 00:01 D), the newest admissible outcome interval is the
+   one **ending 00:01 on day D−1** (opened 00:01 D−2). The interval opened
+   00:01 D−1 has not finished and is excluded.
+4. **Stage 20 must carry a test that fails if any calibration observation's
+   `outcome_end` exceeds the decision cutoff.**
+
+#### 60.11.3 BLOCKING — `G_target` was undefined and the name cap circular
+
+1. **Split:** `G_pre = Σ|w_pre,i|` — the gate denominator, nothing else.
+   `G_cap = 3.0` — the exogenous risk-layer backstop.
+2. **The §60.7 single-name cap `(G_target/2)/6` is invalidated** — `G_target`
+   was never defined. Adopted: `|w_i| ≤ G_cap/12 = 0.25`, a **hard safety cap
+   only**, transparently derived (exact dollar neutrality and gross ≤ 3 give
+   each leg ≤ 1.5; one sixth of a leg = 0.25). It does **not** ensure
+   six-name breadth at low realized gross; the per-leg `N_eff` gate does
+   that, post-optimizer.
+3. **Rejected with reasons:** the draft cap `|w_i|·σ_i ≤ σ_target/√6` —
+   whole-portfolio target applied per-leg; standalone vol ≠ marginal risk
+   under correlation; `σ_i` undefined.
+4. **Stage-20 synthetic compatibility test — required.** The split creates an
+   intentional separation: optimizer → possibly-concentrated target →
+   `N_eff` gate → skip. Stage 20 must construct a synthetic case where a
+   broad gate-passing book is clearly feasible and verify the pipeline
+   **produces** one rather than a concentrated target rejected downstream.
+   Failure = an architecture incompatibility found before any real return —
+   which is what synthetic testing is for.
+
+#### 60.11.4 Correction — `N_eff` bounds no individual weight
+
+`N_eff = 1/Σp_i²` is the Herfindahl-equivalent count. §60.7's "the cap and
+the gate are the same number seen from two sides" was wrong: `N_eff ≥ 6`
+does **not** imply any per-name bound. `N_eff,leg ≥ 6` (a portfolio-level
+breadth floor) and `|w_i| ≤ 0.25` (an absolute per-name ceiling) are
+**complementary and non-equivalent**, and are recorded as such.
+
+#### 60.11.5 Correction — independence is an approximation; the stress test is deferred and fenced
+
+1. The independent-error `SE(β_kᵀw)` and the diagonal `D` in Σ are
+   **approximations**: orthogonality to BTC/ETH is not cross-coin
+   independence, and correlated residuals make both optimistic.
+2. With z = 1.645 applied to the **absolute** constraint, nominal two-sided
+   coverage is 90% and the nominal total breach rate is **10%** (not 5%).
+3. Stage 20 must **pre-register the correlated-residual stress fixture
+   (correlation strength and structure) and its failure criteria together,
+   before executing** — with derivations referencing prior invariants. **No
+   tolerance is frozen here.** Neither fixture nor criteria may change after
+   the result. Failure ⇒ a residual covariance treatment is required before
+   any real data.
+4. **The fence:** passing the declared synthetic fixture establishes
+   robustness **only to that pre-registered scenario**. It does not establish
+   that diagonal residual covariance is adequate in the real market.
+
+#### 60.11.6 `g_min` — WITHDRAWN; UNRESOLVED
+
+§60.5's derivation (`g² ≥ 0.5`) implicitly assumed `w_real = g · w_pre` —
+a pure proportional scaling. Feasibility **drops and quantizes** names, so
+delivered variance is not `g²` of intended variance and the derivation is
+invalid. **Both 0.70 and √0.5 are withdrawn.** Renaming the same number an
+"exposure-retention threshold" does not supply a derivation.
+
+`g_min` is **UNRESOLVED** and must be fixed before any real-data run, by
+either **(a)** a non-performance rationale for a gross-retention invariant,
+or **(b)** replacing the gate with a direct predicted-variance-retention
+measure using the existing covariance model — (b) is an architecture change
+and gets its own derivation. **Stage 20 implements the gate with a symbolic,
+configured threshold and no default value.**
+
+#### 60.11.7 `S_i` — ADOPTED by the user's delegate
+
+`S_i = |μ_mom,i|` in the §60.5 coverage formula (which §60 left undefined).
+Rationale: signal coverage exists to detect feasibility discarding **the
+hypothesis**; scoring with total `|μ_i|` would let a book keep funding-rich
+names, drop the momentum names, and still report high coverage while
+abandoning residual momentum. This is a strategy-definition decision made
+explicitly here by the user's delegate, vetoable by the user; the coding
+agent records it and does not re-decide it.
+
+#### 60.11.8 Zero-denominator semantics — split, one part escalated
+
+1. **`G_pre = 0` ⇒ `degenerate_target`** — a named deterministic state at
+   the optimizer/feasibility boundary of the §60.6 causal order, classified
+   into exactly one calendar category. Never a NaN.
+2. **Zero signal mass (`Σ|w_pre||μ_mom| = 0`) ⇒ UNRESOLVED — escalated to
+   the user.** With `S_i = |μ_mom|` this case is exactly *momentum has
+   vanished; only funding remains*. §60.2.3 pre-registered the carry regime
+   as **flag and report — never a halt**; converting the zero denominator
+   into `degenerate_target` would silently amend that into "carry regime ⇒
+   form no book", a strategy-layer change. The options:
+   - **(a)** coverage is *not applicable* with no momentum mass to retain;
+     the book may form, carrying the literal `CARRY REGIME — NOT RCM` label —
+     consistent with the rule already on record;
+   - **(b)** a deliberate amendment making the carry regime a halt.
+   **Delegate's recommendation: (a).** Until the user decides, Stage 20
+   treats the state as UNRESOLVED — raise, do not choose. NaN never decides
+   strategy state; neither does a side effect.
+
+#### 60.11.9 Manifest delta (§60.9 is not edited)
+
+```
+  funding forecast     SUPERSEDES the §60.9 row          §60.11.1
+  calibration sample   SUPERSEDES the §60.9 row          §60.11.2
+  optimizer name cap   SUPERSEDES the §60.9 row (0.25)   §60.11.3
+  g_min                WITHDRAWN — UNRESOLVED            §60.11.6
+  S_i                  NEW — adopted by delegate         §60.11.7
+  zero momentum mass   UNRESOLVED — user decision        §60.11.8
+  stress thresholds    UNRESOLVED — Stage 20 pre-registers  §60.11.5
+```
