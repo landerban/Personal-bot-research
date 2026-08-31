@@ -231,3 +231,68 @@ def test_the_040_appears_exactly_once_in_rcm():
     assert "V_RET_MIN = 0.40" in hits[0] and "gates.py" in hits[0]
     assert V_RET_MIN == 0.40
     print(f"PASS 21_single_040 ({hits[0].split(':')[0]})")
+
+
+# --------------------------------------------- Part D: quarantine + refusal
+
+def test_measurement_module_quarantine_ast():
+    """§63.2.1: the module may reach factors/seal/universe_filter and NOTHING
+    that forms, gates, sizes, or trades. AST-level, not convention."""
+    import ast
+    src = (ROOT / "research" / "residcorr.py").read_text(encoding="utf-8")
+    imports = set()
+    for node in ast.walk(ast.parse(src)):
+        if isinstance(node, ast.Import):
+            imports |= {a.name for a in node.names}
+        elif isinstance(node, ast.ImportFrom):
+            imports.add(node.module or "")
+    banned = {"rcm.optimizer", "rcm.gates", "rcm.statemachine",
+              "rcm.attribution", "rcm.momentum", "backtest.engine",
+              "backtest.weights", "backtest.runner", "backtest.metrics",
+              "backtest.sizing", "live.trader", "live.client", "live.phase2",
+              "live.fillsim", "live.proddata"}
+    hit = {i for i in imports if i in banned
+           or any(i.startswith(b + ".") for b in banned)}
+    assert not hit, f"quarantine breach: {hit}"
+    allowed_prefixes = ("rcm.factors", "rcm.seal", "backtest.universe_filter")
+    project = {i for i in imports
+               if i.startswith(("rcm", "backtest", "live", "research", "xsmom"))}
+    assert project <= set(allowed_prefixes), project
+    # and the inverse: no rcm module may import the research package
+    for f in sorted((ROOT / "rcm").glob("*.py")):
+        assert "research" not in f.read_text(encoding="utf-8").replace(
+            "research plan", "").replace("research order", ""), \
+            f"{f.name} references the research package"
+    print("PASS 21_quarantine_ast")
+
+
+def test_measurement_refuses_one_day_past_the_development_window():
+    """D.5: 2025-01-01 is refused — by the module's own hard cap, before the
+    seal is even consulted, and with no row read."""
+    from research.residcorr import END_DAY_MS, DAY_MS, RangeRefused, \
+        load_daily_closes, measure_date
+    with pytest.raises(RangeRefused, match="hard cap"):
+        load_daily_closes(end_ms=END_DAY_MS + DAY_MS)     # 2025-01-01
+    with pytest.raises(RangeRefused, match="hard cap"):
+        measure_date({}, END_DAY_MS + DAY_MS)
+    print("PASS 21_d5_refusal")
+
+
+def test_measurement_emits_null_rows_never_skips():
+    """§63.2.4: a date with no eligible cross-section still emits a row with
+    counts and nulls — silent date-dropping is how selection creeps in."""
+    from research.residcorr import DAY_MS, measure_date
+    t = 1_600_000_000_000 // DAY_MS * DAY_MS              # a 2020 date
+    rng = np.random.default_rng(3)
+    closes = {}
+    for sym in ("BTCUSDT", "ETHUSDT"):
+        px, series = 100.0, {}
+        for k in range(120, 0, -1):
+            px *= 1.0 + 0.01 * rng.standard_normal()
+            series[t - k * DAY_MS] = px
+        closes[sym] = series
+    row = measure_date(closes, t)                          # factors only
+    assert row["N_t"] == 0 and row["n_class_ok"] == 0
+    assert row["offdiag_p50"] is None and row["frobenius_dist"] is None
+    assert row["eig1_share"] is None
+    print("PASS 21_null_row_discipline")

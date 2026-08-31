@@ -9033,3 +9033,75 @@ Before fixture and criteria are frozen by the delegates in a §63 append,
 the measured correlated covariance** to observe whether the diagonal model
 "passes." D.2 exposes residual structure only. After the measurement:
 **STOP** — the stress test is not run in Stage 21.
+
+### 63.3 Measurement results (D.2) — the numbers, no story
+
+**Run 2026-08-31 under the §63.2 protocol, unmodified.** 1,827 dated rows
+(every UTC date 2020-01-01 → 2024-12-31; none skipped), of which **1,642
+have a defined matrix** (first: 2020-07-04 at N_t = 2; last: 2024-12-31 at
+N_t = 258) and 185 are null rows (incomplete factor window and/or the
+§59.3.2 history rule — the store's daily bars begin 2020-01-01). Zero-
+variance exclusions total 8,050 name-days (flat in-window closes);
+per-date `n_dropped_incomplete` over defined dates: median 7, p95 47,
+max 50. Full per-date series: `research/residcorr_out/diagnostics.jsonl`,
+committed. One mechanical incident during bring-up, before any real row was
+read on the full sweep: the first probe crashed on the store's missing 2019
+bars rather than emitting the §63.2.4 null row; fixed to emit the null row,
+no protocol object changed.
+
+**Aggregates over defined dates (percentiles of each per-date statistic):**
+
+```
+  statistic          n      p5      p25     p50     p75     p95
+  N_t              1827   0.0000  59.000  117.00  170.50  245.00
+  offdiag_p5       1642  -0.0623 -0.0252 -0.0044  0.0268  0.0659
+  offdiag_p25      1642   0.0805  0.1249  0.1493  0.1815  0.2480
+  offdiag_p50      1642   0.1827  0.2311  0.2552  0.3076  0.3807
+  offdiag_p75      1642   0.2959  0.3376  0.3750  0.4393  0.5164
+  offdiag_p95      1642   0.4595  0.5009  0.5394  0.6007  0.6696
+  eig1_share       1642   0.2379  0.2771  0.3067  0.3566  0.4238
+  eig2_share       1642   0.0325  0.0389  0.0445  0.0594  0.1042
+  eig3_share       1640   0.0272  0.0324  0.0368  0.0436  0.0734
+  eig5_share       1633   0.0223  0.0256  0.0286  0.0339  0.0525
+  eig2_share_ex1   1642   0.0493  0.0575  0.0637  0.0862  0.1593
+  eig3_share_ex1   1640   0.0406  0.0476  0.0538  0.0604  0.1097
+  eig5_share_ex1   1633   0.0340  0.0380  0.0411  0.0473  0.0783
+  frobenius_dist   1642   6.6478  22.947  38.800  56.664  91.133
+```
+
+The diagonal-model expectation `1/N_t` is reported beside each per-date
+eigenvalue share in the series file (at the median N_t of 117 it is
+0.0085). Per D.2, the raw daily series — not these aggregates — are the
+delegates' object; time variation is read from the series directly.
+
+**D.4 standing prohibition, restated at delivery:** no optimizer, gate, or
+strategy component may run under the measured correlated covariance until
+the delegates' fixture + criteria + derivation are frozen in a §63 append.
+**D.6: STOP — the stress test is not run in Stage 21.** The §63.2.2
+caveats (2026 classification snapshot; store-level survivorship) are part
+of this packet.
+
+### 63.4 Real-data prerequisites after Stage 21 (Part E)
+
+```
+  item                                   status
+  F-1 / breadth construction             RESOLVED   §62.8.3
+  zero-momentum semantics                RESOLVED   §63.1.A.1 (user), implemented + tested
+  exposure-retention gate                RESOLVED   §63.1.A.2 (user): V_ret >= 0.40 under
+                                                    the optimizer's Σ; implemented + tested
+  funding observability predicate        RESOLVED   §60.11.1, machinery reused from Gen-1,
+                                                    equality-observability tested (§62.7 DONE row)
+  solver pin, determinism                RESOLVED   §61.1 (clarabel 0.11.1 / cvxpy 1.9.2)
+  residual-correlation stress test       DELEGATED  §63.1.A.3: awaiting the delegates'
+                                                    fixture + criteria + derivation append,
+                                                    informed by §63.3; then a later stage
+                                                    executes it
+```
+
+**What remains before trial 1 of 20 may be pre-registered — exactly one
+chain:** (i) delegates freeze fixture + criteria + derivation in a §63
+append; (ii) a later stage runs the stress test and reports against those
+frozen criteria; (iii) if it passes, trial 1 may be pre-registered under
+§59's budget rules. Nothing else is open. Trial 1 is NOT pre-registered
+here (Part E instruction). **Gen-2: 0 of 20. Gen-1: 15 of 25, frozen.
+Holdout sealed under both seals.**
