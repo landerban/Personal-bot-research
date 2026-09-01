@@ -11356,3 +11356,348 @@ calibration method, the path-statistic invalidation definition, exact
 Q1–Q4 criteria, and its lock commit — reviewed by both delegates before
 the single G3-C trial. Per §69.1.1 nothing in this section may inform
 any lag, window, or transform in M1.
+
+### 70.1 Stage G3-C-SPEC — owner decisions, recorded verbatim before any fitting (2026-09-02)
+
+**No forecast fitted. No return-based result. No trial consumed. Gen-3
+0 of 20. Holdout sealed. §70.1–§70.4 are appended in their own commit
+before any implementing code; §70.5 (the lock record) follows the code
+in the lock commit itself.** Governing: §0, §68 as amended (§68.11,
+§68.12), §69.
+
+#### 70.1.1 Source timing — USER DECISION: publisher timing, on architectural grounds
+
+> **The deployed system will read each exogenous value from its
+> publisher's own public page on the evening it is published** (CBOE
+> for VIX, the Federal Reserve for H.15/H.10, the index publisher for
+> cash closes), at a fixed evening UTC time, using the existing
+> supervisor's scheduled cycle. **Therefore publisher availability is
+> what the deployed bot will actually possess, and training uses
+> publisher timing.**
+
+**The justification is architectural, not empirical.** It rests on the
+intended production source, not on the §69 sensitivity map showing
+anything — that map may not be cited as a reason (§69.1.1 quarantine).
+The rule is the standing one: train at the timing you will deploy at.
+
+Consequences, implemented in this stage:
+- Loader source rules for the re-sourced series become their
+  publishers' documented release rules: fred_DGS2 / fred_DGS10 /
+  fred_DTWEXBGS → the H.15/H.10 rule (next business day, 16:15
+  America/New_York); fred_SP500 / fred_NASDAQ100 → the cash-close rule
+  (same day, 16:00 America/New_York); cboe_VIX already publisher-direct
+  (same day, 16:15 America/New_York). The §68.12.1 conservative
+  aggregator rules are retired FOR THESE SERIES ONLY.
+- `source_availability_quality` becomes `"observed"` for the
+  re-sourced series under §69.0's own clause ("a direct publisher feed
+  replaces the aggregator"): the publisher's documented release
+  schedule is a genuine publisher release time, not an invented
+  aggregator lag. Recorded honestly: per-observation release delays
+  are still not modelled; in deployment a missed or late fetch yields
+  a STALE value with its true knowable-at stamp — never a substituted
+  or forward-filled value pretending to be fresh.
+- fred_VIXCLS is NOT re-sourced (VIX comes from CBOE); it keeps the
+  conservative mirror rule and its `"conservative_assumption"` flag,
+  and remains a cross-check, not an input.
+- The manifest's `publisher` / `retrieval_source` fields are
+  UNCHANGED: the staged historical bytes are still FRED's and their
+  retrieval provenance stays true (§68.12.1 never collapses). What
+  changes is whose release rule governs availability, per this owner
+  decision.
+- The §69.2 PIT-valid map remains the record of what the conservative
+  rule produced; the sensitivity map is NOT retroactively relabelled.
+- The invariants stand unchanged: `source_available_time >=
+  underlying_public_time` (now with equality where source IS the
+  publisher); the reader returns nothing when `source_available_time >
+  decision_time`.
+- At the daily decision grid (00:00 UTC boundaries) every publisher
+  release above (16:00/16:15 America/New_York = 20:00–21:15 UTC) plus
+  any same-evening fetch precedes the next boundary, so the daily
+  alignment is identical for any post-release evening fetch hour.
+- The fetch job itself (fixed evening UTC time on the existing
+  supervisor, recording `retrieved_at_utc` with
+  `retrieval_time_quality = "observed"` on every future retrieval; no
+  live feed, no vendor, no subscription) is a DEPLOYMENT REQUIREMENT
+  recorded now and built only if a construction stage is reached —
+  §68.7's rule: operational architecture is adopted as requirement,
+  built after the test.
+
+#### 70.1.2 Adoption — USER DECISION: full Panel A, gold excluded
+
+Adopted (`adopted: true` in the manifest for the exogenous set): **BTC,
+ETH** (PIT store, with funding carry), **VIX** (cboe_VIX), **US 2Y**
+(fred_DGS2), **US 10Y** (fred_DGS10), **the USD measure**
+(fred_DTWEXBGS — the Fed broad-dollar SUBSTITUTE stands as the USD
+measure of record; the basket difference from ICE DXY remains
+disclosed), **S&P 500** (fred_SP500), **Nasdaq-100** (fred_NASDAQ100)
+— each at publisher timing per §70.1.1 where re-sourced.
+fred_VIXCLS: not adopted (cross-check). **Gold: NOT adopted** — no
+verified source; §68.11.2's UNVERIFIED stands.
+
+**Rates and USD are adopted despite looking weak in §69's
+unconditional rolling correlations.** Dropping them after seeing that
+map would be selection on development data. Weak-unconditionally is
+not useless-conditionally; M1's coefficients decide, not the map.
+
+The manifest's three `adoption_decisions_open` entries are annotated
+RESOLVED by this section: DTWEXBGS adopted as the USD measure;
+SP500/NASDAQ100 adopted for Panel A only (overnight-gap limitation
+stands); gold not adopted.
+
+#### 70.1.3 Panel B — DEFERRED (owner decision)
+
+No intraday branch, no futures feed, no live market data. Rationale
+recorded: price is set by the fastest marginal participant, so speed
+cannot be this system's edge at this capital; if an edge exists it is
+in slower persistence and aggregation of information. Panel B is
+reconsidered ONLY if Q2 or Q4 pass. **Consequence recorded
+explicitly:** §68.9's "one pre-registered sub-daily horizon" is
+deferred WITH Panel B — G3-C scores the daily horizon only. This is an
+owner decision recorded before any fitting, not a silent narrowing.
+
+#### 70.1.4 Cross-sectional instantiation — USER DECISION (2026-09-02, choice put to the owner and answered "per-name transforms")
+
+The §70.2 family table names families 1–2 at the BTC level, but Q3/Q4
+score a shared-coefficient cross-sectional model, which can only rank
+names by features that differ across names. Two readings were put to
+the owner: (a) families 1–2's frozen transforms instantiated PER NAME
+for the cross-sectional model; (b) the literal table, leaving funding
+level as the sole per-name regressor. **The owner chose (a):** each
+name's trailing {1, 5, 21}d returns and 21d vol / vol-of-vol enter the
+cross-sectional model per name, alongside per-name funding level
+(family 3); the direction model for Q1/Q2 uses the BTC instantiation;
+the family count stays 4 + 8 and no new transform is introduced. The
+§68.3 hierarchical cold-start rung, if reached, inherits per-name
+coefficients to shrink.
+
+### 70.2 Model specification, frozen before fitting
+
+Every completion below is labelled: USER DECISION, DERIVED, INHERITED
+precedent, or CONVENTION (a standard reading fixed here, before any
+data is read, quarantined from M1 feature choice by §69.1.1).
+
+#### 70.2.1 Feature families — exactly 4 + 8, transforms frozen
+
+```
+M0 — crypto-native state + carry            (families 1–4)
+  1 trend       : returns at fixed lags {1, 5, 21}d
+  2 vol         : realised vol {21}d; vol-of-vol {21}d
+  3 carry       : funding level {current}; funding dispersion {cross-sectional, current}
+  4 dispersion  : cross-sectional return dispersion {current}; breadth of positive returns {current}
+
+M1 — M0 + cross-asset state                 (families 5–8)
+  5 equities    : SP500 return {1d}; NASDAQ100 return {1d}
+  6 volatility  : VIX level; VIX Δ {1d}
+  7 rates       : 2Y level; 2Y Δ {1d}; 10Y level; 10Y Δ {1d}; 2s10s slope
+  8 usd         : USD measure return {1d}
+```
+
+Any addition, removal, or transform change after the lock commit is a
+new specification requiring its own pre-registration. Every feature
+uses the single most recent PIT-available observation at the decision
+time — one lag, no lag search (§69.1.1).
+
+**Completions:**
+- Decision instant for target day `t`: the 00:00:00 UTC boundary at
+  which day `t` begins; features use only data knowable then
+  (CONVENTION, the τ construction of §69.1.3).
+- "returns at fixed lags {1, 5, 21}d" = TRAILING log returns over the
+  past 1, 5 and 21 days ending at the decision instant (CONVENTION —
+  the standard horizon-return reading; single-day returns lagged 5 and
+  21 days were considered and not chosen).
+- realised vol = std (ddof=1) of the trailing 21 daily log returns;
+  vol-of-vol = std (ddof=1) over the trailing 21 days of the daily
+  realised-vol series (CONVENTION).
+- funding level = the most recent settled 8h funding rate at the
+  decision instant (one-lag rule); funding dispersion = std (ddof=1)
+  of that quantity across the eligible universe (CONVENTION).
+- cross-sectional return dispersion = std (ddof=1) of the prior day's
+  1d log returns across the eligible universe; breadth = fraction of
+  the eligible universe with strictly positive prior-day return
+  (CONVENTION).
+- exogenous 1d returns / Δ = the change between the TWO most recent
+  distinct PIT-available observations (never zero-filled staleness;
+  this is what the deployed reader will actually possess)
+  (CONVENTION); levels (VIX, 2Y, 10Y) = most recent observation;
+  2s10s = 10Y level − 2Y level. Yields difference in percentage
+  points; equity/USD returns are log returns (INHERITED from §69.1.3's
+  convention, restated for M1's features — chosen from architecture,
+  not from the map).
+- Direction model (Q1/Q2), BTC instantiation: M0 = 9 features (3
+  trend + 2 vol + 2 carry + 2 dispersion), M1 = 19 (M0 + 10
+  cross-asset). Cross-sectional model (Q3/Q4), per §70.1.4: per name
+  i, M0 = 9 (per-name 3 trend + 2 vol + 1 funding, plus the 3 common
+  features funding dispersion / return dispersion / breadth), M1 = 19
+  (M0 + the 10 common cross-asset features).
+- **Cross-sectional target = the RAW next-day log return of each name
+  (DERIVED, not chosen):** with a shared-coefficient linear model and
+  common (per-date) features, a cross-sectionally demeaned target
+  makes every common feature exactly inert, which would render Q4
+  mechanically undecidable. The IC statistic is rank-based per date,
+  so the criterion itself is invariant to the common component; the
+  raw target only lets common state purify the per-name coefficients.
+- Eligible universe ("mature", Q3/Q4): the INHERITED Gen-1/Gen-2
+  classification — `backtest/universe_filter.classify` eligibility
+  with ≥ 180 days of history at the decision date (§59.3.2 precedent,
+  as in §63.2). BTC and ETH are members like any other eligible name;
+  juveniles (< 180d) are excluded here and belong to the §68.3 rung.
+- Direction target: `y_t = 1` if BTC's day-`t` log return > 0 else 0
+  (CONVENTION; an exactly-zero return is class 0 and is expected to be
+  measure-zero on real data).
+
+#### 70.2.2 Forecast form and regularisation
+
+- Direction: **L2-regularised logistic regression** (intercept
+  unpenalised), fitted by deterministic Newton/IRLS in closed
+  iteration — no stochastic optimiser, no architecture.
+- Cross-section: **ridge regression** (intercept unpenalised) pooled
+  over name-days of the training window.
+- Standardisation: features z-scored with training-window mean/std
+  (ddof=1); a constant feature maps to zero (guard, reported if it
+  occurs). Targets are never standardised.
+- **Regularisation grid, frozen:** λ ∈ {10⁻³, 10⁻², 10⁻¹, 1, 10, 10²,
+  10³} — seven log-spaced values, both models.
+- **Nested expanding-window inner split, frozen:** order the training
+  window chronologically; three inner folds — fit on the first 40% /
+  validate on the next 15%; fit 55% / validate 15%; fit 70% / validate
+  15% (the final 15% is left untouched by selection). Selection metric:
+  mean log loss (logistic) / mean squared error (ridge) across the
+  three validation segments; ties break toward the LARGER λ. The
+  procedure — not a value — is frozen; the chosen λ is refit on the
+  full training window and reported per segment.
+- Nothing is ever selected against out-of-sample-in-time results.
+
+#### 70.2.3 Sequential protocol (§68.8, as implemented)
+
+Fit on 2020 → forecast 2021; refit 2020–21 → 2022; refit 2020–22 →
+2023; refit 2020–23 → 2024. At no point does a later year inform an
+earlier forecast; a test asserts every forecast's fit window ends
+before its target date. ~1,461 out-of-sample-in-time daily forecasts.
+Development window only; the seal and the §69 refusal machinery stand.
+
+#### 70.2.4 Calibration — Platt scaling, fixed in this commit
+
+- **Method (fixed here, as §70's spec requires): Platt scaling** — a
+  two-parameter monotone logistic map. Rationale recorded: with ~300
+  usable calibration points per segment, isotonic regression overfits
+  the tails and produces flat spans; Platt is the lower-variance
+  choice and is deterministic. Isotonic was considered and not chosen.
+- **Procedure, frozen:** within each training window, fit the model
+  (at the λ chosen by §70.2.2) on the first 80% of the window; predict
+  the last 20%; fit Platt on those predictions; refit the model on
+  100% of the window; apply the Platt map to the forecast year.
+  Fitted inside the training window only, applied point-in-time.
+- Calibration quality is REPORTED (reliability curve on 10 equal-width
+  bins; Brier decomposition reliability/resolution/uncertainty on the
+  same bins) and is NOT a criterion. Sizing, when it exists, uses a
+  conservative lower reliability bound (§68.2.2) — deferred with the
+  book.
+
+#### 70.2.5 Deferred, explicitly
+
+No book is built in G3-C, so not specified here: λ_risk and position
+caps, the path statistic for invalidation (§68.12.5), the composite
+model-health rule, the hierarchical cold-start estimator (§68.12.6 —
+gated on Q3 PASS). Specified only if a construction stage is reached.
+
+### 70.3 Criteria, fixed before the run
+
+#### 70.3.1 The four questions (conjunctive per §68.11.4.1)
+
+```
+Q1  M0 BTC-direction skill vs climatology   CI_lower(BSS_M0) > 0
+Q2  M1 incremental, BTC direction           CI_lower(BSS_M1) > 0  AND  CI_lower(BSS_M1 − BSS_M0) > 0
+Q3  M0 cross-sectional skill (mature)       CI_lower(IC̄_M0) > 0     (§60.12 evaluator)
+Q4  M1 incremental, cross-sectional         CI_lower(IC̄_M1) > 0  AND  CI_lower(IC̄_M1 − IC̄_M0) > 0
+```
+
+- **BSS** = 1 − ΣBS_model / ΣBS_clim pooled over all defined
+  out-of-sample days 2021–2024. **Climatology (frozen):** the constant
+  probability equal to the training-window frequency of up days,
+  recomputed per sequential segment and applied to that segment's
+  forecast year.
+- **IC** = the §60.12.3 estimand exactly: equal-weighted daily
+  cross-sectional Spearman between the model's per-name forecast and
+  the realized next-day return, average ranks for ties, undefined
+  dates excluded / counted / reported with reason, never zero-filled.
+  Evaluated by the §60.12 machinery (`rcm/eval_ic.py`), inherited by
+  import and pinned by hash in the lock.
+
+#### 70.3.2 Bootstrap — inherited construction, generalized only in the statistic
+
+`rcm/eval_ic.stationary_bootstrap_ci` (the Gen-1 construction ported
+line-for-line per §60.12.3: Politis–Romano stationary bootstrap,
+geometric-block index walk with wraparound, percentile interval,
+n < 30 ⇒ NaN and < n_boot/10 finite-replicate guards; 2,000
+replicates; mean block max(2, n^{1/3}) recomputed per series;
+two-sided 90%) is REUSED DIRECTLY for every criterion. **Paired
+statistics (frozen):** the series handed to the walker is the day
+index 0..n−1 of the defined evaluation days; `stat_fn` maps each
+resampled index row to the statistic computed on the PAIRED per-day
+components (BS_M0, BS_M1, BS_clim for Q1/Q2; IC_M0, IC_M1 for Q3/Q4).
+One index draw per criterion family, so differences are paired by
+construction — the §68.9 "paired Brier difference" and "paired
+daily-IC difference" as frozen. A test proves the index-series call
+reproduces the direct call bit-for-bit on a shared fixture and seed.
+
+**Seed (INHERITED §60.12.3 governance):**
+`seed = int(sha256(lock_commit_hex)[:8], 16)` — the lock commit is the
+one recording §70.5; the value is derived and printed at the run
+stage, never predicted.
+
+**INDETERMINATE (frozen definition):** a criterion is INDETERMINATE
+when its interval is undefined under the inherited guards (fewer than
+30 defined days, or fewer than n_boot/10 finite replicates) — the
+evaluator cannot resolve the hypothesis at the frozen precision
+(§68.12.3). Otherwise PASS iff CI_lower > 0, else FAIL. For Q2/Q4 the
+conjunction is evaluated per §68.11.4.1; if any leg is INDETERMINATE
+and no leg FAILS, the criterion is INDETERMINATE (⇒ M0 per §68.9).
+
+#### 70.3.3 MDE disclosure (§60.12.3 form)
+
+No numerical MDE is fabricated. The realized CI half-width of every
+interval is reported afterward as observed resolving precision and is
+not a second criterion.
+
+#### 70.3.4 Economic disclosure (§68.6 rule 3 — disclosure, never a gate)
+
+Beside each result: implied edge versus turnover-adjusted cost at the
+daily horizon under the INHERITED Gen-1 cost model
+(`backtest/costs.py`, `fee_mode="taker"` — the conservative mode;
+pinned by hash in the lock), and the expected trade count at the
+§68.12.4 general gate `E[r] − C − required_risk_compensation > 0`
+(risk compensation set to zero for the disclosure — the weakest gate;
+anything failing it fails every stronger one). Activity is a
+DISCLOSURE; too few observations to resolve ⇒ INDETERMINATE, not FAIL
+(§68.12.3).
+
+#### 70.3.5 Consequences, pre-registered (no post-result discretion)
+
+```
+Q2 or Q4 PASS                       exogenous thesis supported at that level; next rung earns its turn (§68.12.7)
+Q2 and Q4 fail/INDET, Q1 or Q3 PASS exogenous thesis NOT supported; §68.1 construction may proceed on crypto-native forecasts, relabelled as such
+All four fail                       Gen-3 STOPS before any book exists; recorded as a clean result
+Q3 PASS                             the hierarchical cold-start rung becomes testable (§68.12.6); Q4 decides only feature inheritance
+Reproduced implementation defect    attempt VOID (void: true, retained, budget unconsumed — §60.12.4 accounting); corrected run is the next attempt
+```
+
+No path from an attractive PnL or correlation to keeping a
+specification whose criterion failed.
+
+### 70.4 The lock plan
+
+The lock commit (the one recording §70.5) pins, via `LOCK <path>
+sha256=<hash>` lines quoted from printed output: `g3/features.py`,
+`g3/models.py`, `g3/calibration.py`, `g3/sequential.py`, `g3/eval.py`,
+`rcm/eval_ic.py`, `backtest/costs.py`. An immutability test parses the
+LOCK lines from this ledger and fails if any pinned file's hash
+drifts — the run stage cannot alter any frozen quantity between
+pre-registration and execution. Deterministic evaluator tests land
+BEFORE the lock: planted positive skill ⇒ CI_lower > 0; planted zero ⇒
+the CI straddles zero; planted negative ⇒ FAIL; the conjunctive
+criterion rejects BSS_M0 = −0.20, BSS_M1 = −0.10. All model and
+evaluator tests run on SYNTHETIC data only in this stage; no
+development return is read. Trial 1 is logged in §70.5 as
+`status: pre-registered`, `attempt_id = 1`, `valid_trial_count = 0`.
+**After §70.5, this stage STOPS for both delegates' review; G3-C is a
+separate stage.**
