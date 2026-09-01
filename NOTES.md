@@ -10134,3 +10134,385 @@ with one look, ever, still unspent.
 
 **Gen-1: frozen, 15 of 25. Gen-2: RCM v1 abandoned, 1 of 20 valid
 trials spent. Holdout sealed.**
+
+## 68. GENERATION 3 — governance (Stage G3-0 v2), appended 2026-09-02
+
+**Process note, recorded first and honestly.** The G3-0 governance file
+and the G3-A audit outputs were committed together by the owner in
+`d8820ca` (2026-09-01) with the ledger append left as an owner step;
+this append happens 2026-09-02, AFTER G3-A ran. The ordering deviation
+is mitigated by three facts: the governance text below is transcribed
+from the committed file and is diffable against it; G3-A produced no
+return-based result that could have shaped this governance; and G3-A's
+own report explicitly declined to write the ledger. Deviation recorded,
+not repeated. User decisions are labelled as such throughout.
+
+### 68.0 Design signature
+
+> **Gen-3 replaces arbitrary gates with measured uncertainty.** Breadth,
+> maturity, holding period, forecast confidence, allocation, and model
+> trust are all continuous quantities estimated from data, not
+> categorical rules chosen by a designer. Where a hard rule remains, it
+> is a *safety* rule or a *data-integrity* rule, never a modelling
+> convenience.
+
+The structural difference from Gen-1/2, both of which died on fixed
+invariants that were free at institutional scale and fatal at $800.
+
+### 68.1 Thesis and construction principle
+
+**Thesis:** short-horizon crypto returns increasingly reflect
+time-varying transmission of macro, cross-asset, and information
+shocks; a useful system models the state and propagation of information
+across markets and lets predictor relevance evolve.
+
+**Construction principle — USER DECISION, verbatim:**
+
+> **Breadth follows evidence.** No required number of names exists
+> anywhere in Gen-3 — no `N_eff` floor, no `MIN_LEG_NAMES`, no forced
+> substitution, no position added for diversification alone.
+> `N_t = #{i : w_i,t ≠ 0}` is an **output**. Nothing qualifying ⇒
+> **flat, a correct output**. One name qualifying ⇒ that name and cash.
+> Twelve ⇒ a risk-sized twelve-name book, floor-aware by construction.
+> Effective breadth is **reported**, never required.
+
+**Why (68.1.3):** every non-formed day across three generations —
+Gen-1's 21% train skips, the 0-of-12 live in 2026, Gen-2's 98.8%
+non-formation with median surviving breadth 4.16 against a required 6 —
+was a breadth requirement colliding with $800 against $5 floors.
+*(The phrase "not one was a signal failure" is qualified by §68.11.4.4
+below.)* **No artificial cash reserve**: the system protects risk
+capacity and bank survival, not an idle-cash percentage; cash competes
+in the allocator. **Derived sizing quantities:** conviction threshold
+`|P(up) − 0.5| > c_rt/(2·E|r|)` (≈0.023 at 13 bps and 2.8% BTC mean
+absolute move), updated mechanically; risk PENALTY `max_w μ̂ᵀw − λ wᵀΣw
+− C(w − w_prev)` under hard caps, with **λ the owner's risk aversion, a
+preference stated before data** (the fixed vol target is dropped; the
+earlier "30–40% BTC" is a confidence-conditioned allocation preference
+to be fixed as λ plus caps in the spec stage); `C(·)` is the frozen
+cost model, not a free coefficient.
+
+### 68.2 Adopted invariants
+
+1. **Probability is not capital** — allocation weighs net-of-cost edge,
+   calibrated probability, forecast uncertainty, tail risk, liquidity,
+   cost, correlation, model health, and hard caps; never `P(up)` alone.
+2. **Calibration precedes sizing**; a conservative reliability bound may
+   size. Method fixed in the spec stage.
+3. **Net-of-cost edge decides**: `μ_net ≤ 0 ⇒ position zero`, normally.
+4. **Losses never increase exposure**: negative PnL ⇒ `|w_target| ≤
+   |w_current|` for that asset. **Precedence, fixed now: §3.4 beats
+   §3.5** (a strengthening forecast after a loss does not add). Owner
+   preference, not a derivation.
+5. **Every position continuously re-earns its place** — no mandatory
+   holding period; the standing question is "if flat now, would current
+   information justify opening this?"
+6. **Two exit classes, both forecast-driven**: invalidation
+   (`r_path < Q_α(F̂_entry)`) and updated-forecast (edge no longer covers
+   cost + required risk compensation); a separate catastrophic stop
+   exists; `α` fixed in the spec stage.
+7. **The invalidation rate IS the model-health statistic** — realized
+   rate materially above `α` is direct miscalibration evidence.
+8. **Forecast confidence ≠ model-health confidence**: poor recent
+   calibration inflates `σ_eff = κ_t σ_model` (κ ≥ 1) and shrinks size
+   without flipping direction; recovery by a rule frozen before live.
+9. **Losing money is not automatically a bug** — investigation triggers
+   on incompatibility with the system's own uncertainty, risk model, or
+   operational invariants (§60.12.5's rule, generalized).
+
+### 68.3 Hierarchical cold-start — the juvenile architecture
+
+For each asset `r_i = β_M,i·M + β_chain,i·F_chain + β_sector,i·F_sector
++ α_i + ε_i`, with **per-coefficient posterior shrinkage** toward group
+priors: `E[β_i|D_i] = λ_i·β̂_i + (1−λ_i)·μ_group`, `λ_i = τ²_group /
+(τ²_group + s²_i)`, with SEPARATE λ for market/chain/sector/alpha —
+empirical Bayes, **no age curve, no 30/60/90-day rule, no promotion
+decision, no owner discretion**. `juvenile`/`mature` may appear only as
+dashboard labels with zero mechanical meaning.
+
+**Posterior uncertainty propagates** into covariance, chance
+constraints, and sizing. **Recorded precisely: hierarchical shrinkage
+does not make young assets hedgeable — it converts hedgeability from a
+binary certification problem into a continuous estimation-and-
+uncertainty problem.** A `β = 1.4 ± 0.9` is a valid estimate and a poor
+hedge; the risk engine sizes accordingly instead of the guard refusing
+the day.
+
+**PIT ancestry, frozen and boring:** chain from the token's canonical
+chain; sector from a frozen metadata taxonomy assigned by a frozen rule
+from information available at that time; **no LLM taxonomy decisions**
+(the §66.0.1 fabrication risk applied to the input that picks a prior);
+taxonomy changes are themselves PIT; **ambiguity ⇒ fewer parents**,
+failing toward the broadest defensible prior; tree levels frozen before
+any test. **Leave-one-out PIT group priors** — `μ_group,t` excludes the
+forecast asset's own contribution (else the prior partially predicts
+what it is meant to predict). **`UNMODELABLE` is the sole hard
+maturity-related state** — a data-integrity floor: absent reliable
+price/volume/depth/identity/venue/history ⇒ no forecast, zero
+allocation. **Emergent sizing property:** an inherited-forecast juvenile
+is economically a worse way to buy its parent, so a correlation-aware
+allocator routes exposure to the parent without any juvenile haircut —
+none is introduced unless survival analysis later shows the need.
+
+### 68.4 Inheritance from Gen-1/2
+
+Reused unchanged: PIT store + lookahead discipline; crypto universe
+filter + composition guard; read-only production data client; fill
+simulator + frozen execution model; shared quantized sizing;
+settle/reconciliation; risk layer, kill switch, watchdog, supervisor,
+dashboard, alerts; cost log; the §60.12 IC evaluator and Gen-1
+bootstrap code; the §59.11.2/§62.4 calendar; the §63.6
+factor-structured residual covariance and MP-edge rule;
+pre-registration, trial-budget, INDETERMINATE, void, append-only-ledger
+conventions; the §57.2/§56.9 must-re-verify list. **Not inherited:**
+any breadth requirement; market-neutrality as a requirement (BTC is a
+traded direction, not a hedged factor); the RCM residual-momentum
+signal; the fixed volatility target.
+
+### 68.5 Data policy
+
+Development **2020-01-01 → 2024-12-31**, sequential-in-time only.
+**2025-01 → 2026-07 SEALED, re-affirmed on Gen-3 grounds** — the thesis
+was formed observing that window; runner rejection unchanged.
+Validation forward-only from a recorded freeze commit + UTC timestamp;
+forward validation cannot confirm alpha. Every external source carries
+a first-public timestamp; event date and availability date never
+conflated.
+
+### 68.6 Standing rules
+
+1. **Horizon by arithmetic, not doctrine** — trading admissible only
+   where edge exceeds turnover-adjusted cost at that horizon; realized
+   turnover disclosed beside every skill number (13 bps round-trip ⇒
+   daily ≈47%/yr, weekly ≈7%/yr). Sub-daily measurement always allowed.
+2. **M0 includes carry** (60% of Gen-1 PnL; Gen-2's guard fired on all
+   1,642 days). Exogenous tests are incremental beyond state AND carry.
+3. **Two numbers beside every skill test**: the statistical criterion
+   and a pre-registered economic-relevance disclosure (never a gate).
+4. **Feasibility at $800 by construction** (§68.1), tested.
+5. **The neural network is a ladder rung, not the spine** — admissible
+   only as M2+ under the same incremental criterion, all selection
+   inside training windows by a frozen nested procedure; INDETERMINATE
+   leaves the simpler model standing.
+6. **The LLM event layer is quarantined to a later rung** — closed
+   taxonomy, surface facts only, frozen model/prompt hashes, extraction
+   source-hashed, tests with and without judgment fields, prior-leakage
+   partly unmeasurable and recorded as such.
+7. **Synthetic fixtures match real dimensions** — no lock without a
+   development-scale-N dry run (F-2/F-3: fine at 25, broken at 200).
+8. **Hard gates on the ladder** (amended by §68.11.4.2 below).
+9. **No hand-labelled regimes** — continuous state variables only.
+10. **Operational architecture required but deferred** (§68.7).
+
+### 68.7 Operational architecture — adopted as requirement, built after the test
+
+The refinements' §18–38 are adopted NOW as design requirements and
+built ONLY after forecast skill is established (Gen-2's real cost was
+engineering around a signal that did not exist): four safety layers;
+Level 0–5 authority moving upward only; position/portfolio/
+infrastructure supervisors with circuit-breaker scopes; **recovery vs
+repair — the machine may restore known-good operation; it may not
+redefine what "good" means**; bounded autonomous-recovery lists with
+attempt/time/recurrence caps; persistent `HUMAN_INTERVENTION_REQUIRED`
+latches surviving reboot, owner-clearable only; `H_*` fault families
+with **`H_UNKNOWN` failing closed**; forbidden-autonomous-repair list;
+forensic snapshots; owner-controlled resume; post-incident probation.
+**Central rule, verbatim:** *If our understanding of reality becomes
+questionable, stop trading first and investigate second.*
+
+### 68.8 Trial budget and sequential protocol
+
+**Ceiling 20 trials** (a trial = any real-data result that could cause
+preference between forecast or portfolio specifications; structure
+measurements are not trials). INDETERMINATE is valid — the simpler
+model stands. **Sequential-in-time development**: expanding-window fits
+refit at calendar-year boundaries; 2021–2024 forecasts each come from a
+model that saw only prior years; 2024 never informs 2021's beliefs.
+
+### 68.9 Phase one — the first killable test
+
+**G3-A (no trial):** data audit and PIT policy for ES, NQ, VIX, US
+2Y/10Y, DXY, gold, BTC, ETH; report procurement; stop only if a source
+is unavailable at any price; substitutes reported without adoption.
+**G3-B (no trial):** rolling lead/lag `Corr(r_X,t, r_BTC,t+k)` and
+rolling betas at 1h/4h/daily where data permits — measurement, raw
+series, no narrative labels, no thresholds; window, k-range, statistics
+frozen in the ledger before reading. **G3-C (ONE trial):** two frozen
+models, `M0` = crypto-native state + carry, `M1` = M0 + PIT-aligned
+prior-period cross-asset state; scored on every out-of-sample-in-time
+day at the daily horizon and one pre-registered sub-daily horizon:
+
+```
+  Q1  M0 BTC-direction skill vs climatology   Brier skill, bootstrap 90% CI (inherited code), CI_lower > 0
+  Q2  M1 incremental over M0, BTC direction   paired Brier difference, CI_lower > 0; INDETERMINATE ⇒ M0
+  Q3  M0 cross-sectional skill (mature)       §60.12 daily-IC evaluator, CI_lower > 0
+  Q4  M1 incremental cross-sectional skill    paired daily-IC difference, CI_lower > 0; INDETERMINATE ⇒ M0
+```
+
+Beside each: calibration report; realized CI half-width as resolving
+precision (§60.12.3 discipline — no fabricated MDE); the economic
+disclosure. **Pre-registered consequences:** Q2 or Q4 pass ⇒ exogenous
+thesis supported, next rung earns its turn; Q2 and Q4 fail but Q1 or
+Q3 pass ⇒ exogenous thesis NOT supported, construction may proceed on
+crypto-native forecasts relabelled as such; all four fail ⇒ **Gen-3
+stops before any book exists.** The hierarchical layer (§68.3) is a
+later rung, tested only after Q3/Q4, by the pre-registered
+now-mature-token replay with leave-one-out priors. *(Q2/Q4 criteria
+amended conjunctive by §68.11.4.1.)*
+
+### 68.10 Kill criteria form
+
+Exact quantities derived in the spec stage; form fixed now: (i) the
+Q-table; (ii) for any construction, a minimum activity level derived
+from what breadth-follows-evidence claims — expected conviction-day
+frequency from the forecast's own calibration, never inherited from
+Gen-1/2; (iii) a forward feasibility gate. **Abandon, not patch.**
+
+#### 68.10.1 G3-A execution record (2026-09-01, commit `d8820ca`)
+
+Seven raw series staged under `data/exogenous/` with `adopted: false`
+and per-series PIT metadata in `MANIFEST.json`: FRED DGS2/DGS10
+(primary), CBOE VIX + FRED VIXCLS cross-check (primary), FRED DTWEXBGS
+(broad-dollar SUBSTITUTE for ICE DXY), FRED SP500/NASDAQ100 (cash
+SUBSTITUTES for ES/NQ futures). Gold: no clean free source reachable
+(FRED LBMA IDs discontinued; Stooq behind a JS proof-of-work wall;
+Yahoo rate-limited/ToS-restricted) — MUST-PROCURE; §68.9's hard stop
+did not fire (nothing unavailable at every price). BTC/ETH already in
+the Stage 1 PIT store. Blocker evidence and per-instrument semantics in
+`Claude/G3A_DATA_AUDIT.md`. No forecast fitted, no development returns
+read, no trial consumed. **The audit's defects are §68.11's subject.**
+
+### 68.11 Stage G3-A2 — audit, source-policy, and governance corrections (2026-09-02; both delegates converged)
+
+**Appended before any correcting code. No forecast fitted; no
+return-based comparison; no G3-B measurement; no trial consumed. Gen-3
+0 of 20. Holdout sealed.**
+
+#### 68.11.1 PIT hazards — both are lookahead (Part I)
+
+**1. CRITICAL — never store a UTC constant for a release time.** The
+manifest hardcoded "16:15 ET → 20:15 UTC", true only under US daylight
+time; in winter the release is an hour later in UTC, so a model reading
+between the two would consume a release that has not happened — **one
+hour of lookahead for ~4.5 months of every year**, invisible at daily
+resolution and destructive in any intraday branch. Every release time
+becomes `release_timezone` (IANA) + `release_local_time` +
+`release_calendar`, converted per-date with `zoneinfo`. Tests: a
+January and a July observation of one source resolve to DIFFERENT UTC
+instants; no `"20:15Z"`-style constant survives in the manifest or
+loader (grep).
+
+**2. CRITICAL — four timestamps, and the one that governs access.**
+Per observation: `observation_time` (the economic period),
+`underlying_public_time` (first public anywhere),
+`source_available_time` (when THIS staged source first served it),
+`retrieved_at_utc` (when we archived our copy). **Access rule, frozen:
+a model may consume a value only when `source_available_time ≤ t`.** A
+FRED-staged cash close may not be acted on hours before FRED served
+it, however public the underlying was; a production feed swap
+re-derives the manifest entry under the new feed's availability.
+`retrieved_at_utc` answers auditability and never substitutes for
+`source_available_time`. **Revisable series** (future macro rungs)
+additionally carry `revision_id`/vintage — observation → publication →
+revision → retrieval, four distinct fields — recorded now so CPI/PCE/
+NFP cannot be added without it.
+
+**Calendar implementation note (recorded with it):** release-day
+shifting uses one conservative US business calendar — weekends,
+observed federal holidays, and Good Friday, as the UNION of the Fed and
+NYSE/CBOE closure sets. The union can only DELAY an assumed
+availability, never advance it, so its errors are anti-lookahead by
+construction; per-source exact calendars are an open refinement listed
+in the manifest.
+
+#### 68.11.2 Source policy and provenance (Part II)
+
+**Panel split.** Panel A (daily baseline): BTC/ETH + carry, daily VIX,
+daily rates, a daily USD measure, cash equity indices, daily gold —
+audit sufficient to SPECIFY, subject to explicit adoption decisions;
+available ≠ adopted. Panel B (event-driven/intraday): requires
+time-resolved instruments (ES, NQ, rates proxy, DX/real-time USD, VX if
+justified, GC); **cash indices are not substitutes there** — no Globex
+session, and the US-close → Asia → Europe → next-US-open window is
+precisely what a 24/7 book would exploit. Procurement reframes from
+"do we need ES?" to **"do we activate the intraday/event-driven
+branch?"** — if yes, futures-quality data is necessary.
+
+**Adoption decisions, listed as OPEN, none made here:** DTWEXBGS in
+place of ICE DXY (different basket — difference recorded); FRED cash
+SP500/NASDAQ100 in place of ES/NQ for Panel A only (overnight-gap
+limitation recorded); whether gold is included at all, and from where.
+
+**Gold source UNVERIFIED:** the manifest entry becomes
+`candidate_source: Nasdaq Data Link LBMA/GOLD`,
+`verification_status: UNVERIFIED` until a key actually returns data;
+the audit's confident phrasing is withdrawn.
+
+**Manifest provenance per series:** timezone-aware `retrieved_at_utc`
+(replacing `date.today()`), HTTP `Last-Modified`/`ETag`/status, source
+timezone, publication rule, `revision_policy`, `vintage_support`,
+`licence_class` ∈ {public_domain, redistribution_restricted, licensed}.
+For the seven already-staged files the original wall-clock and HTTP
+headers were NOT captured; `retrieved_at_utc` is recorded as bounded by
+commit `d8820ca`'s timestamp with that caveat, and the corrected tool
+captures true values on any future retrieval — recorded, not
+back-filled.
+
+#### 68.11.3 The licensing incident (Part III)
+
+FRED's S&P 500 and NASDAQ-100 series are redistribution-restricted;
+raw CSVs were committed to a public repository in `d8820ca`.
+**Immediate:** the restricted CSVs stop being tracked (`git rm
+--cached`) and move to `data/exogenous/raw/`, which is gitignored; the
+CBOE VIX files are conservatively classified redistribution_restricted
+and treated the same; the downloader, manifest, identifiers, hashes,
+coverage statistics, and licence classes stay in Git. **Default policy,
+recorded: vendor/index raw data is never committed; public-domain
+series may be, by explicit classification** (the Fed H.15/H.10 series
+remain tracked as `public_domain`). **Deliberately NOT done: purging
+the blobs from public history.** A filter-repo rewrite changes every
+commit SHA, and this project uses commit hashes as governance locks
+(§63.6, §64, §66.5); rushing it would invalidate the audit trail.
+**OPEN REMEDIATION ITEM:** whether to rewrite history, and if so how
+recorded lock hashes are re-anchored (e.g., a mapping table appended to
+the ledger before the rewrite) — a separate, deliberate decision.
+
+#### 68.11.4 Governance repairs to §68 (Part IV)
+
+**1. Q2/Q4 conjunctive criterion** (repairs a false-PASS: BSS(M0) =
+−0.20, BSS(M1) = −0.10 would have "supported the thesis" while both
+lose to climatology): require, with the frozen confidence criterion on
+BOTH, `Skill(M1) > 0 AND Skill(M1) − Skill(M0) > 0`; identically for
+Q4, `IC(M1) > 0 AND IC(M1) − IC(M0) > 0`. "Made a bad predictor less
+bad" is not a usable predictor.
+
+**2. Mechanism-specific ladder** (replaces §68.6 rule 8's over-strong
+gate): the crypto-native baseline feeds TWO cheap independent rungs —
+cross-asset and scheduled-macro — each on its own pre-registration; a
+cross-asset failure does not forbid the scheduled-macro rung; **only if
+both cheap exogenous mechanisms fail are the expensive rungs
+(corporate | congressional | news/LLM) blocked.** Kill-cheap-first
+preserved without conflating mechanisms.
+
+**3. Feature budget — families capped AND transforms frozen** ("≤ 8
+features" was impossible as written, M1 being M0 + seven series):
+**≤ 8 feature FAMILIES per model, and the transformation set within
+every family separately frozen before the trial**; a family may not be
+expanded after observing OOS performance. (Example of a frozen family:
+rates = {2Y level, 2Y Δ, 10Y level, 10Y Δ, 2s10s slope}.) Exact lists
+fixed in the spec stage.
+
+**4. Gen-2 historical wording — the independent rejection preserved,
+verbatim:**
+
+> Gen-1 and Gen-2 both suffered material portfolio-formation failures
+> caused by fixed breadth/floor interactions at small capital.
+> **Separately, Gen-2 RCM v1 was decisively rejected at the signal
+> level by negative residual-momentum IC (−0.0115, CI entirely below
+> zero); that rejection was independent of breadth, capital, solver
+> behaviour, and portfolio formation.** RCM would not have worked with
+> dynamic breadth.
+
+**Stop point:** after the Part I–III code lands and its tests are
+green, this stage STOPS — before G3-B, whose protocol must be frozen in
+the ledger before any reading.
