@@ -61,6 +61,7 @@ class Series:
     licence_class: str = "redistribution_restricted"  # conservative default
     # filled after fetch:
     retrieved_at_utc: str = ""
+    retrieval_time_quality: str = ""
     http_last_modified: str | None = None
     http_etag: str | None = None
     http_status: int | None = None
@@ -219,6 +220,7 @@ def main() -> None:
         try:
             raw, headers, status = _fetch(session, s.url)
             s.retrieved_at_utc = datetime.now(timezone.utc).isoformat()
+            s.retrieval_time_quality = "observed"   # 68.12.2: true value
             s.http_last_modified = headers.get("Last-Modified")
             s.http_etag = headers.get("ETag")
             s.http_status = status
@@ -249,7 +251,8 @@ def main() -> None:
     with open(mpath, encoding="utf-8") as f:
         manifest = json.load(f)
     by_key = {e["key"]: e for e in manifest["series"]}
-    retrieval_fields = ("retrieved_at_utc", "http_last_modified", "http_etag",
+    retrieval_fields = ("retrieved_at_utc", "retrieval_time_quality",
+                        "http_last_modified", "http_etag",
                         "http_status", "rows", "coverage_start",
                         "coverage_end", "sha256", "ok", "reason")
     for s in SERIES:
@@ -260,7 +263,10 @@ def main() -> None:
             continue
         for k in retrieval_fields:
             entry[k] = d[k]
-        entry.pop("retrieved_at_provenance", None)   # true values captured now
+        # 68.12.2: observed values supersede the upper bound for the copy
+        # actually on disk; nothing historical is back-filled.
+        entry.pop("retrieved_at_provenance", None)
+        entry.pop("retrieved_at_upper_bound_utc", None)
     manifest["manifest_updated_utc"] = datetime.now(timezone.utc).isoformat()
     with open(mpath, "w", encoding="utf-8") as f:
         json.dump(manifest, f, indent=2)

@@ -128,15 +128,20 @@ _NY = "America/New_York"
 _H15 = ReleaseRule(_NY, 16, 15, 1, "FederalReserveBusinessCalendar")
 _CBOE_CLOSE = ReleaseRule(_NY, 16, 15, 0, "CboeCalendar")
 _NYSE_CLOSE = ReleaseRule(_NY, 16, 0, 0, "NyseCalendar")
-# FRED mirrors update "next morning"; availability is set CONSERVATIVELY to
-# the END of the next business day pending measured retrieval times —
-# later-than-actual can never be lookahead (§68.11.1).
+# §68.12.1 publisher-vs-aggregator: FRED is the RETRIEVAL SOURCE, not the
+# publisher. Where the publisher's release is itself D+1 (H.15/H.10), the
+# aggregator's serving time is set CONSERVATIVELY to one further business
+# day at the same local time — strictly later than the publisher release,
+# delay-only, so the rule can never advance availability (§68.11.1).
+_FRED_AFTER_H15 = ReleaseRule(_NY, 16, 15, 2, "FederalReserveBusinessCalendar")
+# FRED mirrors of same-day closes update "next morning"; availability is
+# conservatively the END of the next business day pending measured times.
 _FRED_MIRROR = ReleaseRule(_NY, 16, 15, 1, "FederalReserveBusinessCalendar")
 
 RULES: dict[str, dict[str, ReleaseRule]] = {
-    "fred_DGS2": {"underlying": _H15, "source": _H15},
-    "fred_DGS10": {"underlying": _H15, "source": _H15},
-    "fred_DTWEXBGS": {"underlying": _H15, "source": _H15},
+    "fred_DGS2": {"underlying": _H15, "source": _FRED_AFTER_H15},
+    "fred_DGS10": {"underlying": _H15, "source": _FRED_AFTER_H15},
+    "fred_DTWEXBGS": {"underlying": _H15, "source": _FRED_AFTER_H15},
     "cboe_VIX": {"underlying": _CBOE_CLOSE, "source": _CBOE_CLOSE},
     "fred_VIXCLS": {"underlying": _CBOE_CLOSE, "source": _FRED_MIRROR},
     "fred_SP500": {"underlying": _NYSE_CLOSE, "source": _FRED_MIRROR},
@@ -145,7 +150,12 @@ RULES: dict[str, dict[str, ReleaseRule]] = {
 
 
 def four_timestamps(key: str, obs: date) -> dict:
-    """§68.11.1.2 — the four timestamps for one observation."""
+    """§68.11.1.2 — the four timestamps for one observation.
+
+    §68.12.2: `retrieved_at_utc` may be None (unknown is not estimated);
+    the accompanying `retrieved_at_upper_bound_utc` and
+    `retrieval_time_quality` say what is actually known about it. A
+    commit-derived bound never occupies the observed-time field."""
     r = RULES[key]
     manifest = json.loads((EXO_DIR / "MANIFEST.json").read_text("utf-8"))
     entry = next(e for e in manifest["series"] if e["key"] == key)
@@ -156,6 +166,9 @@ def four_timestamps(key: str, obs: date) -> dict:
         "source_available_time":
             r["source"].availability_utc(obs).isoformat(),
         "retrieved_at_utc": entry["retrieved_at_utc"],
+        "retrieved_at_upper_bound_utc":
+            entry.get("retrieved_at_upper_bound_utc"),
+        "retrieval_time_quality": entry.get("retrieval_time_quality"),
     }
 
 

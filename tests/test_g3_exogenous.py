@@ -66,13 +66,17 @@ def test_access_rule_source_available_time_governs():
 
 
 def test_calendar_shifts_are_conservative_and_correct():
-    """Holiday and weekend shifts: July-4 skipped for the next-business-day
-    release; Friday observations release Monday; Good Friday and Juneteenth
-    (2021+) are in the union calendar."""
-    t = four_timestamps("fred_DGS2", date(2024, 7, 3))
-    assert t["source_available_time"].startswith("2024-07-05"), t
+    """Holiday and weekend shifts under the §68.12.1 aggregator rule
+    (publisher release D+1, FRED serving one FURTHER business day):
+    July-4 is skipped; Friday observations reach FRED on Tuesday; Good
+    Friday and Juneteenth (2021+) are in the union calendar. The
+    publisher's own release stays one business day earlier throughout."""
+    t = four_timestamps("fred_DGS2", date(2024, 7, 3))        # Wed pre-4th
+    assert t["underlying_public_time"].startswith("2024-07-05"), t
+    assert t["source_available_time"].startswith("2024-07-08"), t
     t = four_timestamps("fred_DGS2", date(2024, 7, 12))       # Friday
-    assert t["source_available_time"].startswith("2024-07-15")  # Monday
+    assert t["underlying_public_time"].startswith("2024-07-15")
+    assert t["source_available_time"].startswith("2024-07-16")  # Tuesday
     assert date(2024, 3, 29) in us_market_holidays(2024)      # Good Friday
     assert date(2021, 6, 18) in us_market_holidays(2021)      # Juneteenth obs
     assert not any(d.month == 6 and d.day in (18, 19)
@@ -81,18 +85,29 @@ def test_calendar_shifts_are_conservative_and_correct():
 
 
 def test_underlying_never_after_source_and_fred_mirror_lags():
-    """§68.11.1.2: source_available_time >= underlying_public_time for every
-    staged series; strictly later for the FRED-mirrored cash indices."""
+    """§68.11.1.2 + §68.12.1: source_available_time is STRICTLY after
+    underlying_public_time for every FRED-sourced series (the aggregator
+    never serves at the publisher's instant); equal only for cboe_VIX,
+    where publisher == retrieval_source genuinely. §68.12.2:
+    retrieved_at_utc may be null — then the quality flag and a tz-aware
+    upper bound must say so."""
     obs = date(2024, 6, 12)
     for key in RULES:
         t = four_timestamps(key, obs)
         u = datetime.fromisoformat(t["underlying_public_time"])
         s = datetime.fromisoformat(t["source_available_time"])
-        assert s >= u, key
-        if key in ("fred_SP500", "fred_NASDAQ100", "fred_VIXCLS"):
-            assert s > u, f"{key}: the mirror must lag the underlying"
-        r = datetime.fromisoformat(t["retrieved_at_utc"])
-        assert r.tzinfo is not None
+        if key == "cboe_VIX":
+            assert s == u, "CBOE serves its own file at the release instant"
+        else:
+            assert s > u, f"{key}: aggregator must lag the publisher"
+        if t["retrieved_at_utc"] is None:
+            assert t["retrieval_time_quality"] == "upper_bound", key
+            b = datetime.fromisoformat(t["retrieved_at_upper_bound_utc"])
+            assert b.tzinfo is not None
+        else:
+            assert t["retrieval_time_quality"] == "observed", key
+            r = datetime.fromisoformat(t["retrieved_at_utc"])
+            assert r.tzinfo is not None
     print("PASS g3a2_four_timestamps")
 
 
@@ -102,14 +117,33 @@ def test_manifest_provenance_and_policy_fields():
     for e in m["series"]:
         assert e["licence_class"] in classes, e["key"]
         assert e["adopted"] is False
+        # §68.12.1: the source chain never collapses — publisher and
+        # retrieval_source recorded per series, distinct wherever they
+        # genuinely are (only CBOE serves its own bytes).
+        assert e["publisher"] and e["retrieval_source"], e["key"]
+        assert e["availability_resolution"], e["key"]
+        if e["key"] == "cboe_VIX":
+            assert e["publisher"] == e["retrieval_source"] == "CBOE"
+        else:
+            assert e["publisher"] != e["retrieval_source"], e["key"]
         if e["key"] == "gold_LBMA":
             assert e["verification_status"] == "UNVERIFIED"
             continue
+        # §68.12.2: unknown is not estimated — no commit timestamp in an
+        # observed-time field.
+        assert e["retrieved_at_utc"] is None, e["key"]
+        assert e["retrieval_time_quality"] == "upper_bound", e["key"]
+        b = datetime.fromisoformat(e["retrieved_at_upper_bound_utc"])
+        assert b.tzinfo is not None
+        assert "retrieved_at_provenance" not in e
+        if e["key"] in ("fred_DGS2", "fred_DGS10", "fred_DTWEXBGS"):
+            assert e["source_release_business_day_offset"] == 2, e["key"]
         assert e["source_release_timezone"] == "America/New_York"
         assert e["source_release_calendar"]
         assert "revision_policy" in e and e["vintage_support"] is False
         for f in ("http_last_modified", "http_etag", "http_status"):
             assert f in e
+    assert "source_chain_rule" in m
     assert len(m["adoption_decisions_open"]) >= 3
     assert "raw_data_policy" in m and "panel_split" in m
     assert "revisable_series_rule" in m
