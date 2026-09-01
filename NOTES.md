@@ -10159,6 +10159,12 @@ not repeated. User decisions are labelled as such throughout.
 The structural difference from Gen-1/2, both of which died on fixed
 invariants that were free at institutional scale and fatal at $800.
 
+> **Correction (§68.12.8):** both suffered fixed-invariant formation
+> failures; **Gen-2 additionally and independently failed at the signal
+> level** — RCM v1's residual-momentum IC was −0.0115 with its entire CI
+> below zero, independent of breadth, capital, solver behaviour, and
+> formation. See §68.11.4.4.
+
 ### 68.1 Thesis and construction principle
 
 **Thesis:** short-horizon crypto returns increasingly reflect
@@ -10516,3 +10522,130 @@ verbatim:**
 **Stop point:** after the Part I–III code lands and its tests are
 green, this stage STOPS — before G3-B, whose protocol must be frozen in
 the ledger before any reading.
+
+### 68.12 Stage G3-A3 — eight corrections before G3-B (2026-09-03; first delegate identified, second accepted; three correct the second delegate's own rules)
+
+**Appended before any correcting code. No forecast fitted; no
+return-based comparison; no G3-B measurement; no trial consumed. Gen-3
+0 of 20. Holdout sealed.**
+
+**Process note on the one authorized exception to strict byte-prefix
+appending:** item 8 requires the Gen-2 correction pointer to be VISIBLE
+AT §68.0 — its entire purpose is that a reader who stops at the design
+signature not learn the wrong history — so the delegates' converged spec
+explicitly authorizes appending a pointer blockquote to the end of
+§68.0's block, editing nothing. Executed as a mid-file insertion of new
+text only: the appending script asserts programmatically that removing
+the inserted block restores the prior file byte-for-byte, and both
+hashes are recorded in this commit's message from printed output.
+§68.0's original words, and §68.1–§68.11, are bit-unchanged.
+
+#### 68.12.1 Publisher vs aggregator — the source chain must not collapse
+
+If the bytes come from FRED, the publisher's release (e.g. the Fed's
+H.15) is `underlying_public_time`; **FRED's own serving time is
+`source_available_time`**, and access is governed by the latter. Calling
+FRED "primary" while using the Fed's release rule conflated the two.
+Every manifest entry gains `publisher` (who originates the value) and
+`retrieval_source` (from whom we obtain the bytes), with one of two
+admissible resolutions recorded per series: pull from the publisher and
+use its release rule, or keep the aggregator under a **conservative
+aggregator-availability rule** — an assumed lag that can only DELAY,
+never advance, availability (§68.11.1's anti-lookahead principle).
+**Resolutions recorded now:** the FRED-sourced Fed series (DGS2, DGS10,
+DTWEXBGS) keep the aggregator with source availability set to
+**one business day after the publisher release, at the same local
+time** — strictly later than the Fed release, delay-only; the FRED index
+mirrors (SP500, NASDAQ100, VIXCLS) already carried a conservative
+end-of-next-business-day mirror rule, kept; `cboe_VIX` genuinely has
+`publisher == retrieval_source` (CBOE serves its own history file) and
+keeps its same-day rule; gold's resolution is recorded as to-be-
+established on procurement. A test asserts publisher and retrieval
+source are distinct wherever they genuinely are.
+
+#### 68.12.2 Unknown is not estimated — provenance follows the same rule
+
+The A2 encoding put an inferred commit-timestamp bound INTO
+`retrieved_at_utc`, a field later code would read as an observed
+acquisition time. Replaced: `retrieved_at_utc = null`,
+`retrieved_at_upper_bound_utc = <commit d8820ca timestamp>`,
+`retrieval_time_quality = "upper_bound"`. The corrected tool records
+true observed values (`retrieval_time_quality = "observed"`) on any
+future retrieval; nothing is back-filled.
+
+#### 68.12.3 "Minimum activity level" removed as a kill criterion (§68.10)
+
+**Corrects a rule the second delegate wrote.** §68.10's minimum activity
+level, derived from expected conviction-day frequency, reintroduced a
+formation requirement under a new name — the precise invariant Gen-3
+exists to remove (§68.1). **If the correct model finds two trades in a
+month, two trades are correct.** Replacement: activity rate and expected
+trade count are a DISCLOSURE beside every result, never a gate; too few
+observations to resolve the hypothesis at the frozen precision ⇒
+**INDETERMINATE, not FAIL**; a mechanical-feasibility test (minimum
+notional, liquidity, execution viability) remains admissible — "the
+strategy must trade often enough" does not.
+
+#### 68.12.4 The probability threshold is an illustration, not governance (§68.1)
+
+**Corrects a formula the second delegate derived.**
+`|P(up) − 0.5| > c_rt/(2·E|r|)` holds only under payoff symmetry and
+contradicts the adjacent rules that allocation uses the predicted return
+distribution with asymmetric tails. Demoted to a special-case
+illustrative derivation. **The general gate:**
+`E[r_i | F_t] − C_i − required_risk_compensation > 0`.
+
+#### 68.12.5 Invalidation — a path statistic, and one health metric among several
+
+**Corrects two claims the second delegate endorsed.** A terminal-return
+quantile is not a valid intratrade barrier: invalidation must be defined
+against an explicitly forecast **path statistic** (maximum adverse
+excursion, barrier-hit probability, or another named quantity), fixed in
+the spec stage — `r_path < Q_α(F̂_entry)` as written is WITHDRAWN pending
+that definition. And invalidation coverage is *a primary* model-health
+statistic, not the entire health state: calibration drift, distribution
+shift/OOD, ensemble disagreement (if used), tail severity, and
+correlated simultaneous failures may carry independent information. The
+composite health rule is deferred to the spec stage, not asserted.
+
+#### 68.12.6 Cold-start sequencing depends on Q3 alone (§68.9)
+
+The hierarchical juvenile rung asks whether cross-sectional forecasting
+extends to insufficient-history names; its prerequisite is that the
+mature-name cross-section works at all — **Q3 PASS**. Q4 determines only
+whether M1 exogenous features are INHERITED into that rung, not whether
+the rung may run: Q3 pass + Q4 fail still leaves a crypto-native +
+chain/sector hierarchical cold-start model testable.
+
+#### 68.12.7 The ladder's explicit INDETERMINATE branch (§68.11.4.2)
+
+Frozen: cheap-rung outcomes map to the expensive rungs (corporate /
+congressional / news-LLM) as — **≥1 PASS ⇒ may be proposed** (each on
+its own pre-registration); **no PASS but ≥1 INDETERMINATE ⇒ DEFERRED,
+not rejected**; **both FAIL ⇒ BLOCKED under the current generation**. An
+unresolved cheap rung must not permanently block the expensive ones, and
+a merely-deferred state must never later be read as a pass.
+
+#### 68.12.8 §68.0 carries the Gen-2 correction itself
+
+§68.0 said Gen-1/2 "both died on fixed invariants"; §68.11.4.4 corrected
+this two hundred lines later. The correction pointer now sits inside
+§68.0's own block (inserted per the process note above, verbatim as the
+delegates specified), so the design signature cannot teach the wrong
+history to a reader who stops there.
+
+#### 68.12.9 Non-blocking note — leave-one-out scope (§68.3)
+
+Recorded, not changed: LOO group priors remain frozen for the cold-start
+EVALUATION rung, where they are the correct conservative benchmark rule.
+In a properly specified hierarchical model, using an asset's own past
+PIT observations to estimate shared hyperparameters is not inherently
+lookahead; the real hazards are future information and double-counting
+one observation in both prior estimation and asset likelihood. The
+production hierarchical estimator is separately specified later; this
+note prevents the benchmark rule from being read as a prohibition on
+hierarchical estimation generally.
+
+**Stop point: after the manifest/loader corrections and tests land
+green, this stage STOPS — before G3-B, whose protocol must be frozen in
+the ledger before any reading.**
