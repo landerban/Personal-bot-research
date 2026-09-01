@@ -28,7 +28,7 @@ import io
 import json
 import time
 from dataclasses import dataclass, asdict, field
-from datetime import date
+from datetime import datetime, timezone
 
 import requests
 
@@ -42,7 +42,8 @@ CBOE_VIX = "https://cdn.cboe.com/api/global/us_indices/daily_prices/VIX_History.
 # enforced at model-read time (PIT views), NOT by truncating the raw archive.
 # The manifest records the boundaries so no fit ever crosses them.
 COSD = "1990-01-01"
-COED = date.today().isoformat()
+# timezone-aware (NOTES 68.11.2); never date.today()
+COED = datetime.now(timezone.utc).date().isoformat()
 
 
 @dataclass
@@ -57,7 +58,12 @@ class Series:
     first_public: str        # first-public-timestamp / availability semantics
     pit_usable: str          # the exact observation usable at a decision time
     notes: str = ""
+    licence_class: str = "redistribution_restricted"  # conservative default
     # filled after fetch:
+    retrieved_at_utc: str = ""
+    http_last_modified: str | None = None
+    http_etag: str | None = None
+    http_status: int | None = None
     adopted: bool = False     # ALWAYS false at this stage
     ok: bool = False
     rows: int = 0
@@ -76,20 +82,22 @@ SERIES: list[Series] = [
         key="fred_DGS2", instrument="US 2Y", source="FRED (Federal Reserve H.15)",
         url=_fred("DGS2"), role="primary", granularity="daily (business days)",
         cost="free, public domain",
-        first_public="H.15 released each business day ~16:15 ET for the PRIOR "
-                     "business day's trade date.",
-        pit_usable="value labelled date D is first knowable ~D+1 16:15 ET "
-                   "(~D+1 20:15 UTC). Use the most recent release known at t.",
+        first_public="H.15 released each business day, at the manifest's "
+                     "release_local_time in release_timezone, for the PRIOR "
+                     "business day.",
+        pit_usable="loader-governed (tools/g3_exogenous_loader.py); use the "
+                   "most recent release with source_available_time <= t.",
         notes="Constant-maturity yield, percent. NaN on non-trading days.",
+        licence_class="public_domain",
     ),
     Series(
         key="fred_DGS10", instrument="US 10Y", source="FRED (Federal Reserve H.15)",
         url=_fred("DGS10"), role="primary", granularity="daily (business days)",
         cost="free, public domain",
-        first_public="H.15 released each business day ~16:15 ET for the PRIOR "
-                     "business day's trade date.",
-        pit_usable="value labelled date D first knowable ~D+1 16:15 ET.",
+        first_public="Same H.15 release rule as fred_DGS2.",
+        pit_usable="loader-governed; same rule as fred_DGS2.",
         notes="Constant-maturity yield, percent.",
+        licence_class="public_domain",
     ),
     Series(
         key="fred_DTWEXBGS", instrument="DXY (SUBSTITUTE)",
@@ -97,7 +105,8 @@ SERIES: list[Series] = [
         url=_fred("DTWEXBGS"), role="substitute", granularity="daily (business days)",
         cost="free, public domain",
         first_public="H.10 daily broad index, released next business day.",
-        pit_usable="value date D knowable ~D+1. Use most recent release at t.",
+        pit_usable="loader-governed; next-business-day availability.",
+        licence_class="public_domain",
         notes="NOT ICE U.S. Dollar Index (DXY). ICE DXY is proprietary/licensed. "
               "This is the Fed nominal broad trade-weighted USD index — a "
               "documented free substitute, STAGED NOT ADOPTED. Basket and "
@@ -107,18 +116,20 @@ SERIES: list[Series] = [
         key="cboe_VIX", instrument="VIX", source="CBOE (official index history)",
         url=CBOE_VIX, role="primary", granularity="daily OHLC",
         cost="free (CBOE public CSV)",
-        first_public="Official daily close published by CBOE at end of the US "
-                     "cash session (~16:15 ET / ~20:15 UTC) for date D.",
-        pit_usable="close for date D knowable ~D 20:15 UTC (same day). "
-                   "Intraday VIX is disseminated live but only the close is here.",
+        first_public="Official daily close published by CBOE after the US cash "
+                     "session close, same day.",
+        pit_usable="loader-governed; same-day availability at the manifest's "
+                   "release_local_time in release_timezone.",
         notes="Authoritative source, history to 1990. OHLC.",
     ),
     Series(
         key="fred_VIXCLS", instrument="VIX (cross-check)",
         source="FRED (CBOE via FRED)", url=_fred("VIXCLS"), role="substitute",
         granularity="daily close", cost="free, public domain",
-        first_public="Mirrors CBOE close; FRED disseminates next morning.",
-        pit_usable="close date D; if pulled live from FRED, arrives D+1 AM.",
+        first_public="Underlying public same day (CBOE); this FRED mirror serves "
+                     "it the next business day.",
+        pit_usable="loader-governed; source availability set conservatively "
+                   "to end of the next business day (NOTES 68.11.1).",
         notes="Close-only cross-check against cboe_VIX. Prefer CBOE for OHLC.",
     ),
     Series(
@@ -126,11 +137,11 @@ SERIES: list[Series] = [
         source="FRED (S&P Dow Jones Indices)", url=_fred("SP500"),
         role="substitute", granularity="daily close",
         cost="free, but ROLLING ~10-year window only (licensing)",
-        first_public="Index close for date D known at US cash close ~16:00 ET; "
-                     "FRED series updates next morning.",
-        pit_usable="cash close date D knowable ~D 20:00 UTC. NOTE: cash index "
-                   "has NO overnight/Globex session, so it misses moves that "
-                   "occur between US close and the crypto decision cut.",
+        first_public="Underlying close public at the NYSE cash close; this FRED "
+                     "source serves it the next business day.",
+        pit_usable="loader-governed; source_available_time (FRED) governs "
+                   "access. Cash index has NO overnight/Globex session "
+                   "(Panel-B caveat, NOTES 68.11.2).",
         notes="NOT the ES future. CME ES futures (which trade ~23h and are the "
               "state variable actually named in §68.9) are proprietary. Cash "
               "index is a free substitute, STAGED NOT ADOPTED. Rolling 10y "
@@ -140,10 +151,9 @@ SERIES: list[Series] = [
         key="fred_NASDAQ100", instrument="NQ (SUBSTITUTE: Nasdaq-100 cash index)",
         source="FRED (Nasdaq)", url=_fred("NASDAQ100"), role="substitute",
         granularity="daily close", cost="free",
-        first_public="Index close for date D known at US cash close; FRED "
-                     "updates next morning.",
-        pit_usable="cash close date D knowable ~D 20:00 UTC. Same overnight-gap "
-                   "caveat as SP500.",
+        first_public="Underlying close public at the NYSE cash close; this FRED "
+                     "source serves it the next business day.",
+        pit_usable="loader-governed; same rule and caveats as fred_SP500.",
         notes="NOT the NQ future. CME NQ futures proprietary. Cash index is a "
               "free substitute, STAGED NOT ADOPTED. History reaches ~2015 here.",
     ),
@@ -159,12 +169,13 @@ def _session() -> requests.Session:
     return s
 
 
-def _fetch(session: requests.Session, url: str, retries: int = 3) -> bytes:
+def _fetch(session: requests.Session, url: str, retries: int = 3):
+    """Returns (content, headers, status) — provenance capture, §68.11.2."""
     for attempt in range(retries):
         try:
             r = session.get(url, timeout=60)
             r.raise_for_status()
-            return r.content
+            return r.content, r.headers, r.status_code
         except requests.RequestException:
             if attempt == retries - 1:
                 raise
@@ -206,10 +217,18 @@ def main() -> None:
     for s in SERIES:
         print(f"  {s.key:16s} [{s.role:10s}] {s.instrument}")
         try:
-            raw = _fetch(session, s.url)
+            raw, headers, status = _fetch(session, s.url)
+            s.retrieved_at_utc = datetime.now(timezone.utc).isoformat()
+            s.http_last_modified = headers.get("Last-Modified")
+            s.http_etag = headers.get("ETag")
+            s.http_status = status
             s.rows, s.coverage_start, s.coverage_end = _coverage(raw)
             s.sha256 = hashlib.sha256(raw).hexdigest()
-            path = os.path.join(OUT_DIR, s.key + ".csv")
+            # §68.11.3 raw-data policy: restricted raw files are NEVER
+            # committed — they live in the gitignored raw/ subdirectory.
+            sub = "" if s.licence_class == "public_domain" else "raw"
+            os.makedirs(os.path.join(OUT_DIR, sub) or OUT_DIR, exist_ok=True)
+            path = os.path.join(OUT_DIR, sub, s.key + ".csv")
             with open(path, "wb") as f:
                 f.write(raw)
             s.ok = s.rows > 0
@@ -223,20 +242,27 @@ def main() -> None:
             s.reason = repr(e)
             print(f"       FAILED: {s.reason}")
 
-    manifest = {
-        "generated": COED,
-        "governance": "STAGE_G3_0_GOVERNANCE.md §10 (G3-A) / §68.9",
-        "status": "AUDIT STAGING ONLY — nothing here is ADOPTED into any "
-                  "forecast. Adoption is gated behind delegate review at the "
-                  "spec stage (Order of work step 4).",
-        "development_window": "2020-01-01 .. 2024-12-31 (sequential-in-time)",
-        "sealed_window": "2025-01 .. 2026-07 (SEALED; enforced at model read, "
-                         "not by truncating these raw files)",
-        "holdout": "untouched",
-        "series": [asdict(s) for s in SERIES],
-    }
+    # §68.11: the manifest's release semantics and policy fields are
+    # authoritative and hand-audited — this tool MERGES retrieval provenance
+    # into the existing manifest and never regenerates it wholesale.
     mpath = os.path.join(OUT_DIR, "MANIFEST.json")
-    with open(mpath, "w") as f:
+    with open(mpath, encoding="utf-8") as f:
+        manifest = json.load(f)
+    by_key = {e["key"]: e for e in manifest["series"]}
+    retrieval_fields = ("retrieved_at_utc", "http_last_modified", "http_etag",
+                        "http_status", "rows", "coverage_start",
+                        "coverage_end", "sha256", "ok", "reason")
+    for s in SERIES:
+        entry = by_key.get(s.key)
+        d = asdict(s)
+        if entry is None:
+            manifest["series"].append(d)
+            continue
+        for k in retrieval_fields:
+            entry[k] = d[k]
+        entry.pop("retrieved_at_provenance", None)   # true values captured now
+    manifest["manifest_updated_utc"] = datetime.now(timezone.utc).isoformat()
+    with open(mpath, "w", encoding="utf-8") as f:
         json.dump(manifest, f, indent=2)
     ok = sum(1 for s in SERIES if s.ok)
     print(f"\n  wrote {mpath}")

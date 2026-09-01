@@ -15,3 +15,6 @@ paper_costs.jsonl
 /files/
 /diagnose.py
 usdc_funding.db*
+
+# NOTES 68.11.3: restricted raw exogenous data is never committed
+data/exogenous/raw/
