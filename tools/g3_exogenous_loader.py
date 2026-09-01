@@ -128,24 +128,23 @@ _NY = "America/New_York"
 _H15 = ReleaseRule(_NY, 16, 15, 1, "FederalReserveBusinessCalendar")
 _CBOE_CLOSE = ReleaseRule(_NY, 16, 15, 0, "CboeCalendar")
 _NYSE_CLOSE = ReleaseRule(_NY, 16, 0, 0, "NyseCalendar")
-# §68.12.1 publisher-vs-aggregator: FRED is the RETRIEVAL SOURCE, not the
-# publisher. Where the publisher's release is itself D+1 (H.15/H.10), the
-# aggregator's serving time is set CONSERVATIVELY to one further business
-# day at the same local time — strictly later than the publisher release,
-# delay-only, so the rule can never advance availability (§68.11.1).
-_FRED_AFTER_H15 = ReleaseRule(_NY, 16, 15, 2, "FederalReserveBusinessCalendar")
-# FRED mirrors of same-day closes update "next morning"; availability is
-# conservatively the END of the next business day pending measured times.
+# §70.1.1 (owner decision): the deployed system reads each re-sourced
+# value from its PUBLISHER's page on the evening it is published, so
+# training uses publisher timing — source rule == the publisher's
+# documented release rule for the re-sourced series. The §68.12.1
+# conservative aggregator rule (_FRED_AFTER_H15, offset 2) is RETIRED
+# for those series only. fred_VIXCLS is NOT re-sourced: it stays a
+# cross-check under the conservative mirror rule.
 _FRED_MIRROR = ReleaseRule(_NY, 16, 15, 1, "FederalReserveBusinessCalendar")
 
 RULES: dict[str, dict[str, ReleaseRule]] = {
-    "fred_DGS2": {"underlying": _H15, "source": _FRED_AFTER_H15},
-    "fred_DGS10": {"underlying": _H15, "source": _FRED_AFTER_H15},
-    "fred_DTWEXBGS": {"underlying": _H15, "source": _FRED_AFTER_H15},
+    "fred_DGS2": {"underlying": _H15, "source": _H15},
+    "fred_DGS10": {"underlying": _H15, "source": _H15},
+    "fred_DTWEXBGS": {"underlying": _H15, "source": _H15},
     "cboe_VIX": {"underlying": _CBOE_CLOSE, "source": _CBOE_CLOSE},
     "fred_VIXCLS": {"underlying": _CBOE_CLOSE, "source": _FRED_MIRROR},
-    "fred_SP500": {"underlying": _NYSE_CLOSE, "source": _FRED_MIRROR},
-    "fred_NASDAQ100": {"underlying": _NYSE_CLOSE, "source": _FRED_MIRROR},
+    "fred_SP500": {"underlying": _NYSE_CLOSE, "source": _NYSE_CLOSE},
+    "fred_NASDAQ100": {"underlying": _NYSE_CLOSE, "source": _NYSE_CLOSE},
 }
 
 

@@ -11701,3 +11701,51 @@ development return is read. Trial 1 is logged in §70.5 as
 `status: pre-registered`, `attempt_id = 1`, `valid_trial_count = 0`.
 **After §70.5, this stage STOPS for both delegates' review; G3-C is a
 separate stage.**
+
+### 70.5 The specification lock (2026-09-02) — this commit is the lock commit
+
+Implementation landed exactly as §70.1–§70.4 froze it: publisher-timing
+re-sourcing in `tools/g3_exogenous_loader.py` and the manifest (six
+series `adopted: true` per §70.1.2, quality `"observed"` per §70.1.1;
+fred_VIXCLS keeps the conservative mirror; gold not adopted); the `g3/`
+package (features / models / calibration / sequential / eval) built on
+the inherited `rcm/eval_ic.py` machinery; every §70.4 deterministic
+evaluator test green on SYNTHETIC data (planted positive ⇒ CI_lower >
+0; planted zero ⇒ straddle; planted negative ⇒ FAIL; the conjunctive
+criterion rejects BSS_M0 = −0.20 / BSS_M1 = −0.10 while its difference
+leg alone would pass); the sequential-protocol test proves every fit
+window ends before its target dates and counts 1,461 OOS days; the
+bit-equivalence test proves the paired index-walk call reproduces the
+inherited walker exactly. No development return was read.
+
+The pinned code, hashes computed from the files at lock time (the
+immutability test `tests/test_g3c_lock.py` re-derives these on every
+run; any drift voids the pre-registration):
+
+```
+LOCK-G3 g3/features.py sha256=6fd56644fb4cf06ae022c67d5864861698378d0f37d791cad2c3fb66315bea09
+LOCK-G3 g3/models.py sha256=e108d936132bb6025a1800bd1261d6eb5474ed8f826eb70fb1167f13f811d9ba
+LOCK-G3 g3/calibration.py sha256=3f4c88b662509b40142fdf930efd38e12e07ca44a2b67ad62fcea8e72c89e8cc
+LOCK-G3 g3/sequential.py sha256=c0bdd4c52a83262d59d25d461dc84ae1d44a40e3cc8b3f150c413de38c71bfea
+LOCK-G3 g3/eval.py sha256=76cbc280ab5359563e8d1f68101edcb9046631939978a0d761a73bf796ccad81
+LOCK-G3 rcm/eval_ic.py sha256=a1f29dccbbecff7e9969f8f3ccd0c62fc102aba022ae5e17bd8c6c82d8ab0935
+LOCK-G3 backtest/costs.py sha256=cbd40c2735c85fab60479c833042b47d455f8aeb2896e9c5e1d317f40ab586a5
+```
+
+`rcm/eval_ic.py` remains bit-identical to its §66.5 Gen-2 lock;
+`backtest/costs.py` is pinned for the §70.3.4 disclosure
+(`fee_mode="taker"`).
+
+**Trial pre-registration:**
+
+```
+G3-TRIAL-1 status=pre-registered attempt_id=1 valid_trial_count=0
+```
+
+Seed at the run stage: `int(sha256(lock_commit_hex)[:8], 16)` with
+`lock_commit_hex` = this commit's hash, printed at run time, never
+predicted (§70.3.2, inheriting §60.12.3 governance).
+
+**STOP. Both delegates review §70 before G3-C executes. G3-C is a
+separate stage; it consumes Gen-3 trial 1 of 20 when it runs. No
+forecast has been fitted on real data; the holdout is sealed.**

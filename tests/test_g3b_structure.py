@@ -37,9 +37,9 @@ def test_manifest_availability_quality_fields():
     by_key = {e["key"]: e for e in m["series"]}
     for key in STAGED:
         e = by_key[key]
-        assert e["source_availability_quality"] == "conservative_assumption"
-        assert e["source_availability_quality"] in (
-            "conservative_assumption", "observed")
+        expected = ("conservative_assumption" if key == "fred_VIXCLS"
+                    else "observed")            # NOTES 70.1.1 re-sourcing
+        assert e["source_availability_quality"] == expected, key
         assert e["source_availability_basis"].strip(), key
     assert "source_availability_quality" not in by_key["gold_LBMA"]
     assert "source_availability_basis" not in by_key["gold_LBMA"]

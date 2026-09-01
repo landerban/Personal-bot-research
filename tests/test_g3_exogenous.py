@@ -66,17 +66,17 @@ def test_access_rule_source_available_time_governs():
 
 
 def test_calendar_shifts_are_conservative_and_correct():
-    """Holiday and weekend shifts under the §68.12.1 aggregator rule
-    (publisher release D+1, FRED serving one FURTHER business day):
-    July-4 is skipped; Friday observations reach FRED on Tuesday; Good
-    Friday and Juneteenth (2021+) are in the union calendar. The
-    publisher's own release stays one business day earlier throughout."""
+    """Holiday and weekend shifts under publisher timing (NOTES 70.1.1:
+    source == publisher release for the re-sourced series): July-4 is
+    skipped for the H.15 next-business-day release; Friday observations
+    release Monday; Good Friday and Juneteenth (2021+) are in the union
+    calendar."""
     t = four_timestamps("fred_DGS2", date(2024, 7, 3))        # Wed pre-4th
     assert t["underlying_public_time"].startswith("2024-07-05"), t
-    assert t["source_available_time"].startswith("2024-07-08"), t
+    assert t["source_available_time"].startswith("2024-07-05"), t
     t = four_timestamps("fred_DGS2", date(2024, 7, 12))       # Friday
     assert t["underlying_public_time"].startswith("2024-07-15")
-    assert t["source_available_time"].startswith("2024-07-16")  # Tuesday
+    assert t["source_available_time"].startswith("2024-07-15")  # Monday
     assert date(2024, 3, 29) in us_market_holidays(2024)      # Good Friday
     assert date(2021, 6, 18) in us_market_holidays(2021)      # Juneteenth obs
     assert not any(d.month == 6 and d.day in (18, 19)
@@ -85,21 +85,20 @@ def test_calendar_shifts_are_conservative_and_correct():
 
 
 def test_underlying_never_after_source_and_fred_mirror_lags():
-    """§68.11.1.2 + §68.12.1: source_available_time is STRICTLY after
-    underlying_public_time for every FRED-sourced series (the aggregator
-    never serves at the publisher's instant); equal only for cboe_VIX,
-    where publisher == retrieval_source genuinely. §68.12.2:
-    retrieved_at_utc may be null — then the quality flag and a tz-aware
-    upper bound must say so."""
+    """§68.11.1.2 + §70.1.1: under publisher timing, source availability
+    EQUALS the publisher release for every re-sourced series; only
+    fred_VIXCLS (not re-sourced, conservative mirror) lags strictly.
+    §68.12.2: retrieved_at_utc may be null — then the quality flag and a
+    tz-aware upper bound must say so."""
     obs = date(2024, 6, 12)
     for key in RULES:
         t = four_timestamps(key, obs)
         u = datetime.fromisoformat(t["underlying_public_time"])
         s = datetime.fromisoformat(t["source_available_time"])
-        if key == "cboe_VIX":
-            assert s == u, "CBOE serves its own file at the release instant"
+        if key == "fred_VIXCLS":
+            assert s > u, "the mirror cross-check must lag the publisher"
         else:
-            assert s > u, f"{key}: aggregator must lag the publisher"
+            assert s == u, f"{key}: publisher timing (NOTES 70.1.1)"
         if t["retrieved_at_utc"] is None:
             assert t["retrieval_time_quality"] == "upper_bound", key
             b = datetime.fromisoformat(t["retrieved_at_upper_bound_utc"])
@@ -114,9 +113,15 @@ def test_underlying_never_after_source_and_fred_mirror_lags():
 def test_manifest_provenance_and_policy_fields():
     m = json.loads(MANIFEST.read_text("utf-8"))
     classes = {"public_domain", "redistribution_restricted", "licensed"}
+    adopted = {"cboe_VIX", "fred_DGS2", "fred_DGS10", "fred_DTWEXBGS",
+               "fred_SP500", "fred_NASDAQ100"}          # NOTES 70.1.2
     for e in m["series"]:
         assert e["licence_class"] in classes, e["key"]
-        assert e["adopted"] is False
+        if e["key"] in adopted:
+            assert e["adopted"] is True, e["key"]
+            assert "70.1.2" in e["adoption_decision"]
+        else:
+            assert e["adopted"] is False, e["key"]      # VIXCLS, gold
         # §68.12.1: the source chain never collapses — publisher and
         # retrieval_source recorded per series, distinct wherever they
         # genuinely are (only CBOE serves its own bytes).
@@ -137,7 +142,9 @@ def test_manifest_provenance_and_policy_fields():
         assert b.tzinfo is not None
         assert "retrieved_at_provenance" not in e
         if e["key"] in ("fred_DGS2", "fred_DGS10", "fred_DTWEXBGS"):
-            assert e["source_release_business_day_offset"] == 2, e["key"]
+            assert e["source_release_business_day_offset"] == 1, e["key"]
+        if e["key"] in ("fred_SP500", "fred_NASDAQ100"):
+            assert e["source_release_business_day_offset"] == 0, e["key"]
         assert e["source_release_timezone"] == "America/New_York"
         assert e["source_release_calendar"]
         assert "revision_policy" in e and e["vintage_support"] is False
