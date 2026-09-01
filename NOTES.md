@@ -10649,3 +10649,213 @@ hierarchical estimation generally.
 **Stop point: after the manifest/loader corrections and tests land
 green, this stage STOPS — before G3-B, whose protocol must be frozen in
 the ledger before any reading.**
+
+### 69.0 Stage G3-B Part 0 — provenance quality (2026-09-02; frozen before any reading)
+
+**No forecast fitted. No model compared. No trial consumed. Gen-3 0 of
+20. Holdout sealed. This section and §69.1 are appended, in their own
+commit, before any Part-0 code and before any series is read.**
+
+Every staged Panel-A series' `source_available_time` rests on an
+ASSUMED conservative rule (§68.12.1), not an observed publication
+timestamp — including `cboe_VIX`, whose same-day publisher rule is a
+release-time assumption even though the bytes come from the publisher.
+Recorded per series in the manifest:
+
+    source_availability_quality  = "conservative_assumption" | "observed"
+    source_availability_basis    = the exact rule assumed
+
+Values recorded now, all `"conservative_assumption"`:
+  - fred_DGS2 / fred_DGS10 / fred_DTWEXBGS — basis: "publisher + 1
+    business day, same local time"
+  - fred_SP500 / fred_NASDAQ100 / fred_VIXCLS — basis: "end of next
+    business day after the underlying close (mirror rule)"
+  - cboe_VIX — basis: "same-day release at release_local_time in
+    release_timezone (publisher's own file; assumed, not observed)"
+  - gold_LBMA — fields NOT set: no availability rule exists yet
+    (UNVERIFIED, §68.11.2); it receives them on procurement.
+
+`"observed"` may be recorded only if genuine historical serving
+timestamps are obtained or a direct publisher feed replaces the
+aggregator — never assumed.
+
+**Why this matters, recorded:** the conservative rule discards real
+information. Without the quality field, a failed cross-asset result
+cannot be distinguished between "the information genuinely does not
+predict" and "we handicapped the data by ~24h because exact historical
+aggregator timing was unavailable." Those are different findings.
+
+**Two invariants, pinned by tests:**
+
+    source_available_time >= underlying_public_time   (per observation, always)
+    PIT reader: source_available_time <= decision_time, else the
+    observation is NOT returned
+
+The first is swept across a full calendar year (both DST transitions,
+holidays, a leap day) for every staged series, not asserted on a single
+date.
+
+### 69.1 Stage G3-B — the measurement protocol, frozen before any series is read
+
+Governed by §0, §63.2 protocol discipline, and §68 as amended (§68.11,
+§68.12). Every statistical object below is defined HERE, before any
+value is read. §69.2 will contain results reported against this section
+with no post-hoc adjustment.
+
+#### 69.1.1 CONTAMINATION CLOSURE — M1's lag structure is frozen first
+
+G3-B measures which lags of each exogenous series lead BTC. The spec
+stage then selects M1's features. If the map informed which lag enters
+M1, that would be selection on development returns performed without
+spending a trial — the trial-budget mechanism bypassed by a
+"measurement." Frozen now, from architecture, before any series is
+read:
+
+> **M1 uses, for each adopted exogenous series, the single most recent
+> PIT-available observation at the decision time — one lag, no lag
+> search.** This is what the §68.11.1.2 access rule already implies. No
+> lag, window, or transform in M1 may be chosen from the G3-B map.
+
+The map is therefore **descriptive only**: it characterises
+transmission and its variation over time. It is **quarantined from
+feature selection**, and that quarantine is recorded here, not asserted
+later. The return conventions defined in §69.1.3 below are conventions
+OF THIS MAP alone; M1's feature transforms are chosen at the spec stage
+from architecture and inherit nothing from them.
+
+#### 69.1.2 Scope — Panel A only
+
+Panel A (daily) alone. Panel B requires licensed futures data and an
+owner decision on the intraday branch; G3-B does not wait on it and
+makes no intraday claim from cash-index data (§68.11.2).
+
+The measurement target is **BTC** — the §69.1.3 formula fixes
+`r_BTC` as the reference leg. The comparator set X comprises the seven
+staged Panel-A exogenous series (fred_DGS2, fred_DGS10, fred_DTWEXBGS,
+cboe_VIX, fred_VIXCLS, fred_SP500, fred_NASDAQ100 — all
+`adopted: false`, and measuring with them adopts nothing) **plus
+ETHUSDT as the crypto-internal comparator** — the resolution of the
+stage file's scope line "BTC, ETH (PIT store) and the adopted-pending
+Panel A exogenous set": the formula names BTC as the sole target, so
+every other in-scope series enters as an X. Recorded here as a
+completion made before any reading; gold_LBMA is excluded (no data, no
+availability rule).
+
+Development window **2020-01-01 → 2024-12-31** only. Crypto legs come
+from the PIT store's 1d UTC bars via a seal-checked, hard-capped,
+read-only load (the §63.2.1 pattern, re-used verbatim); exogenous legs
+come through `tools/g3_exogenous_loader.pit_view` under §69.0's
+invariants, with observations additionally clamped to
+`observation_time <= 2024-12-31`.
+
+#### 69.1.3 Statistics — every object defined before reading
+
+**Snapshot instant.** For UTC calendar date `t`, the snapshot instant
+is `tau_t` = 00:00:00 UTC of the following day (the exact instant date
+`t` ends). All availability comparisons are against `tau_t`.
+
+**Crypto returns.** `r_BTC,t = ln(C_t / C_{t-1})` where `C_t` is the
+1d-bar close for UTC date `t` (BTCUSDT; identically ETHUSDT for the
+comparator). A date-`t` close is knowable exactly at `tau_t`.
+
+**Exogenous stale-carry.** `V_X(t)` = the value of the most recent
+observation of X with `source_available_time <= tau_t` (and
+observation_time inside the development window). Undefined before the
+first such observation. A date with no NEW observation becoming
+available in `(tau_{t-1}, tau_t]` is a **stale (carried) date** for X.
+
+**Exogenous returns — conventions of this map only (§69.1.1):**
+  - fred_DGS2, fred_DGS10 (yield levels, percent):
+    `r_X,t = V_X(t) - V_X(t-1)` — first difference in percentage
+    points (log-differencing a near-zero 2021 short yield is not
+    meaningful).
+  - fred_DTWEXBGS, cboe_VIX (close column), fred_VIXCLS, fred_SP500,
+    fred_NASDAQ100: `r_X,t = ln(V_X(t) / V_X(t-1))`.
+  - A carried date has `r_X,t = 0` and `stale = 1` — staleness is a
+    state to report, never to hide.
+
+**Window.** The frozen 90-day window (§63.6 precedent). No other
+window. **No partial windows:** a statistic at `t` exists only when
+every one of its 90 aligned pairs is defined and every date it touches
+lies inside the development window; otherwise the record is absent. The
+sample size `n` (= 90 by construction) is still reported per record.
+
+**Lead/lag.** For each X and each
+`k in {-5,-4,-3,-2,-1,0,+1,+2,+3,+4,+5}` calendar days:
+
+    rho_k,t = Corr( r_X,(t-89 ... t) , r_BTC,(t-89+k ... t+k) )
+
+both Pearson and Spearman. Spearman is defined as Pearson on
+average-rank-transformed data (ties receive the mean of the ranks they
+occupy); implemented directly, no external statistics dependency.
+`k > 0` shifts the BTC leg LATER in time; nothing here is named
+"leading" or "lagging" in any output.
+
+**Knowable-at rule.** `rho_k,t` is knowable at
+`as_of(k, t) = t + max(k, 0)`: for `k > 0` the statistic does not
+exist at `t` and appears only at `t + k`. The rule is deterministic and
+recorded in every output header; a test asserts no `rho_k,t` uses any
+input knowable only after `as_of(k, t)`, and no window touches any
+date outside the development window.
+
+**Rolling beta.** `beta_X,t` = the OLS slope (intercept included) of
+`r_BTC` on `r_X` over the same 90 contemporaneous (`k = 0`) pairs, with
+its classical standard error
+`SE = sqrt( (RSS/(n-2)) / sum((r_X - mean(r_X))^2) )`. A window with
+zero variance in either leg emits `null` with a reason string, for
+beta and for the correlations alike.
+
+**Emitted per (X, t), one JSONL record:** `rho_pearson[k]` and
+`rho_spearman[k]` for all eleven k, `beta`, `se_beta`, `n`, the
+per-date `stale` flag, and `stale_days_in_window` (carried dates among
+the 90). **Across dates, per (X, k, statistic):** the p5/p25/p50/p75/
+p95 distribution (§63.2.4.2 percentiles — the only percentiles).
+
+**Destinations.** Full raw per-date series →
+`research/g3b/out/diagnostics.jsonl`; the distributional summaries →
+§69.2 and summary records in the same file. The first record of every
+output file is a header stating: descriptive only; quarantined from
+feature selection (§69.1.1); no adoption (`adopted: false` stands); no
+trial consumed; no skill claim; Q1–Q4 remain the only skill criteria.
+
+**No thresholds. No narrative labels. No "regime" statistic.** The
+delegates read the series; they do not receive a story.
+
+#### 69.1.4 Delay-cost sensitivity — descriptive, quarantined
+
+The same map, computed a second time with availability =
+`underlying_public_time` (publisher-release timing) instead of the
+aggregator rule, written to `research/g3b/out/sensitivity.jsonl`. This
+does NOT adopt publisher timing; its only purpose is to make §69.0's
+distinction measurable — how much transmission the conservative rule
+discards. Quarantined from feature selection and from any adoption
+decision. Its header and EVERY record carry the label:
+
+    SENSITIVITY — NOT THE PIT-VALID SERIES
+
+#### 69.1.5 What G3-B is not
+
+- Not a trial: no forecast is fitted, no specification is compared, no
+  result can cause preference between models (§69.1.1 guarantees this
+  by freezing the lag structure first).
+- Not an adoption decision: the Panel A substitutes remain
+  `adopted: false`; measuring with a series does not adopt it.
+- Not evidence of predictability: a correlation map is not a forecast
+  test. Q1–Q4 remain the only skill criteria.
+
+#### 69.1.6 Execution order, frozen
+
+1. Part 0 fields + tests land green (no development values read by the
+   new code paths beyond what the existing A2/A3 tests already touch).
+2. BEFORE the first measurement read, two refusals are exercised and
+   their messages logged verbatim: (a) `rcm.seal.assert_range_allowed`
+   on a range one day into 2025 → `SealViolation`; (b) a G3-B map
+   request for `t = 2025-01-01` → refused by the module's own hard cap.
+   Both quoted in §69.2 from printed output.
+3. The §69.1.3 measurement runs once over the development window; then
+   the §69.1.4 sensitivity; §69.2 is appended from printed output only
+   (file sha256s included), and the stage STOPS — the spec stage
+   (feature families and frozen transforms, forecast form, lambda and
+   caps, calibration, the path-statistic invalidation definition, exact
+   Q1–Q4, lock commit) follows under both delegates' review before the
+   single G3-C trial.
