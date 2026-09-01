@@ -45,7 +45,9 @@
       "retrieval_source": "FRED",
       "availability_resolution": "aggregator kept (FRED); source availability = one business day AFTER the publisher's release at the same local time \u2014 conservative, delay-only (NOTES 68.12.1)",
       "retrieved_at_upper_bound_utc": "2026-09-01T15:03:43+00:00",
-      "retrieval_time_quality": "upper_bound"
+      "retrieval_time_quality": "upper_bound",
+      "source_availability_quality": "conservative_assumption",
+      "source_availability_basis": "publisher + 1 business day, same local time"
     },
     {
       "key": "fred_DGS10",
@@ -87,7 +89,9 @@
       "retrieval_source": "FRED",
       "availability_resolution": "aggregator kept (FRED); source availability = one business day AFTER the publisher's release at the same local time \u2014 conservative, delay-only (NOTES 68.12.1)",
       "retrieved_at_upper_bound_utc": "2026-09-01T15:03:43+00:00",
-      "retrieval_time_quality": "upper_bound"
+      "retrieval_time_quality": "upper_bound",
+      "source_availability_quality": "conservative_assumption",
+      "source_availability_basis": "publisher + 1 business day, same local time"
     },
     {
       "key": "fred_DTWEXBGS",
@@ -129,7 +133,9 @@
       "retrieval_source": "FRED",
       "availability_resolution": "aggregator kept (FRED); source availability = one business day AFTER the publisher's release at the same local time \u2014 conservative, delay-only (NOTES 68.12.1)",
       "retrieved_at_upper_bound_utc": "2026-09-01T15:03:43+00:00",
-      "retrieval_time_quality": "upper_bound"
+      "retrieval_time_quality": "upper_bound",
+      "source_availability_quality": "conservative_assumption",
+      "source_availability_basis": "publisher + 1 business day, same local time"
     },
     {
       "key": "cboe_VIX",
@@ -171,7 +177,9 @@
       "retrieval_source": "CBOE",
       "availability_resolution": "publisher-pull: CBOE serves its own index history file; publisher == retrieval_source genuinely; same-day close rule stands (NOTES 68.12.1)",
       "retrieved_at_upper_bound_utc": "2026-09-01T15:03:43+00:00",
-      "retrieval_time_quality": "upper_bound"
+      "retrieval_time_quality": "upper_bound",
+      "source_availability_quality": "conservative_assumption",
+      "source_availability_basis": "same-day release at release_local_time in release_timezone (publisher's own file; assumed, not observed)"
     },
     {
       "key": "fred_VIXCLS",
@@ -213,7 +221,9 @@
       "retrieval_source": "FRED",
       "availability_resolution": "aggregator kept (FRED); source availability = end of the next business day after the underlying close \u2014 conservative mirror rule (NOTES 68.11.1, confirmed 68.12.1)",
       "retrieved_at_upper_bound_utc": "2026-09-01T15:03:43+00:00",
-      "retrieval_time_quality": "upper_bound"
+      "retrieval_time_quality": "upper_bound",
+      "source_availability_quality": "conservative_assumption",
+      "source_availability_basis": "end of next business day after the underlying close (mirror rule)"
     },
     {
       "key": "fred_SP500",
@@ -255,7 +265,9 @@
       "retrieval_source": "FRED",
       "availability_resolution": "aggregator kept (FRED); source availability = end of the next business day after the underlying close \u2014 conservative mirror rule (NOTES 68.11.1, confirmed 68.12.1)",
       "retrieved_at_upper_bound_utc": "2026-09-01T15:03:43+00:00",
-      "retrieval_time_quality": "upper_bound"
+      "retrieval_time_quality": "upper_bound",
+      "source_availability_quality": "conservative_assumption",
+      "source_availability_basis": "end of next business day after the underlying close (mirror rule)"
     },
     {
       "key": "fred_NASDAQ100",
@@ -297,7 +309,9 @@
       "retrieval_source": "FRED",
       "availability_resolution": "aggregator kept (FRED); source availability = end of the next business day after the underlying close \u2014 conservative mirror rule (NOTES 68.11.1, confirmed 68.12.1)",
       "retrieved_at_upper_bound_utc": "2026-09-01T15:03:43+00:00",
-      "retrieval_time_quality": "upper_bound"
+      "retrieval_time_quality": "upper_bound",
+      "source_availability_quality": "conservative_assumption",
+      "source_availability_basis": "end of next business day after the underlying close (mirror rule)"
     },
     {
       "key": "gold_LBMA",
@@ -321,7 +335,7 @@
     }
   ],
   "originally_generated": "2026-09-01",
-  "manifest_updated_utc": "2026-09-03T00:00:00+00:00",
+  "manifest_updated_utc": "2026-09-02T00:00:00+00:00",
   "timestamp_model": "Four timestamps per observation (NOTES 68.11.1.2): observation_time, underlying_public_time, source_available_time, retrieved_at_utc. ACCESS RULE: a model may consume a value only when source_available_time <= t. Per-observation values come from tools/g3_exogenous_loader.py; NO UTC release constant exists anywhere in this manifest.",
   "revisable_series_rule": "Any future revisable series (CPI/PCE/NFP class) must carry revision_id/vintage fields: observation -> publication -> revision -> retrieval, four distinct fields (68.11.1.2). None staged yet.",
   "raw_data_policy": "Vendor/index raw data is NEVER committed; public-domain series may be, by explicit licence_class (NOTES 68.11.3). Restricted raw files live untracked in data/exogenous/raw/.",
