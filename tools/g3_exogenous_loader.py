@@ -188,11 +188,24 @@ def load_series(key: str) -> list[tuple[date, float]]:
         if len(r) < 2 or r[-1].strip() in ("", "."):
             continue
         try:
-            out.append((date.fromisoformat(r[0].strip()[:10]),
-                        float(r[-1].strip())))
+            out.append((_parse_date(r[0].strip()), float(r[-1].strip())))
         except ValueError:
             continue
     return out
+
+
+def _parse_date(s: str) -> date:
+    """ISO first; then the MM/DD/YYYY the CBOE history file uses.
+
+    FINDING B-1 (NOTES 69.2): the original ISO-only parse silently
+    dropped every CBOE row via the ValueError-continue, so cboe_VIX
+    loaded as an empty series while the manifest (whose coverage counter
+    only float-checks the value column) reported it fine."""
+    try:
+        return date.fromisoformat(s[:10])
+    except ValueError:
+        m, d, y = s.split("/")
+        return date(int(y), int(m), int(d))
 
 
 def pit_view(key: str, t_utc: datetime) -> list[tuple[date, float]]:

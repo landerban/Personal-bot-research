@@ -189,6 +189,18 @@ def test_beta_matches_closed_form():
     print("PASS g3b_beta")
 
 
+def test_finding_b1_cboe_date_format_parses():
+    """FINDING B-1 (NOTES 69.2): the CBOE history file's MM/DD/YYYY dates
+    must parse; the original ISO-only parse silently emptied cboe_VIX."""
+    from tools.g3_exogenous_loader import _parse_date, load_series
+    assert _parse_date("01/02/1990") == date(1990, 1, 2)
+    assert _parse_date("2024-07-10") == date(2024, 7, 10)
+    rows = load_series("cboe_VIX")
+    assert len(rows) > 8000, "cboe_VIX must not load empty"
+    assert rows[0][0].year == 1990
+    print("PASS g3b_finding_b1")
+
+
 # ------------------------------------------------------ emitted output
 
 OUT = ROOT / "research" / "g3b" / "out"
