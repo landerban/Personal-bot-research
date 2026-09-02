@@ -38,7 +38,7 @@ def test_manifest_availability_quality_fields():
     for key in STAGED:
         e = by_key[key]
         expected = ("conservative_assumption" if key == "fred_VIXCLS"
-                    else "observed")            # NOTES 70.1.1 re-sourcing
+                    else "documented_schedule")  # NOTES 70.8.0 split
         assert e["source_availability_quality"] == expected, key
         assert e["source_availability_basis"].strip(), key
     assert "source_availability_quality" not in by_key["gold_LBMA"]

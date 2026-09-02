@@ -128,24 +128,52 @@ _NY = "America/New_York"
 _H15 = ReleaseRule(_NY, 16, 15, 1, "FederalReserveBusinessCalendar")
 _CBOE_CLOSE = ReleaseRule(_NY, 16, 15, 0, "CboeCalendar")
 _NYSE_CLOSE = ReleaseRule(_NY, 16, 0, 0, "NyseCalendar")
-# §70.1.1 (owner decision): the deployed system reads each re-sourced
-# value from its PUBLISHER's page on the evening it is published, so
-# training uses publisher timing — source rule == the publisher's
-# documented release rule for the re-sourced series. The §68.12.1
-# conservative aggregator rule (_FRED_AFTER_H15, offset 2) is RETIRED
-# for those series only. fred_VIXCLS is NOT re-sourced: it stays a
-# cross-check under the conservative mirror rule.
+# §70.8 mixed timing rule: publisher-time reconstruction is EARNED per
+# series by vintage verification, never assumed. VERIFIED
+# (publisher_value_equivalence in the manifest) ⇒ source == the
+# publisher's documented release rule; UNVERIFIED ⇒ the conservative
+# §68.12.1 rule (publisher + 1 business day, same local time) —
+# handicapped, never dropped, cannot leak a revised vintage at
+# publisher timing. The loader READS the manifest so the enforcement is
+# structural, not conventional. fred_VIXCLS stays a cross-check under
+# the conservative mirror rule regardless of its verification record.
 _FRED_MIRROR = ReleaseRule(_NY, 16, 15, 1, "FederalReserveBusinessCalendar")
 
-RULES: dict[str, dict[str, ReleaseRule]] = {
-    "fred_DGS2": {"underlying": _H15, "source": _H15},
-    "fred_DGS10": {"underlying": _H15, "source": _H15},
-    "fred_DTWEXBGS": {"underlying": _H15, "source": _H15},
-    "cboe_VIX": {"underlying": _CBOE_CLOSE, "source": _CBOE_CLOSE},
-    "fred_VIXCLS": {"underlying": _CBOE_CLOSE, "source": _FRED_MIRROR},
-    "fred_SP500": {"underlying": _NYSE_CLOSE, "source": _NYSE_CLOSE},
-    "fred_NASDAQ100": {"underlying": _NYSE_CLOSE, "source": _NYSE_CLOSE},
+_PUBLISHER: dict[str, ReleaseRule] = {
+    "fred_DGS2": _H15,
+    "fred_DGS10": _H15,
+    "fred_DTWEXBGS": _H15,
+    "cboe_VIX": _CBOE_CLOSE,
+    "fred_VIXCLS": _CBOE_CLOSE,
+    "fred_SP500": _NYSE_CLOSE,
+    "fred_NASDAQ100": _NYSE_CLOSE,
 }
+
+
+def _conservative(r: ReleaseRule) -> ReleaseRule:
+    """§68.12.1: one business day after the publisher release, same
+    local time — delay-only by construction."""
+    return ReleaseRule(r.tz, r.local_hour, r.local_minute,
+                       r.business_day_offset + 1, r.calendar)
+
+
+def _build_rules() -> dict[str, dict[str, ReleaseRule]]:
+    manifest = json.loads((EXO_DIR / "MANIFEST.json").read_text("utf-8"))
+    eq = {e["key"]: e.get("publisher_value_equivalence")
+          for e in manifest["series"]}
+    rules = {}
+    for key, pub in _PUBLISHER.items():
+        if key == "fred_VIXCLS":
+            src = _FRED_MIRROR
+        elif eq.get(key) == "VERIFIED":
+            src = pub
+        else:
+            src = _conservative(pub)     # UNVERIFIED never reads at
+        rules[key] = {"underlying": pub, "source": src}  # publisher time
+    return rules
+
+
+RULES: dict[str, dict[str, ReleaseRule]] = _build_rules()
 
 
 def four_timestamps(key: str, obs: date) -> dict:

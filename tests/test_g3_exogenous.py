@@ -85,20 +85,22 @@ def test_calendar_shifts_are_conservative_and_correct():
 
 
 def test_underlying_never_after_source_and_fred_mirror_lags():
-    """§68.11.1.2 + §70.1.1: under publisher timing, source availability
-    EQUALS the publisher release for every re-sourced series; only
-    fred_VIXCLS (not re-sourced, conservative mirror) lags strictly.
-    §68.12.2: retrieved_at_utc may be null — then the quality flag and a
-    tz-aware upper bound must say so."""
+    """§70.8 mixed rule: source availability EQUALS the publisher
+    release only for VERIFIED series (DGS2, DGS10, cboe_VIX); the
+    UNVERIFIED series (DTWEXBGS, SP500, NASDAQ100) and the VIXCLS
+    mirror cross-check lag strictly. §68.12.2: retrieved_at_utc may be
+    null — then the quality flag and a tz-aware upper bound must say
+    so."""
     obs = date(2024, 6, 12)
+    verified = {"fred_DGS2", "fred_DGS10", "cboe_VIX"}
     for key in RULES:
         t = four_timestamps(key, obs)
         u = datetime.fromisoformat(t["underlying_public_time"])
         s = datetime.fromisoformat(t["source_available_time"])
-        if key == "fred_VIXCLS":
-            assert s > u, "the mirror cross-check must lag the publisher"
+        if key in verified:
+            assert s == u, f"{key}: publisher timing earned (70.8)"
         else:
-            assert s == u, f"{key}: publisher timing (NOTES 70.1.1)"
+            assert s > u, f"{key}: must lag the publisher (70.8)"
         if t["retrieved_at_utc"] is None:
             assert t["retrieval_time_quality"] == "upper_bound", key
             b = datetime.fromisoformat(t["retrieved_at_upper_bound_utc"])
@@ -141,13 +143,18 @@ def test_manifest_provenance_and_policy_fields():
         b = datetime.fromisoformat(e["retrieved_at_upper_bound_utc"])
         assert b.tzinfo is not None
         assert "retrieved_at_provenance" not in e
-        if e["key"] in ("fred_DGS2", "fred_DGS10", "fred_DTWEXBGS"):
+        if e["key"] in ("fred_DGS2", "fred_DGS10"):
             assert e["source_release_business_day_offset"] == 1, e["key"]
-        if e["key"] in ("fred_SP500", "fred_NASDAQ100"):
-            assert e["source_release_business_day_offset"] == 0, e["key"]
+        if e["key"] == "fred_DTWEXBGS":                 # UNVERIFIED (70.8)
+            assert e["source_release_business_day_offset"] == 2
+        if e["key"] in ("fred_SP500", "fred_NASDAQ100"):  # UNVERIFIED
+            assert e["source_release_business_day_offset"] == 1, e["key"]
         assert e["source_release_timezone"] == "America/New_York"
         assert e["source_release_calendar"]
-        assert "revision_policy" in e and e["vintage_support"] is False
+        assert "revision_policy" in e
+        # 70.8.1: vintage archives were located for every series except
+        # fred_SP500 (no ALFRED vintages pass the honesty guard).
+        assert e["vintage_support"] is (e["key"] != "fred_SP500")
         for f in ("http_last_modified", "http_etag", "http_status"):
             assert f in e
     assert "source_chain_rule" in m
@@ -173,3 +180,68 @@ def test_restricted_raw_files_are_untracked_and_ignored():
         assert (ROOT / "data" / "exogenous" / "raw" / name).exists(), (
             f"{name} must still exist locally — untracked is not deleted")
     print("PASS g3a2_licence_policy")
+
+
+def test_v3_mixed_timing_enforced_per_series():
+    """§70.8: UNVERIFIED series cannot be read at publisher timing —
+    the loader's source rule is at least one business day later than
+    the publisher release; VERIFIED series earn equality. Checked from
+    the manifest, so the enforcement is structural."""
+    from tools.g3_exogenous_loader import pit_view_usable, usable_utc
+    m = json.loads(MANIFEST.read_text("utf-8"))
+    eq = {e["key"]: e.get("publisher_value_equivalence")
+          for e in m["series"]}
+    days = [date(2024, 1, 8), date(2024, 6, 12), date(2024, 11, 20)]
+    for key in RULES:
+        if key == "fred_VIXCLS":
+            continue                       # cross-check, mirror always
+        for d in days:
+            u = RULES[key]["underlying"].availability_utc(d)
+            src = RULES[key]["source"].availability_utc(d)
+            if eq[key] == "VERIFIED":
+                assert src == u, (key, d)
+            else:
+                assert src >= u + timedelta(days=1), (key, d)
+    # possession check on a real UNVERIFIED series: at the 22:00Z fetch
+    # on the PUBLISHER release date, the observation is NOT possessed.
+    obs = date(2024, 6, 12)                # SP500 close published same day
+    pub_fetch = usable_utc("fred_DGS2", obs)  # any same-era 22:00Z instant
+    pub_day_2200 = datetime(2024, 6, 12, 22, 0, tzinfo=timezone.utc)
+    have = {d for d, _ in pit_view_usable("fred_SP500", pub_day_2200)}
+    assert obs not in have, "UNVERIFIED series read at publisher timing"
+    nxt = datetime(2024, 6, 13, 22, 0, tzinfo=timezone.utc)
+    have2 = {d for d, _ in pit_view_usable("fred_SP500", nxt)}
+    assert obs in have2
+    del pub_fetch
+    print("PASS g3v3_mixed_timing")
+
+
+def test_v3_verification_fields_and_label_split():
+    """§70.8: per-series verification block present; the quality label
+    split applied; NO series is labelled "observed"; UNVERIFIED series
+    carry the conservative timing rule."""
+    m = json.loads(MANIFEST.read_text("utf-8"))
+    adopted = {"cboe_VIX", "fred_DGS2", "fred_DGS10", "fred_DTWEXBGS",
+               "fred_SP500", "fred_NASDAQ100"}
+    quality_enum = {"conservative_assumption", "documented_schedule",
+                    "observed"}
+    for e in m["series"]:
+        k = e["key"]
+        if k == "gold_LBMA":
+            continue
+        assert e["publisher_value_equivalence"] in ("VERIFIED",
+                                                    "UNVERIFIED"), k
+        assert e["verification_method"].strip(), k
+        assert e["verification_evidence"].strip(), k
+        assert "historical_value_source" in e and "production_source" in e
+        assert e["source_availability_quality"] in quality_enum, k
+        assert e["source_availability_quality"] != "observed", (
+            f"{k}: observed requires actual timestamps (70.8.0)")
+        if k in adopted:
+            assert e["source_availability_quality"] == "documented_schedule"
+            assert e["publication_schedule"].strip()
+            assert e["usable_time_rule"].strip()
+            if e["publisher_value_equivalence"] == "UNVERIFIED":
+                assert "CONSERVATIVE" in e["timing_rule"], k
+    assert any("information-age" in r for r in m["open_refinements"])
+    print("PASS g3v3_verification_fields")

@@ -12165,3 +12165,178 @@ Raw vintage downloads land in the gitignored
 `data/exogenous/raw/vintages/` (the SP500/NASDAQ100 vintages are
 restricted like their parents); their sha256s are recorded in the
 execution record. Evidence is quoted from printed output only.
+
+#### 70.8.1 Vintage verification — execution record (2026-09-02; the §70.8.0 rule executed exactly; evidence quoted verbatim from printed output)
+
+Raw vintage downloads (30 annual-snapshot files + the tight-vintage
+responses) live in the gitignored `data/exogenous/raw/vintages/`;
+their sha256 prefixes appear in the transcript below. The endpoint
+honesty guard was live: every used response carries its
+vintage-suffixed value column; every fred_SP500 snapshot FAILED the
+guard and produced no comparison — recorded as absence of a vintage
+archive, never inferred equivalence.
+
+```
+sample rule: 132 observation dates (every 10th business day + year edges); tight sub-sample 10 half-year firsts: 2020-01-02 2020-07-01 2021-01-04 2021-07-01 2022-01-03 2022-07-01 2023-01-03 2023-07-03 2024-01-02 2024-07-01
+  snapshot DGS2 as-of 2021-01-15: suffix=20210115 sha256=9899a8c536d7a15c.. n=281
+  snapshot DGS2 as-of 2022-01-14: suffix=20220114 sha256=1fbeb9ebf3775835.. n=532
+  snapshot DGS2 as-of 2023-01-13: suffix=20230113 sha256=b4cfc8db16a1129b.. n=780
+  snapshot DGS2 as-of 2024-01-12: suffix=20240112 sha256=bfa3ca5d3e2c6a2a.. n=1030
+  snapshot DGS2 as-of 2025-01-15: suffix=20250115 sha256=a30c72f5e25d10df.. n=1272
+  snapshot DGS10 as-of 2021-01-15: suffix=20210115 sha256=7f53ad1b1c4ecb2c.. n=281
+  snapshot DGS10 as-of 2022-01-14: suffix=20220114 sha256=68fa05d6f160056f.. n=532
+  snapshot DGS10 as-of 2023-01-13: suffix=20230113 sha256=5315b5689092f57d.. n=780
+  snapshot DGS10 as-of 2024-01-12: suffix=20240112 sha256=337189350522d75c.. n=1030
+  snapshot DGS10 as-of 2025-01-15: suffix=20250115 sha256=2f1cfa1c140b3c99.. n=1272
+  snapshot DTWEXBGS as-of 2021-01-15: suffix=20210115 sha256=62ecc736cbadb33d.. n=275
+  snapshot DTWEXBGS as-of 2022-01-14: suffix=20220114 sha256=5c2f362afbc398b1.. n=524
+  snapshot DTWEXBGS as-of 2023-01-13: suffix=20230113 sha256=50a98dd59a6078f5.. n=773
+  snapshot DTWEXBGS as-of 2024-01-12: suffix=20240112 sha256=b65c4b2884c5c856.. n=1022
+  snapshot DTWEXBGS as-of 2025-01-15: suffix=20250115 sha256=2f3b1ae4491a46da.. n=1269
+  snapshot SP500 as-of 2021-01-15: FAILED/guard
+  snapshot SP500 as-of 2022-01-14: FAILED/guard
+  snapshot SP500 as-of 2023-01-13: FAILED/guard
+  snapshot SP500 as-of 2024-01-12: FAILED/guard
+  snapshot SP500 as-of 2025-01-15: FAILED/guard
+  snapshot NASDAQ100 as-of 2021-01-15: suffix=20210115 sha256=9cd68176453b2b69.. n=284
+  snapshot NASDAQ100 as-of 2022-01-14: suffix=20220114 sha256=9315979727114bf8.. n=536
+  snapshot NASDAQ100 as-of 2023-01-13: suffix=20230113 sha256=b4317ba07ded905d.. n=786
+  snapshot NASDAQ100 as-of 2024-01-12: suffix=20240112 sha256=4a5027ac1d57c88c.. n=960
+  snapshot NASDAQ100 as-of 2025-01-15: suffix=20250115 sha256=56952a7bff6912a6.. n=1279
+  snapshot VIXCLS as-of 2021-01-15: suffix=20210115 sha256=ae5708f9bfcc5797.. n=284
+  snapshot VIXCLS as-of 2022-01-14: suffix=20220114 sha256=5c85b5fdf1238470.. n=536
+  snapshot VIXCLS as-of 2023-01-13: suffix=20230113 sha256=fc32b5833900a505.. n=792
+  snapshot VIXCLS as-of 2024-01-12: suffix=20240112 sha256=e1308610144513be.. n=1049
+  snapshot VIXCLS as-of 2025-01-15: suffix=20250115 sha256=c5ca4ba9d2fbae91.. n=1298
+
+== fred_DGS2 (ALFRED id DGS2)
+   sampled 132  comparable 132  coverage 100.0%  discrepancies 0  between-snapshot revisions 0  tight: 10 comparable, 0 discrepancies
+   VERDICT fred_DGS2: VERIFIED
+== fred_DGS10 (ALFRED id DGS10)
+   sampled 132  comparable 132  coverage 100.0%  discrepancies 0  between-snapshot revisions 0  tight: 10 comparable, 0 discrepancies
+   VERDICT fred_DGS10: VERIFIED
+== fred_DTWEXBGS (ALFRED id DTWEXBGS)
+   sampled 132  comparable 131  coverage 99.2%  discrepancies 131  between-snapshot revisions 106  tight: 10 comparable, 10 discrepancies
+   DISC 2020-01-02 vintage(asof 2021-01-15)=115.0169 today=114.9745
+   DISC 2020-01-16 vintage(asof 2021-01-15)=115.0544 today=115.0006
+   DISC 2020-01-31 vintage(asof 2021-01-15)=115.7850 today=115.7345
+   DISC 2020-02-14 vintage(asof 2021-01-15)=116.4479 today=116.4223
+   DISC 2020-03-02 vintage(asof 2021-01-15)=116.9457 today=116.8144
+   REV  2020-01-02: asof 2021-01-15=115.0169 -> asof 2022-01-14=114.9755
+   REV  2020-01-16: asof 2021-01-15=115.0544 -> asof 2022-01-14=114.9986
+   REV  2020-01-31: asof 2021-01-15=115.7850 -> asof 2022-01-14=115.7337
+   REV  2020-02-14: asof 2021-01-15=116.4479 -> asof 2022-01-14=116.4170
+   REV  2020-03-02: asof 2021-01-15=116.9457 -> asof 2022-01-14=116.8165
+   TDISC 2020-01-02 vintage(suffix 20200112)=115.0172 today=114.9745
+   TDISC 2020-07-01 vintage(suffix 20200711)=120.4595 today=120.0808
+   TDISC 2021-01-04 vintage(suffix 20210114)=111.5465 today=111.2075
+   TDISC 2021-07-01 vintage(suffix 20210711)=113.0361 today=112.7400
+   TDISC 2022-01-03 vintage(suffix 20220113)=115.4344 today=115.4101
+   uncomparable (first 3): ['2021-12-31']
+   VERDICT fred_DTWEXBGS: UNVERIFIED
+== fred_SP500 (ALFRED id SP500)
+   sampled 132  comparable 0  coverage 0.0%  discrepancies 0  between-snapshot revisions 0  tight: 0 comparable, 0 discrepancies
+   uncomparable (first 3): ['2020-01-02', '2020-01-16', '2020-01-31']
+   VERDICT fred_SP500: UNVERIFIED
+== fred_NASDAQ100 (ALFRED id NASDAQ100)
+   sampled 132  comparable 132  coverage 100.0%  discrepancies 19  between-snapshot revisions 18  tight: 9 comparable, 2 discrepancies
+   DISC 2020-01-02 vintage(asof 2021-01-15)=8872.219 today=8872.220
+   DISC 2020-01-31 vintage(asof 2021-01-15)=8991.512 today=8991.510
+   DISC 2020-02-14 vintage(asof 2021-01-15)=9623.582 today=9623.580
+   DISC 2020-03-02 vintage(asof 2021-01-15)=8877.977 today=8877.980
+   DISC 2020-03-16 vintage(asof 2021-01-15)=7020.375 today=7020.380
+   REV  2020-01-02: asof 2024-01-12=8872.219 -> asof 2025-01-15=8872.220
+   REV  2020-01-31: asof 2024-01-12=8991.512 -> asof 2025-01-15=8991.510
+   REV  2020-02-14: asof 2024-01-12=9623.582 -> asof 2025-01-15=9623.580
+   REV  2020-03-02: asof 2024-01-12=8877.977 -> asof 2025-01-15=8877.980
+   REV  2020-03-16: asof 2024-01-12=7020.375 -> asof 2025-01-15=7020.380
+   TDISC 2020-01-02 vintage(suffix 20200112)=8872.219000 today=8872.220
+   TDISC 2020-07-01 vintage(suffix 20200711)=10279.246000 today=10279.250
+   VERDICT fred_NASDAQ100: UNVERIFIED
+== fred_VIXCLS (ALFRED id VIXCLS)
+   sampled 132  comparable 132  coverage 100.0%  discrepancies 0  between-snapshot revisions 0  tight: 10 comparable, 0 discrepancies
+   VERDICT fred_VIXCLS: VERIFIED
+== cboe_VIX (method 2: CBOE file vs earliest ALFRED VIXCLS vintage)
+   sampled 132  comparable 132  coverage 100.0%  discrepancies 0
+   VERDICT cboe_VIX: VERIFIED
+
+SUMMARY fred_DGS2:VERIFIED | fred_DGS10:VERIFIED | fred_DTWEXBGS:UNVERIFIED | fred_SP500:UNVERIFIED | fred_NASDAQ100:UNVERIFIED | fred_VIXCLS:VERIFIED | cboe_VIX:VERIFIED
+```
+
+**Outcomes under the pre-registered rule (no judgement applied):**
+
+- fred_DGS2 — **VERIFIED** (132/132 comparable, 0 discrepancies,
+  0 between-snapshot revisions, tight 10/10 clean).
+- fred_DGS10 — **VERIFIED** (same, clean).
+- cboe_VIX — **VERIFIED** by method 2 (132/132 against the earliest
+  ALFRED VIXCLS vintages, 0 discrepancies).
+- fred_VIXCLS (cross-check, not adopted) — VERIFIED on the record; its
+  timing stays the conservative mirror regardless.
+- fred_DTWEXBGS — **UNVERIFIED**: 131 of 131 comparable dates
+  DISCREPANT (magnitudes ~0.03–0.4 index points), 106 between-snapshot
+  revisions, tight 10/10 discrepant — the H.10 broad-dollar history is
+  recomputed on re-weighting. The §69 unconditional map's DTWEXBGS
+  rows were computed from current-vintage values; recorded as a known
+  limitation of that descriptive record.
+- fred_SP500 — **UNVERIFIED**: 0% comparable — no ALFRED vintage
+  archive passes the honesty guard, no independent archive held.
+- fred_NASDAQ100 — **UNVERIFIED**: 19/132 discrepancies + 18
+  between-snapshot revisions + tight 2/9, all at the third decimal
+  (e.g. 2020-01-02: vintage 8872.219 vs today 8872.220; ALFRED's
+  serving precision changed in the 2025 vintage). These are plausibly
+  representational — and §70.8.0 prohibits exactly that judgement
+  after the fact, so UNVERIFIED stands and the conservative rule
+  applies. If a delegate later wants a precision-aware comparison, it
+  requires its own pre-registered rule BEFORE re-running; the status
+  cannot change after any Q result regardless (§70.8.0).
+
+**Mixed timing applied and enforced:** the loader now BUILDS its
+per-series source rules from the manifest's
+`publisher_value_equivalence` — VERIFIED ⇒ publisher rule (DGS2,
+DGS10, cboe_VIX); UNVERIFIED ⇒ publisher + 1 business day, same local
+time (DTWEXBGS → offset 2 @ 16:15 America/New_York; SP500, NASDAQ100 →
+offset 1 @ 16:00 America/New_York); fred_VIXCLS keeps the mirror. The
+quality label split is applied (all six adopted series
+`"documented_schedule"` with `publication_schedule` and
+`usable_time_rule`; NO series `"observed"`). Tests pin: per-series
+enforcement (an UNVERIFIED series is unreadable at publisher timing —
+checked at the 22:00Z fetch on the publisher's release date),
+verification-block presence, the label split, and the offsets. The
+information-age candidate is recorded in `open_refinements`, not in
+M0/M1.
+
+#### 70.8.2 The v3 re-lock (2026-09-02) — this commit is the lock commit; supersedes §70.7
+
+§70.7's LOCK-G3 lines are struck as superseded — retained above,
+never deleted; last-lock-wins makes the strike mechanical. The set
+GROWS: the loader (whose per-series timing is now load-bearing for
+M1's integrity) and the manifest (the verification statuses the loader
+reads) are pinned beside everything §70.7 held. g3/ code is unchanged
+from §70.7 (hashes below match §70.7's for the unchanged files).
+
+```
+LOCK-G3 g3/timing.py sha256=d5748592e2115ca07152e65041d650d7f05a26470ae690fc926935cc4783118d
+LOCK-G3 g3/features.py sha256=61aee9b90f8d2f6f099eaacdc9e55b84a4666a7b437b6a8a5626b395741f8c78
+LOCK-G3 g3/models.py sha256=13ff69575f0833b71ee18e102180dac6336a1756f94556386cc3e310f8697307
+LOCK-G3 g3/calibration.py sha256=80a2af64d5f769c3bdbd1b7432687bc00722d0ec8d9292f882641e6a3be842e9
+LOCK-G3 g3/sequential.py sha256=dc2e52f4c6751bf92b18ca42c039fa8c80afff88e5f4fd56b4c47e73009acc0d
+LOCK-G3 g3/eval.py sha256=76cbc280ab5359563e8d1f68101edcb9046631939978a0d761a73bf796ccad81
+LOCK-G3 rcm/eval_ic.py sha256=a1f29dccbbecff7e9969f8f3ccd0c62fc102aba022ae5e17bd8c6c82d8ab0935
+LOCK-G3 tools/g3_exogenous_loader.py sha256=b9716df0924a14ba16b525097160789bb319fe1982e5ecf744cf2b0db5fb8ff7
+LOCK-G3 data/exogenous/MANIFEST.json sha256=24b93feb3eb98b2f45e6ffe65e5f2c79a2c58e706408fc0d82968bcb59a55eff
+```
+
+**Trial pre-registration, re-affirmed unchanged:**
+
+```
+G3-TRIAL-1 status=pre-registered attempt_id=1 valid_trial_count=0
+```
+
+Seed at the run stage: `int(sha256(lock_commit_hex)[:8], 16)` with
+`lock_commit_hex` = THIS commit's hash, printed at run time, never
+predicted.
+
+**STOP. Both delegates review §70.8. G3-C remains a separate stage; it
+consumes Gen-3 trial 1 of 20 when it runs. No return was read beyond
+the pre-registered vintage comparisons of exogenous values; no
+forecast was fitted on real data; the holdout is sealed.**
