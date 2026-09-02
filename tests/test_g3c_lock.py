@@ -20,7 +20,10 @@ LOCKED = {"g3/timing.py", "g3/features.py", "g3/models.py",
           "rcm/eval_ic.py", "tools/g3_exogenous_loader.py",
           "data/exogenous/MANIFEST.json",
           "data/exogenous/vintage_store_fred_DTWEXBGS.csv",
-          "data/exogenous/raw/vintage_store_fred_NASDAQ100.csv"}
+          "data/exogenous/raw/vintage_store_fred_NASDAQ100.csv",
+          "data/exogenous/vintage_store_fred_DGS2.csv",
+          "data/exogenous/vintage_store_fred_DGS10.csv",
+          "data/exogenous/raw/vintage_store_fred_VIXCLS.csv"}
 
 
 def test_g3_lock_hashes_match_the_files():

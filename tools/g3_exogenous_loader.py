@@ -158,18 +158,25 @@ def _conservative(r: ReleaseRule) -> ReleaseRule:
 
 
 def _build_rules() -> dict[str, dict[str, ReleaseRule]]:
+    """§70.10.3: the OPERATIVE state is vintage_provenance — only a
+    series exhaustively VALUE_EQUIVALENT earns publisher timing;
+    PIT_RECONSTRUCTED and UNAVAILABLE series keep the conservative rule
+    here as defence in depth (their reads never touch this path: the
+    store serves the one, refusal the other). The §70.8 sampled
+    comparison (publisher_value_equivalence) remains on the manifest as
+    a historical record and no longer drives anything."""
     manifest = json.loads((EXO_DIR / "MANIFEST.json").read_text("utf-8"))
-    eq = {e["key"]: e.get("publisher_value_equivalence")
-          for e in manifest["series"]}
+    prov = {e["key"]: e.get("vintage_provenance")
+            for e in manifest["series"]}
     rules = {}
     for key, pub in _PUBLISHER.items():
         if key == "fred_VIXCLS":
             src = _FRED_MIRROR
-        elif eq.get(key) == "VERIFIED":
+        elif prov.get(key) == "VALUE_EQUIVALENT":
             src = pub
         else:
-            src = _conservative(pub)     # UNVERIFIED never reads at
-        rules[key] = {"underlying": pub, "source": src}  # publisher time
+            src = _conservative(pub)
+        rules[key] = {"underlying": pub, "source": src}
     return rules
 
 
@@ -251,6 +258,7 @@ def pit_view(key: str, t_utc: datetime) -> list[tuple[date, float]]:
 STORE_PATHS: dict[str, Path] = {
     "fred_DTWEXBGS": EXO_DIR / "vintage_store_fred_DTWEXBGS.csv",
     "fred_NASDAQ100": EXO_DIR / "raw" / "vintage_store_fred_NASDAQ100.csv",
+    "fred_DGS10": EXO_DIR / "vintage_store_fred_DGS10.csv",
 }
 
 

@@ -92,15 +92,15 @@ def test_underlying_never_after_source_and_fred_mirror_lags():
     null — then the quality flag and a tz-aware upper bound must say
     so."""
     obs = date(2024, 6, 12)
-    verified = {"fred_DGS2", "fred_DGS10", "cboe_VIX"}
-    for key in RULES:
+    equivalent = {"fred_DGS2", "cboe_VIX"}     # 70.10.4: DGS10 moved to
+    for key in RULES:                          # the store (2 revisions)
         t = four_timestamps(key, obs)
         u = datetime.fromisoformat(t["underlying_public_time"])
         s = datetime.fromisoformat(t["source_available_time"])
-        if key in verified:
-            assert s == u, f"{key}: publisher timing earned (70.8)"
+        if key in equivalent:
+            assert s == u, f"{key}: publisher timing earned (70.10)"
         else:
-            assert s > u, f"{key}: must lag the publisher (70.8)"
+            assert s > u, f"{key}: must lag the publisher (70.10)"
         if t["retrieved_at_utc"] is None:
             assert t["retrieval_time_quality"] == "upper_bound", key
             b = datetime.fromisoformat(t["retrieved_at_upper_bound_utc"])
@@ -172,11 +172,17 @@ def test_restricted_raw_files_are_untracked_and_ignored():
                          capture_output=True, text=True, cwd=ROOT)
     tracked = set(Path(x).name for x in out.stdout.split())
     assert tracked == {"MANIFEST.json", "fred_DGS2.csv", "fred_DGS10.csv",
-                       "fred_DTWEXBGS.csv"}, tracked
+                       "fred_DTWEXBGS.csv",
+                       # public-domain revision stores (70.9.3/70.10.2)
+                       "vintage_store_fred_DTWEXBGS.csv",
+                       "vintage_store_fred_DGS2.csv",
+                       "vintage_store_fred_DGS10.csv"}, tracked
     gi = (ROOT / ".gitignore").read_text(encoding="utf-8")
     assert "data/exogenous/raw/" in gi
     for name in ("fred_SP500.csv", "fred_NASDAQ100.csv", "cboe_VIX.csv",
-                 "fred_VIXCLS.csv"):
+                 "fred_VIXCLS.csv",
+                 "vintage_store_fred_NASDAQ100.csv",
+                 "vintage_store_fred_VIXCLS.csv"):
         assert (ROOT / "data" / "exogenous" / "raw" / name).exists(), (
             f"{name} must still exist locally — untracked is not deleted")
     print("PASS g3a2_licence_policy")
@@ -189,8 +195,8 @@ def test_v3_mixed_timing_enforced_per_series():
     the manifest, so the enforcement is structural."""
     from tools.g3_exogenous_loader import pit_view_usable, usable_utc
     m = json.loads(MANIFEST.read_text("utf-8"))
-    eq = {e["key"]: e.get("publisher_value_equivalence")
-          for e in m["series"]}
+    prov = {e["key"]: e.get("vintage_provenance")
+            for e in m["series"]}
     days = [date(2024, 1, 8), date(2024, 6, 12), date(2024, 11, 20)]
     for key in RULES:
         if key == "fred_VIXCLS":
@@ -198,7 +204,7 @@ def test_v3_mixed_timing_enforced_per_series():
         for d in days:
             u = RULES[key]["underlying"].availability_utc(d)
             src = RULES[key]["source"].availability_utc(d)
-            if eq[key] == "VERIFIED":
+            if prov[key] == "VALUE_EQUIVALENT":
                 assert src == u, (key, d)
             else:
                 assert src >= u + timedelta(days=1), (key, d)
@@ -264,8 +270,11 @@ def test_v4_manifest_three_state_provenance():
     by_key = {e["key"]: e for e in m["series"]}
     assert by_key["fred_SP500"]["vintage_provenance"] == "UNAVAILABLE"
     assert by_key["fred_SP500"]["trial1_m1_component"] is False
-    assert by_key["fred_DTWEXBGS"]["vintage_provenance"] ==         "PIT_RECONSTRUCTED"
-    assert by_key["fred_NASDAQ100"]["vintage_provenance"] ==         "PIT_RECONSTRUCTED"
+    for k in ("fred_DTWEXBGS", "fred_NASDAQ100", "fred_DGS10"):
+        assert by_key[k]["vintage_provenance"] == "PIT_RECONSTRUCTED", k
+    for k in ("fred_DGS2", "cboe_VIX", "fred_VIXCLS"):
+        assert by_key[k]["vintage_provenance"] == "VALUE_EQUIVALENT", k
+        assert "EXHAUSTIVE" in by_key[k]["verification_evidence"], k
     print("PASS g3v4_three_state")
 
 
@@ -289,10 +298,9 @@ def test_v4_reconstructed_reads_store_never_current_archive(monkeypatch):
 
     monkeypatch.setattr(L, "load_series", boom)
     t = datetime(2020, 1, 7, 22, 0, tzinfo=timezone.utc)
-    v = dict(L.pit_view_usable("fred_DTWEXBGS", t))
-    assert v, "store view empty"
-    n = dict(L.pit_view_usable("fred_NASDAQ100", t))
-    assert n, "store view empty"
+    for key in ("fred_DTWEXBGS", "fred_NASDAQ100", "fred_DGS10"):
+        v = dict(L.pit_view_usable(key, t))
+        assert v, f"{key} store view empty"
     print("PASS g3v4_store_only")
 
 
@@ -346,3 +354,36 @@ def test_v4_store_integrity_and_coverage():
             for (_, a), (_, b) in zip(vs, vs[1:]):
                 assert a != b, (path, obs, "flap row survived")
     print("PASS g3v4_store_integrity")
+
+
+def test_v5_dgs10_corrections_served_pit():
+    """70.10.4: the two H.15 corrections the sample missed are served
+    point-in-time — the pre-correction value until the correction's
+    vintage availability, the corrected value after."""
+    from tools.g3_exogenous_loader import pit_view_reconstructed
+    obs = date(2022, 4, 1)
+    before = dict(pit_view_reconstructed(
+        "fred_DGS10", datetime(2022, 4, 5, 22, 0, tzinfo=timezone.utc)))
+    after = dict(pit_view_reconstructed(
+        "fred_DGS10", datetime(2022, 4, 7, 22, 0, tzinfo=timezone.utc)))
+    assert before[obs] == 2.38 and after[obs] == 2.39
+    obs2 = date(2022, 5, 18)                     # first vintage lands
+    b2 = dict(pit_view_reconstructed(            # 2022-05-20T22:00Z,
+        "fred_DGS10", datetime(2022, 5, 20, 23, 0,   # correction a day
+                               tzinfo=timezone.utc)))  # later
+    a2 = dict(pit_view_reconstructed(
+        "fred_DGS10", datetime(2022, 5, 21, 22, 0, tzinfo=timezone.utc)))
+    assert b2[obs2] == 2.88 and a2[obs2] == 2.89
+    print("PASS g3v5_dgs10_pit_corrections")
+
+
+def test_v5_store_one_row_per_obs_for_equivalent_series():
+    """70.10.2 condition (a), pinned on the artifacts: the DGS2 and
+    VIXCLS stores collapsed to exactly one row per observation."""
+    import csv as _csv
+    for path in ("data/exogenous/vintage_store_fred_DGS2.csv",
+                 "data/exogenous/raw/vintage_store_fred_VIXCLS.csv"):
+        rows = list(_csv.reader(open(path, encoding="utf-8")))[1:]
+        obs = [r[0] for r in rows]
+        assert len(obs) == len(set(obs)), path
+    print("PASS g3v5_one_row_per_obs")

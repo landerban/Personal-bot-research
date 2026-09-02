@@ -12686,3 +12686,126 @@ PIT-correct value, or UNAVAILABLE.
 in §70.10.6 — appended only after the work is green. Trial 1 remains
 pre-registered, attempt 1, valid_trial_count 0; the run seed derives
 from the NEW lock commit hash, printed at run time, never predicted.**
+
+#### 70.10.4 Exhaustive reconstruction — evidence verbatim (2026-09-02; the §70.9.3 procedure run UNCHANGED)
+
+```
+== fred_DGS2
+   as-of responses used 1258  failed 0 []
+   raw rows 1271 -> normalized 1271  distinct obs 1271  REAL revision rows 0  (dev-window revised obs: 0)
+   store-vs-archive mismatches (dev window, 1250 obs compared): 0
+   earliest available 2019-12-17T22:00:00+00:00  coverage(<=2020-01-01T22Z): True
+   store data\exogenous\vintage_store_fred_DGS2.csv  sha256=7f369dfbe074eb40cd6ded5f0b2a6647868cbf46a9175fca66a9a964f5d021ec
+   VERDICT fred_DGS2: VALUE_EQUIVALENT (exhaustive)
+
+== fred_DGS10
+   as-of responses used 1258  failed 0 []
+   raw rows 1273 -> normalized 1273  distinct obs 1271  REAL revision rows 2  (dev-window revised obs: 2)
+   REV 2022-04-01: 2.38(asof 2022-04-04) -> 2.39(asof 2022-04-06)
+   REV 2022-05-18: 2.88(asof 2022-05-19) -> 2.89(asof 2022-05-20)
+   store-vs-archive mismatches (dev window, 1250 obs compared): 0
+   earliest available 2019-12-17T22:00:00+00:00  coverage(<=2020-01-01T22Z): True
+   store data\exogenous\vintage_store_fred_DGS10.csv  sha256=fd6f81f014f8fbc7e68c963447d7611ab2b3a817ac743fac06ed3fbac1fa8460
+   VERDICT fred_DGS10: PIT_RECONSTRUCTED (by 70.9.3 rule)
+
+== fred_VIXCLS
+   as-of responses used 1258  failed 0 []
+   raw rows 1298 -> normalized 1298  distinct obs 1298  REAL revision rows 0  (dev-window revised obs: 0)
+   store-vs-archive mismatches (dev window, 1277 obs compared): 0
+   earliest available 2019-12-17T22:00:00+00:00  coverage(<=2020-01-01T22Z): True
+   store data\exogenous\raw\vintage_store_fred_VIXCLS.csv  sha256=19651baeef34305286ef0bad0d743e3aad253af0f133227a577a3f73524f064d
+   VERDICT fred_VIXCLS: VALUE_EQUIVALENT (exhaustive)
+
+== cboe_VIX (exhaustive vs EARLIEST VIXCLS vintage per obs)
+   dev-window CBOE closes 1277  compared 1277  uncovered 0  discrepancies 0
+   VERDICT cboe_VIX: VALUE_EQUIVALENT (exhaustive)
+
+SUMMARY fred_DGS2:VALUE_EQUIVALENT | fred_DGS10:PIT_RECONSTRUCTED | fred_VIXCLS:VALUE_EQUIVALENT | cboe_VIX:VALUE_EQUIVALENT
+```
+
+**Outcomes, by the frozen rules, no judgement applied:**
+
+- fred_DGS2 → **VALUE_EQUIVALENT (exhaustive)**: 1,271 observations,
+  zero revisions (the store collapsed to one row per observation —
+  the §70.10.2 hypothesis held), zero store-vs-archive mismatches
+  over all 1,250 development-window observations.
+- fred_VIXCLS → **VALUE_EQUIVALENT (exhaustive)**: 1,298 observations,
+  zero revisions, zero mismatches over all 1,277 dev-window
+  observations.
+- cboe_VIX → **VALUE_EQUIVALENT (exhaustive)**: every one of the
+  1,277 dev-window CBOE closes the model would use equals the
+  EARLIEST reconstructed VIXCLS vintage — 0 uncovered,
+  0 discrepancies.
+- fred_DGS10 → **PIT_RECONSTRUCTED**: the exhaustive run found **two
+  real H.15 corrections the 132-date sample missed** — 2022-04-01:
+  2.38 → 2.39 (corrected two as-of days later) and 2022-05-18:
+  2.88 → 2.89 (corrected the next as-of day). This is exactly the
+  §70.10.1 rare-correction case (rate ≈ 0.16%; a clean 132-sample was
+  ~81% likely despite the contamination). Moved to the store by the
+  mechanical rule; both corrections are now served point-in-time
+  (pre-correction value until the correction's vintage availability,
+  pinned by test). The §70.8 sampled VERIFIED stands only as a
+  historical record.
+
+**No contraction:** nothing became UNAVAILABLE, so M1 keeps its
+§70.9.5 shape (M1-dir 18, M1-xs 12). The loader now builds its source
+rules from `vintage_provenance` — only exhaustively VALUE_EQUIVALENT
+series earn publisher timing; fred_DGS10 joins the store-only readers
+(current archive never exposed, licence split unchanged: DGS2/DGS10
+stores tracked, VIXCLS store in raw/). No sampled-equivalence state
+survives anywhere: every exogenous value entering Trial 1 is now
+either historically PIT-correct or UNAVAILABLE.
+
+#### 70.10.5 The v5 re-lock (2026-09-02) — this commit is the lock commit; supersedes §70.9.6
+
+§70.9.6's LOCK-G3 lines are struck as superseded — retained, never
+deleted; last-lock-wins makes the strike mechanical. The set grows to
+fourteen: the three new revision stores join (VIXCLS's checked locally
+per §68.11.3); the loader and manifest are re-pinned as changed;
+`g3/features.py` is UNCHANGED (no contraction); everything else is
+unchanged from §70.9.6.
+
+```
+LOCK-G3 g3/timing.py sha256=d5748592e2115ca07152e65041d650d7f05a26470ae690fc926935cc4783118d
+LOCK-G3 g3/features.py sha256=ff4f34d2c30901728e5578f8ca0995a699d9c53792d8b7179c22f05104596201
+LOCK-G3 g3/models.py sha256=13ff69575f0833b71ee18e102180dac6336a1756f94556386cc3e310f8697307
+LOCK-G3 g3/calibration.py sha256=80a2af64d5f769c3bdbd1b7432687bc00722d0ec8d9292f882641e6a3be842e9
+LOCK-G3 g3/sequential.py sha256=dc2e52f4c6751bf92b18ca42c039fa8c80afff88e5f4fd56b4c47e73009acc0d
+LOCK-G3 g3/eval.py sha256=76cbc280ab5359563e8d1f68101edcb9046631939978a0d761a73bf796ccad81
+LOCK-G3 rcm/eval_ic.py sha256=a1f29dccbbecff7e9969f8f3ccd0c62fc102aba022ae5e17bd8c6c82d8ab0935
+LOCK-G3 tools/g3_exogenous_loader.py sha256=9f391692f822df83d3d0d53117825c995e360185067433d99391327b41080406
+LOCK-G3 data/exogenous/MANIFEST.json sha256=b75d2d43b111d62f35b6ae9bb0e6cd109ee0adfc083c6d74e82da24f9eb7dabb
+LOCK-G3 data/exogenous/vintage_store_fred_DTWEXBGS.csv sha256=94cd90ee575b6d63fd6303eb3e31c81a84a2cf0d19a45cba1c8bc795f550603b
+LOCK-G3 data/exogenous/raw/vintage_store_fred_NASDAQ100.csv sha256=ac1ce1bd6bdcbadf5740992bf092cf2bf440b89f33629e6dbb6e9006dc21be74
+LOCK-G3 data/exogenous/vintage_store_fred_DGS2.csv sha256=7f369dfbe074eb40cd6ded5f0b2a6647868cbf46a9175fca66a9a964f5d021ec
+LOCK-G3 data/exogenous/vintage_store_fred_DGS10.csv sha256=fd6f81f014f8fbc7e68c963447d7611ab2b3a817ac743fac06ed3fbac1fa8460
+LOCK-G3 data/exogenous/raw/vintage_store_fred_VIXCLS.csv sha256=19651baeef34305286ef0bad0d743e3aad253af0f133227a577a3f73524f064d
+```
+
+**Trial pre-registration, re-affirmed unchanged:**
+
+```
+G3-TRIAL-1 status=pre-registered attempt_id=1 valid_trial_count=0
+```
+
+Seed at the run stage: `int(sha256(lock_commit_hex)[:8], 16)` with
+`lock_commit_hex` = THIS commit's hash, printed at run time, never
+predicted.
+
+#### 70.10.6 Specification review closes here — standing rule for Gen-3, recorded verbatim
+
+> **G3-C-SPEC review is closed at this lock.** No further pre-trial
+> specification amendment is made unless an **implementation test
+> actually fails**. Review that continues past the point where tests
+> pass becomes its own source of specification drift, and the
+> architecture has earned the right to be tested. Both delegates
+> confirm §70.10 or name a failing test; there is no third option.
+
+Post-run, the §70.4/§70.6 consequences table governs — including the
+bug-versus-design rule, which requires a REPRODUCING TEST against the
+pre-fix code, not an argument.
+
+**STOP for delegate confirmation. Then G3-C runs as a separate stage,
+consuming Gen-3 trial 1 of 20. No return was read beyond the
+pre-registered vintage reconstructions; no forecast was fitted on real
+data; the holdout is sealed.**

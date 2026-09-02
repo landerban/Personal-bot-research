@@ -52,12 +52,14 @@
       "historical_value_source": "FRED",
       "production_source": "Federal Reserve (H.15)",
       "publisher_value_equivalence": "VERIFIED",
-      "verification_method": "ALFRED vintage-archive comparison (method 1): 132 sampled dates vs earliest containing annual snapshot {2021-01-15..2025-01-15} + 10 tight vintages at obs+10cd",
-      "verification_evidence": "132/132 comparable (100%), 0 discrepancies, 0 between-snapshot revisions, tight 10/10 comparable 0 discrepancies (NOTES 70.8.1)",
+      "verification_method": "ALFRED vintage-archive comparison (method 1): 132 sampled dates vs earliest containing annual snapshot {2021-01-15..2025-01-15} + 10 tight vintages at obs+10cd ; superseded by the exhaustive 70.10.2 reconstruction - the sampled 70.8 result stands only as a historical record",
+      "verification_evidence": "EXHAUSTIVE (NOTES 70.10.4): full 70.9.3 reconstruction, 1,258 as-of responses (0 failed), 1,271 observations, ZERO revisions, zero store-vs-archive mismatches over all 1,250 dev-window observations",
       "publication_schedule": "16:15 America/New_York, next business day (H.15)",
       "usable_time_rule": "first scheduled acquisition >= publication (NOTES 70.6.1/70.8.0)",
       "timing_rule": "publisher-time reconstruction (NOTES 70.8.0 mixed rule)",
-      "vintage_provenance": "VALUE_EQUIVALENT"
+      "vintage_provenance": "VALUE_EQUIVALENT",
+      "revision_store_path": "data/exogenous/vintage_store_fred_DGS2.csv",
+      "revision_store_sha256": "7f369dfbe074eb40cd6ded5f0b2a6647868cbf46a9175fca66a9a964f5d021ec"
     },
     {
       "key": "fred_DGS10",
@@ -106,12 +108,15 @@
       "historical_value_source": "FRED",
       "production_source": "Federal Reserve (H.15)",
       "publisher_value_equivalence": "VERIFIED",
-      "verification_method": "ALFRED vintage-archive comparison (method 1), same rule as fred_DGS2",
-      "verification_evidence": "132/132 comparable (100%), 0 discrepancies, 0 between-snapshot revisions, tight 10/10 comparable 0 discrepancies (NOTES 70.8.1)",
+      "verification_method": "ALFRED vintage-archive comparison (method 1), same rule as fred_DGS2 ; superseded by the exhaustive 70.10.2 reconstruction - the sampled 70.8 result stands only as a historical record",
+      "verification_evidence": "EXHAUSTIVE (NOTES 70.10.4): full 70.9.3 reconstruction found 2 REAL H.15 corrections the 132-date sample missed (2022-04-01: 2.38 -> 2.39; 2022-05-18: 2.88 -> 2.89) - moved to the store by the mechanical rule; 1,271 observations, 100% coverage",
       "publication_schedule": "16:15 America/New_York, next business day (H.15)",
       "usable_time_rule": "first scheduled acquisition >= publication (NOTES 70.6.1/70.8.0)",
-      "timing_rule": "publisher-time reconstruction (NOTES 70.8.0 mixed rule)",
-      "vintage_provenance": "VALUE_EQUIVALENT"
+      "timing_rule": "PIT_RECONSTRUCTED (NOTES 70.9.3/70.10.3): serve the latest revision-store vintage with vintage_available_utc <= decision time; the current archive is never exposed at historical decision times",
+      "vintage_provenance": "PIT_RECONSTRUCTED",
+      "revision_store_path": "data/exogenous/vintage_store_fred_DGS10.csv",
+      "revision_store_sha256": "fd6f81f014f8fbc7e68c963447d7611ab2b3a817ac743fac06ed3fbac1fa8460",
+      "reconstruction_evidence": "1,258 business-daily as-of responses (0 failed), 1,271 observations + 2 real H.15 correction rows (2022-04-01: 2.38 -> 2.39; 2022-05-18: 2.88 -> 2.89); earliest vintage available 2019-12-17T22:00:00+00:00; 100% decision-date coverage (NOTES 70.10.4)"
     },
     {
       "key": "fred_DTWEXBGS",
@@ -217,8 +222,8 @@
       "historical_value_source": "CBOE",
       "production_source": "CBOE",
       "publisher_value_equivalence": "VERIFIED",
-      "verification_method": "independent publisher-sourced vintage archive (method 2): today's CBOE close vs earliest ALFRED VIXCLS vintage per sampled date",
-      "verification_evidence": "132/132 comparable (100%), 0 discrepancies (NOTES 70.8.1)",
+      "verification_method": "independent publisher-sourced vintage archive (method 2): today's CBOE close vs earliest ALFRED VIXCLS vintage per sampled date ; superseded by the exhaustive 70.10.2 reconstruction - the sampled 70.8 result stands only as a historical record",
+      "verification_evidence": "EXHAUSTIVE (NOTES 70.10.4): every one of the 1,277 dev-window CBOE closes the model would use compared against the EARLIEST reconstructed VIXCLS vintage - 0 uncovered, 0 discrepancies",
       "publication_schedule": "16:15 America/New_York, same day",
       "usable_time_rule": "first scheduled acquisition >= publication (NOTES 70.6.1/70.8.0)",
       "timing_rule": "publisher-time reconstruction (NOTES 70.8.0 mixed rule)",
@@ -270,9 +275,11 @@
       "historical_value_source": "FRED",
       "production_source": "CBOE",
       "publisher_value_equivalence": "VERIFIED",
-      "verification_method": "ALFRED vintage-archive comparison (method 1)",
-      "verification_evidence": "132/132 comparable (100%), 0 discrepancies, 0 between-snapshot revisions, tight 10/10 comparable 0 discrepancies (NOTES 70.8.1)",
-      "vintage_provenance": "VALUE_EQUIVALENT"
+      "verification_method": "ALFRED vintage-archive comparison (method 1) ; superseded by the exhaustive 70.10.2 reconstruction - the sampled 70.8 result stands only as a historical record",
+      "verification_evidence": "EXHAUSTIVE (NOTES 70.10.4): full 70.9.3 reconstruction, 1,258 as-of responses (0 failed), 1,298 observations, ZERO revisions, zero store-vs-archive mismatches over all 1,277 dev-window observations",
+      "vintage_provenance": "VALUE_EQUIVALENT",
+      "revision_store_path": "data/exogenous/raw/vintage_store_fred_VIXCLS.csv",
+      "revision_store_sha256": "19651baeef34305286ef0bad0d743e3aad253af0f133227a577a3f73524f064d"
     },
     {
       "key": "fred_SP500",
@@ -409,7 +416,7 @@
     }
   ],
   "originally_generated": "2026-09-01",
-  "manifest_updated_utc": "2026-09-02T23:00:00+00:00",
+  "manifest_updated_utc": "2026-09-03T01:00:00+00:00",
   "timestamp_model": "Four timestamps per observation (NOTES 68.11.1.2): observation_time, underlying_public_time, source_available_time, retrieved_at_utc. ACCESS RULE: a model may consume a value only when source_available_time <= t. Per-observation values come from tools/g3_exogenous_loader.py; NO UTC release constant exists anywhere in this manifest.",
   "revisable_series_rule": "Any future revisable series (CPI/PCE/NFP class) must carry revision_id/vintage fields: observation -> publication -> revision -> retrieval, four distinct fields (68.11.1.2). None staged yet.",
   "raw_data_policy": "Vendor/index raw data is NEVER committed; public-domain series may be, by explicit licence_class (NOTES 68.11.3). Restricted raw files live untracked in data/exogenous/raw/.",
