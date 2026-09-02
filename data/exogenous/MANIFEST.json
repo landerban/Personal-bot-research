@@ -47,7 +47,7 @@
       "retrieved_at_upper_bound_utc": "2026-09-01T15:03:43+00:00",
       "retrieval_time_quality": "upper_bound",
       "source_availability_quality": "observed",
-      "source_availability_basis": "publisher's documented H.15/H.10 release schedule (next business day, 16:15 America/New_York); deployed system reads the publisher page the evening of publication (NOTES 70.1.1); per-observation delays not modelled - a missed or late fetch yields a stale value with its true knowable-at stamp",
+      "source_availability_basis": "publisher's documented H.15/H.10 release schedule (next business day, 16:15 America/New_York); deployed system reads the publisher page the evening of publication (NOTES 70.1.1); per-observation delays not modelled - a missed or late fetch yields a stale value with its true knowable-at stamp; G3-C training uses t_usable = first 22:00:00+00:00 scheduled fetch at/after this release (NOTES 70.6.1)",
       "adoption_decision": "NOTES 70.1.2 (owner decision, 2026-09-02)"
     },
     {
@@ -92,7 +92,7 @@
       "retrieved_at_upper_bound_utc": "2026-09-01T15:03:43+00:00",
       "retrieval_time_quality": "upper_bound",
       "source_availability_quality": "observed",
-      "source_availability_basis": "publisher's documented H.15/H.10 release schedule (next business day, 16:15 America/New_York); deployed system reads the publisher page the evening of publication (NOTES 70.1.1); per-observation delays not modelled - a missed or late fetch yields a stale value with its true knowable-at stamp",
+      "source_availability_basis": "publisher's documented H.15/H.10 release schedule (next business day, 16:15 America/New_York); deployed system reads the publisher page the evening of publication (NOTES 70.1.1); per-observation delays not modelled - a missed or late fetch yields a stale value with its true knowable-at stamp; G3-C training uses t_usable = first 22:00:00+00:00 scheduled fetch at/after this release (NOTES 70.6.1)",
       "adoption_decision": "NOTES 70.1.2 (owner decision, 2026-09-02)"
     },
     {
@@ -137,7 +137,7 @@
       "retrieved_at_upper_bound_utc": "2026-09-01T15:03:43+00:00",
       "retrieval_time_quality": "upper_bound",
       "source_availability_quality": "observed",
-      "source_availability_basis": "publisher's documented H.15/H.10 release schedule (next business day, 16:15 America/New_York); deployed system reads the publisher page the evening of publication (NOTES 70.1.1); per-observation delays not modelled - a missed or late fetch yields a stale value with its true knowable-at stamp",
+      "source_availability_basis": "publisher's documented H.15/H.10 release schedule (next business day, 16:15 America/New_York); deployed system reads the publisher page the evening of publication (NOTES 70.1.1); per-observation delays not modelled - a missed or late fetch yields a stale value with its true knowable-at stamp; G3-C training uses t_usable = first 22:00:00+00:00 scheduled fetch at/after this release (NOTES 70.6.1)",
       "adoption_decision": "NOTES 70.1.2 (owner decision, 2026-09-02)"
     },
     {
@@ -182,7 +182,7 @@
       "retrieved_at_upper_bound_utc": "2026-09-01T15:03:43+00:00",
       "retrieval_time_quality": "upper_bound",
       "source_availability_quality": "observed",
-      "source_availability_basis": "publisher's documented same-day close publication (16:15 America/New_York); publisher-direct, and the official deployment source (NOTES 70.1.1)",
+      "source_availability_basis": "publisher's documented same-day close publication (16:15 America/New_York); publisher-direct, and the official deployment source (NOTES 70.1.1); G3-C training uses t_usable = first 22:00:00+00:00 scheduled fetch at/after this release (NOTES 70.6.1)",
       "adoption_decision": "NOTES 70.1.2 (owner decision, 2026-09-02)"
     },
     {
@@ -271,7 +271,7 @@
       "retrieved_at_upper_bound_utc": "2026-09-01T15:03:43+00:00",
       "retrieval_time_quality": "upper_bound",
       "source_availability_quality": "observed",
-      "source_availability_basis": "publisher's cash-close publication (same day, 16:00 America/New_York); deployed system reads the publisher page the evening of publication (NOTES 70.1.1); per-observation delays not modelled - a missed or late fetch yields a stale value with its true knowable-at stamp",
+      "source_availability_basis": "publisher's cash-close publication (same day, 16:00 America/New_York); deployed system reads the publisher page the evening of publication (NOTES 70.1.1); per-observation delays not modelled - a missed or late fetch yields a stale value with its true knowable-at stamp; G3-C training uses t_usable = first 22:00:00+00:00 scheduled fetch at/after this release (NOTES 70.6.1)",
       "adoption_decision": "NOTES 70.1.2 (owner decision, 2026-09-02)"
     },
     {
@@ -316,7 +316,7 @@
       "retrieved_at_upper_bound_utc": "2026-09-01T15:03:43+00:00",
       "retrieval_time_quality": "upper_bound",
       "source_availability_quality": "observed",
-      "source_availability_basis": "publisher's cash-close publication (same day, 16:00 America/New_York); deployed system reads the publisher page the evening of publication (NOTES 70.1.1); per-observation delays not modelled - a missed or late fetch yields a stale value with its true knowable-at stamp",
+      "source_availability_basis": "publisher's cash-close publication (same day, 16:00 America/New_York); deployed system reads the publisher page the evening of publication (NOTES 70.1.1); per-observation delays not modelled - a missed or late fetch yields a stale value with its true knowable-at stamp; G3-C training uses t_usable = first 22:00:00+00:00 scheduled fetch at/after this release (NOTES 70.6.1)",
       "adoption_decision": "NOTES 70.1.2 (owner decision, 2026-09-02)"
     },
     {
@@ -341,7 +341,7 @@
     }
   ],
   "originally_generated": "2026-09-01",
-  "manifest_updated_utc": "2026-09-02T12:00:00+00:00",
+  "manifest_updated_utc": "2026-09-02T18:00:00+00:00",
   "timestamp_model": "Four timestamps per observation (NOTES 68.11.1.2): observation_time, underlying_public_time, source_available_time, retrieved_at_utc. ACCESS RULE: a model may consume a value only when source_available_time <= t. Per-observation values come from tools/g3_exogenous_loader.py; NO UTC release constant exists anywhere in this manifest.",
   "revisable_series_rule": "Any future revisable series (CPI/PCE/NFP class) must carry revision_id/vintage fields: observation -> publication -> revision -> retrieval, four distinct fields (68.11.1.2). None staged yet.",
   "raw_data_policy": "Vendor/index raw data is NEVER committed; public-domain series may be, by explicit licence_class (NOTES 68.11.3). Restricted raw files live untracked in data/exogenous/raw/.",
@@ -356,5 +356,6 @@
     "public-history blob remediation for d8820ca restricted CSVs (open item, lock-hash concern, NOTES 68.11.3)",
     "measured FRED serving times to replace BOTH conservative aggregator rules (the after-publisher-release rule for Fed series and the mirror rule for index closes)"
   ],
-  "source_chain_rule": "Every series distinguishes publisher (who originates the value) from retrieval_source (who serves our bytes); access is governed by the retrieval source's availability under a delay-only rule (NOTES 68.12.1). publisher == retrieval_source only where genuine."
+  "source_chain_rule": "Every series distinguishes publisher (who originates the value) from retrieval_source (who serves our bytes); access is governed by the retrieval source's availability under a delay-only rule (NOTES 68.12.1). publisher == retrieval_source only where genuine.",
+  "acquisition_schedule": "daily scheduled publisher-page fetch at 22:00:00+00:00 - the supervisor's own schedule, a legitimate UTC constant (NOTES 70.6.1); training uses t_usable = first scheduled fetch >= publisher release (possession time, never publisher time)"
 }

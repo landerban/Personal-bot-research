@@ -13,9 +13,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-LOCKED = {"g3/features.py", "g3/models.py", "g3/calibration.py",
-          "g3/sequential.py", "g3/eval.py",
-          "rcm/eval_ic.py", "backtest/costs.py"}
+# 70.6.11: g3/timing.py joins the set; backtest/costs.py leaves it
+# (the economic gate was removed by 70.6.9).
+LOCKED = {"g3/timing.py", "g3/features.py", "g3/models.py",
+          "g3/calibration.py", "g3/sequential.py", "g3/eval.py",
+          "rcm/eval_ic.py"}
 
 
 def test_g3_lock_hashes_match_the_files():
@@ -25,6 +27,10 @@ def test_g3_lock_hashes_match_the_files():
     notes = (ROOT / "NOTES.md").read_text(encoding="utf-8")
     locks = dict(re.findall(r"^LOCK-G3 (\S+) sha256=([0-9a-f]{64})",
                             notes, re.MULTILINE))
+    # dict() keeps the LAST line per file: 70.7 supersedes 70.5. The
+    # superseded 70.5 set included backtest/costs.py; only the CURRENT
+    # set is asserted and verified.
+    locks = {k: v for k, v in locks.items() if k in LOCKED}
     assert set(locks) == LOCKED, locks
     for rel, cited in locks.items():
         actual = hashlib.sha256((ROOT / rel).read_bytes()).hexdigest()

@@ -214,3 +214,22 @@ def pit_view(key: str, t_utc: datetime) -> list[tuple[date, float]]:
     rule = RULES[key]["source"]
     return [(d, v) for d, v in load_series(key)
             if rule.availability_utc(d) <= t_utc]
+
+
+def usable_utc(key: str, obs: date) -> datetime:
+    """§70.6.1 possession time: the first scheduled fetch (g3.timing,
+    daily at 22:00:00+00:00 — our own supervisor schedule, not a
+    publisher release constant) at or after the publisher's release. This is what
+    the deployed bot actually possesses, and what training uses."""
+    from g3.timing import t_usable
+    return t_usable(RULES[key]["source"].availability_utc(obs))
+
+
+def pit_view_usable(key: str, t_utc: datetime) -> list[tuple[date, float]]:
+    """§70.6.1 G3-C access rule: rows whose t_usable <= t, only —
+    possession-governed, strictly no earlier than pit_view's
+    publisher-availability view."""
+    if t_utc.tzinfo is None:
+        raise ValueError("t must be timezone-aware")
+    return [(d, v) for d, v in load_series(key)
+            if usable_utc(key, d) <= t_utc]

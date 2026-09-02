@@ -18,6 +18,36 @@ SEGMENTS = (
 )
 
 
+def inner_folds(dates: list[date]) -> list[tuple[list[int], list[int]]]:
+    """The FROZEN 70.6.7 inner split of one training window: expanding
+    folds at CALENDAR-YEAR boundaries (fit the first k years, validate
+    year k+1, for every k); a single-year window splits at QUARTER
+    boundaries instead (fit Q1 -> val Q2; Q1-Q2 -> Q3; Q1-Q3 -> Q4).
+    `dates` are the window's own dates, chronological; returned index
+    pairs are positions within the window."""
+    years = sorted({d.year for d in dates})
+    folds = []
+    if len(years) > 1:
+        for k in range(1, len(years)):
+            fit = [i for i, d in enumerate(dates) if d.year in years[:k]]
+            val = [i for i, d in enumerate(dates) if d.year == years[k]]
+            if fit and val:
+                folds.append((fit, val))
+    else:
+        q = {i: (d.month - 1) // 3 for i, d in enumerate(dates)}
+        for k in range(1, 4):
+            fit = [i for i in q if q[i] < k]
+            val = [i for i in q if q[i] == k]
+            if fit and val:
+                folds.append((fit, val))
+    if not folds:
+        raise SequentialViolation("no admissible inner folds")
+    for fit, val in folds:
+        if max(dates[i] for i in fit) >= min(dates[i] for i in val):
+            raise SequentialViolation("inner fold reaches its validation")
+    return folds
+
+
 class SequentialViolation(RuntimeError):
     """A fit window reached its own target dates. Not a warning."""
 

@@ -11994,3 +11994,49 @@ INDETERMINATE guards, MDE disclosure, and the seed rule are unchanged
 from §70.3 — the seed's lock_commit_hex becomes the §70.7 lock
 commit's. **After §70.7: STOP for both delegates; G3-C is a separate
 stage.**
+
+### 70.7 The v2 specification lock (2026-09-02) — this commit is the lock commit; supersedes §70.5
+
+Implementation landed exactly as §70.6 froze it: the possession rule
+(`g3/timing.py` + `usable_utc`/`pit_view_usable` in the loader, daily
+scheduled fetch at 22:00:00+00:00), the B.1 four timestamps, the split
+direction/cross-sectional feature tables (9/19 and 7/13), the frozen
+exposure estimator (90d OLS slope, min 60 paired days, SE recorded, no
+shrinkage), the explicit C/α grids with calendar-boundary expanding
+folds and strongest-regularisation tie-break, and Platt fitted
+out-of-fold. The §70.4 deterministic evaluator tests remain green and
+now include the DEGENERACY PIN: a shared per-date term added to every
+asset's forecast leaves each date's cross-sectional Spearman IC
+exactly unchanged — bit-for-bit, not approximately. All tests run on
+synthetic data; the possession-rule tests read only a public-domain
+dev-era CSV through the loader (the established A2 pattern); no return
+was read and nothing was fitted on real data.
+
+The pinned code (the §70.5 LOCK-G3 lines are superseded; the
+immutability test keeps last-lock-wins semantics and asserts exactly
+this set — `backtest/costs.py` left the set per §70.6.9):
+
+```
+LOCK-G3 g3/timing.py sha256=d5748592e2115ca07152e65041d650d7f05a26470ae690fc926935cc4783118d
+LOCK-G3 g3/features.py sha256=61aee9b90f8d2f6f099eaacdc9e55b84a4666a7b437b6a8a5626b395741f8c78
+LOCK-G3 g3/models.py sha256=13ff69575f0833b71ee18e102180dac6336a1756f94556386cc3e310f8697307
+LOCK-G3 g3/calibration.py sha256=80a2af64d5f769c3bdbd1b7432687bc00722d0ec8d9292f882641e6a3be842e9
+LOCK-G3 g3/sequential.py sha256=dc2e52f4c6751bf92b18ca42c039fa8c80afff88e5f4fd56b4c47e73009acc0d
+LOCK-G3 g3/eval.py sha256=76cbc280ab5359563e8d1f68101edcb9046631939978a0d761a73bf796ccad81
+LOCK-G3 rcm/eval_ic.py sha256=a1f29dccbbecff7e9969f8f3ccd0c62fc102aba022ae5e17bd8c6c82d8ab0935
+```
+
+**Trial pre-registration, re-affirmed unchanged:**
+
+```
+G3-TRIAL-1 status=pre-registered attempt_id=1 valid_trial_count=0
+```
+
+Seed at the run stage: `int(sha256(lock_commit_hex)[:8], 16)` with
+`lock_commit_hex` = THIS commit's hash, printed at run time, never
+predicted.
+
+**STOP. Both delegates review §70 (as amended by §70.6) before G3-C
+executes. G3-C is a separate stage; it consumes Gen-3 trial 1 of 20
+when it runs. No forecast has been fitted on real data; the holdout is
+sealed.**
