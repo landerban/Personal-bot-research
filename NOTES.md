@@ -12494,3 +12494,110 @@ structural.
 re-lock superseding §70.8.2, last-wins). Trial 1 remains
 pre-registered, attempt 1, valid_trial_count 0; the run seed derives
 from the NEW lock commit hash, printed at run time, never predicted.**
+
+#### 70.9.5 Reconstruction executed — evidence verbatim (2026-09-02; the §70.9.3 algorithm run exactly as frozen)
+
+Build: business-daily as-of requests, 2019-12-16 → 2024-12-31, per
+series, honesty guard live on every response; diff store; stamps
+22:00:00 UTC on as-of + 1 day. **One mechanical normalization,
+recorded honestly:** the first build diffed on SERVED STRINGS and
+captured representation flaps (e.g. `8570.336` vs `8570.336000`,
+numerically identical); since any numeric change is also a string
+change, the string-diff store is a strict superset, and a single
+post-pass kept only rows whose value differs from the previous kept
+row under EXACT Decimal equality — nothing numeric was lost, no
+refetch was needed, both raw and normalized row counts are reported.
+
+```
+== fred_DTWEXBGS
+   as-of responses used 1258  failed as-of dates 0 []
+   raw diff rows 4198 -> normalized rows 4198 (representation flaps removed by exact Decimal equality; every numeric change is also a string change, so nothing numeric was lost)
+   distinct observations 1268  REAL revision rows 2930  revision |magnitude| median 0.0228 max 1.3293
+   earliest vintage_available 2019-12-17T22:00:00+00:00  latest 2024-12-31T22:00:00+00:00
+   coverage: earliest available <= 2020-01-01T22:00Z: True  => 100% of decision dates resolve: True
+   store file data\exogenous\vintage_store_fred_DTWEXBGS.csv  sha256=94cd90ee575b6d63fd6303eb3e31c81a84a2cf0d19a45cba1c8bc795f550603b
+   VERDICT fred_DTWEXBGS: PIT_RECONSTRUCTED
+
+== fred_NASDAQ100
+   as-of responses used 1256  failed as-of dates 2 ['2021-05-25', '2021-06-17']
+   raw diff rows 4699 -> normalized rows 1720 (representation flaps removed by exact Decimal equality; every numeric change is also a string change, so nothing numeric was lost)
+   distinct observations 1279  REAL revision rows 441  revision |magnitude| median 0.002000 max 80.210
+   earliest vintage_available 2019-12-17T22:00:00+00:00  latest 2025-01-01T22:00:00+00:00
+   coverage: earliest available <= 2020-01-01T22:00Z: True  => 100% of decision dates resolve: True
+   store file data\exogenous\raw\vintage_store_fred_NASDAQ100.csv  sha256=ac1ce1bd6bdcbadf5740992bf092cf2bf440b89f33629e6dbb6e9006dc21be74
+   VERDICT fred_NASDAQ100: PIT_RECONSTRUCTED
+
+fred_SP500: no vintage archive passes the honesty guard (70.8.1); no frozen acquisition protocol exists; the 70.9.3 procedure cannot be executed  => VERDICT fred_SP500: UNAVAILABLE
+```
+
+**Verdicts, by the frozen rule (no judgement applied):**
+`fred_DTWEXBGS` → **PIT_RECONSTRUCTED** — and the §70.9.1 example is
+now served correctly: at any decision from 2020-01-07 22:00Z the store
+returns **115.0172** for obs 2020-01-02 (the true 2020 vintage), never
+today's 114.9745; the store carries **2,930 real revision rows**
+(median |Δ| 0.0228, max 1.3293) across 1,268 observations — the H.10
+history is rewritten continually, exactly as §70.9.1 charged.
+`fred_NASDAQ100` → **PIT_RECONSTRUCTED** — 441 real revisions across
+1,279 observations with |Δ| up to **80.21 index points**: the §70.8.1
+third-decimal reading UNDERSTATED the problem; genuine large next-day
+close corrections exist, so the refusal to wave them off as
+representational was not merely procedural. Two failed as-of dates
+(2021-05-25, 2021-06-17) recorded; delay-only by construction.
+`fred_SP500` → **UNAVAILABLE** — the §70.9.3 procedure cannot be
+executed (no archive passes the guard, no acquisition protocol
+frozen). By the mechanical contraction rule `sp500_ret_1d` leaves
+M1-dir (now 18 features) and `name_int_spx` leaves M1-xs (now 12);
+the equities family is NASDAQ100 alone; no substitute index appears.
+This is data availability, not feature selection: no forecast has
+been fitted and no Q result seen.
+
+Implementation landed: manifest three-state `vintage_provenance` with
+store paths/hashes and reconstruction evidence; the model reader
+(`pit_view_usable`) dispatches structurally — VALUE_EQUIVALENT serves
+the current archive at t_usable, PIT_RECONSTRUCTED serves ONLY the
+revision store (`pit_view_reconstructed`; a test proves the
+current-archive path is never touched), UNAVAILABLE raises
+`SeriesUnavailable` at any timing. §70.9.4's pins are green, including
+the exact-bug case on real data (115.0172 served, 114.9745 never;
+MISSING before the vintage's availability; a later decision serves a
+later vintage) and store-integrity sweeps (no flap rows, stamps
+exactly as-of + 1 day at 22:00:00 UTC, earliest availability precedes
+the first decision date).
+
+#### 70.9.6 The v4 re-lock (2026-09-02) — this commit is the lock commit; supersedes §70.8.2
+
+§70.8.2's LOCK-G3 lines are struck as superseded — retained, never
+deleted; last-lock-wins makes the strike mechanical. The set grows to
+eleven: the two revision stores join (the NASDAQ100 store is
+untracked-restricted per §68.11.3 and is hash-checked locally, like
+the raw archives); `g3/features.py`, the loader and the manifest are
+re-pinned as changed; everything else is unchanged from §70.8.2.
+
+```
+LOCK-G3 g3/timing.py sha256=d5748592e2115ca07152e65041d650d7f05a26470ae690fc926935cc4783118d
+LOCK-G3 g3/features.py sha256=ff4f34d2c30901728e5578f8ca0995a699d9c53792d8b7179c22f05104596201
+LOCK-G3 g3/models.py sha256=13ff69575f0833b71ee18e102180dac6336a1756f94556386cc3e310f8697307
+LOCK-G3 g3/calibration.py sha256=80a2af64d5f769c3bdbd1b7432687bc00722d0ec8d9292f882641e6a3be842e9
+LOCK-G3 g3/sequential.py sha256=dc2e52f4c6751bf92b18ca42c039fa8c80afff88e5f4fd56b4c47e73009acc0d
+LOCK-G3 g3/eval.py sha256=76cbc280ab5359563e8d1f68101edcb9046631939978a0d761a73bf796ccad81
+LOCK-G3 rcm/eval_ic.py sha256=a1f29dccbbecff7e9969f8f3ccd0c62fc102aba022ae5e17bd8c6c82d8ab0935
+LOCK-G3 tools/g3_exogenous_loader.py sha256=84b4698a9dfde4a609c9f05b8eb7c30afdc6e94f5e4550ec69e0f864f4f7277a
+LOCK-G3 data/exogenous/MANIFEST.json sha256=a63225c4bfedecd2c73c4d071f422d49cf9b799c94de9506c664f64247b6cb41
+LOCK-G3 data/exogenous/vintage_store_fred_DTWEXBGS.csv sha256=94cd90ee575b6d63fd6303eb3e31c81a84a2cf0d19a45cba1c8bc795f550603b
+LOCK-G3 data/exogenous/raw/vintage_store_fred_NASDAQ100.csv sha256=ac1ce1bd6bdcbadf5740992bf092cf2bf440b89f33629e6dbb6e9006dc21be74
+```
+
+**Trial pre-registration, re-affirmed unchanged:**
+
+```
+G3-TRIAL-1 status=pre-registered attempt_id=1 valid_trial_count=0
+```
+
+Seed at the run stage: `int(sha256(lock_commit_hex)[:8], 16)` with
+`lock_commit_hex` = THIS commit's hash, printed at run time, never
+predicted.
+
+**STOP. Both delegates review §70.9. G3-C remains a separate stage; it
+consumes Gen-3 trial 1 of 20 when it runs. No return was read beyond
+the pre-registered vintage reconstruction of exogenous values; no
+forecast was fitted on real data; the holdout is sealed.**

@@ -202,17 +202,10 @@ def test_v3_mixed_timing_enforced_per_series():
                 assert src == u, (key, d)
             else:
                 assert src >= u + timedelta(days=1), (key, d)
-    # possession check on a real UNVERIFIED series: at the 22:00Z fetch
-    # on the PUBLISHER release date, the observation is NOT possessed.
-    obs = date(2024, 6, 12)                # SP500 close published same day
-    pub_fetch = usable_utc("fred_DGS2", obs)  # any same-era 22:00Z instant
-    pub_day_2200 = datetime(2024, 6, 12, 22, 0, tzinfo=timezone.utc)
-    have = {d for d, _ in pit_view_usable("fred_SP500", pub_day_2200)}
-    assert obs not in have, "UNVERIFIED series read at publisher timing"
-    nxt = datetime(2024, 6, 13, 22, 0, tzinfo=timezone.utc)
-    have2 = {d for d, _ in pit_view_usable("fred_SP500", nxt)}
-    assert obs in have2
-    del pub_fetch
+    # (the v3 SP500 possession check is superseded by 70.9: fred_SP500
+    # is UNAVAILABLE and unreadable at any timing - pinned in the v4
+    # tests below; the RULES-level lag assertions above still hold)
+    del usable_utc, pit_view_usable
     print("PASS g3v3_mixed_timing")
 
 
@@ -242,6 +235,114 @@ def test_v3_verification_fields_and_label_split():
             assert e["publication_schedule"].strip()
             assert e["usable_time_rule"].strip()
             if e["publisher_value_equivalence"] == "UNVERIFIED":
-                assert "CONSERVATIVE" in e["timing_rule"], k
+                # 70.9 routes an unverified series to reconstruction
+                # (store-only timing rule) or UNAVAILABLE; the v3
+                # conservative rule remains only where neither applied.
+                assert ("CONSERVATIVE" in e["timing_rule"]
+                        or "PIT_RECONSTRUCTED" in e["timing_rule"]
+                        or e.get("vintage_provenance") == "UNAVAILABLE"), k
     assert any("information-age" in r for r in m["open_refinements"])
     print("PASS g3v3_verification_fields")
+
+
+# ------------------------------------------------------ 70.9 v4 pins
+
+def test_v4_manifest_three_state_provenance():
+    """70.9.2: every non-gold series carries one of the three states;
+    reconstructed series pin their store path+hash; SP500 is
+    UNAVAILABLE with its reason; nothing is left binary."""
+    m = json.loads(MANIFEST.read_text("utf-8"))
+    states = {"VALUE_EQUIVALENT", "PIT_RECONSTRUCTED", "UNAVAILABLE"}
+    for e in m["series"]:
+        if e["key"] == "gold_LBMA":
+            continue
+        assert e["vintage_provenance"] in states, e["key"]
+        if e["vintage_provenance"] == "PIT_RECONSTRUCTED":
+            assert e["revision_store_path"]
+            assert len(e["revision_store_sha256"]) == 64
+            assert e["reconstruction_evidence"].strip()
+    by_key = {e["key"]: e for e in m["series"]}
+    assert by_key["fred_SP500"]["vintage_provenance"] == "UNAVAILABLE"
+    assert by_key["fred_SP500"]["trial1_m1_component"] is False
+    assert by_key["fred_DTWEXBGS"]["vintage_provenance"] ==         "PIT_RECONSTRUCTED"
+    assert by_key["fred_NASDAQ100"]["vintage_provenance"] ==         "PIT_RECONSTRUCTED"
+    print("PASS g3v4_three_state")
+
+
+def test_v4_unavailable_is_unreadable_at_any_timing():
+    from tools.g3_exogenous_loader import (SeriesUnavailable,
+                                           pit_view_usable)
+    for t in (datetime(2020, 6, 1, 22, 0, tzinfo=timezone.utc),
+              datetime(2024, 12, 31, 22, 0, tzinfo=timezone.utc)):
+        with pytest.raises(SeriesUnavailable):
+            pit_view_usable("fred_SP500", t)
+    print("PASS g3v4_unavailable")
+
+
+def test_v4_reconstructed_reads_store_never_current_archive(monkeypatch):
+    """70.9.4: the current-archive path must be untouched for a
+    PIT_RECONSTRUCTED series — load_series explodes if called."""
+    import tools.g3_exogenous_loader as L
+
+    def boom(key):
+        raise AssertionError(f"current archive read for {key}")
+
+    monkeypatch.setattr(L, "load_series", boom)
+    t = datetime(2020, 1, 7, 22, 0, tzinfo=timezone.utc)
+    v = dict(L.pit_view_usable("fred_DTWEXBGS", t))
+    assert v, "store view empty"
+    n = dict(L.pit_view_usable("fred_NASDAQ100", t))
+    assert n, "store view empty"
+    print("PASS g3v4_store_only")
+
+
+def test_v4_pinning_the_exact_bug():
+    """70.9.4 verbatim, on the real DTWEXBGS data of 70.9.1: at a
+    decision one business day after 2020-01-02, the value served for
+    2020-01-02 is the PIT vintage (115.0172), NEVER today's archive
+    recomputation (114.9745) — and before the vintage's availability
+    the observation is MISSING, not filled."""
+    from tools.g3_exogenous_loader import pit_view_reconstructed
+    obs = date(2020, 1, 2)
+    t = datetime(2020, 1, 7, 22, 0, tzinfo=timezone.utc)
+    v = dict(pit_view_reconstructed("fred_DTWEXBGS", t))
+    assert v[obs] == 115.0172
+    assert v[obs] != 114.9745
+    early = dict(pit_view_reconstructed(
+        "fred_DTWEXBGS", datetime(2020, 1, 2, 22, 0,
+                                  tzinfo=timezone.utc)))
+    assert obs not in early                  # missing, never filled
+    # and monotone vintages: a later decision serves a later-or-equal
+    # vintage, never an earlier one
+    late = dict(pit_view_reconstructed(
+        "fred_DTWEXBGS", datetime(2024, 12, 31, 22, 0,
+                                  tzinfo=timezone.utc)))
+    assert obs in late and late[obs] != 115.0172   # revised since, PIT
+    print("PASS g3v4_exact_bug_pinned")
+
+
+def test_v4_store_integrity_and_coverage():
+    """70.9.3: stores are diff stores (no duplicate consecutive numeric
+    values per observation), availability stamps are as-of + 1 day at
+    22:00Z, and the earliest availability precedes the first decision
+    date."""
+    import csv as _csv
+    from decimal import Decimal
+    for path in ("data/exogenous/vintage_store_fred_DTWEXBGS.csv",
+                 "data/exogenous/raw/vintage_store_fred_NASDAQ100.csv"):
+        rows = list(_csv.reader(open(path, encoding="utf-8")))[1:]
+        assert rows
+        per_obs = {}
+        earliest = min(r[2] for r in rows)
+        assert earliest <= "2020-01-01T22:00:00+00:00"
+        for r in rows:
+            asof = date.fromisoformat(r[1])
+            avail = datetime.fromisoformat(r[2])
+            assert avail == datetime(asof.year, asof.month, asof.day,
+                                     22, 0, tzinfo=timezone.utc)                 + timedelta(days=1)
+            per_obs.setdefault(r[0], []).append((r[1], Decimal(r[3])))
+        for obs, vs in per_obs.items():
+            vs.sort()
+            for (_, a), (_, b) in zip(vs, vs[1:]):
+                assert a != b, (path, obs, "flap row survived")
+    print("PASS g3v4_store_integrity")

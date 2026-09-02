@@ -244,6 +244,47 @@ def pit_view(key: str, t_utc: datetime) -> list[tuple[date, float]]:
             if rule.availability_utc(d) <= t_utc]
 
 
+# 70.9 three-state vintage provenance, read from the manifest so the
+# enforcement is structural. PIT_RECONSTRUCTED series read ONLY from
+# their revision stores; UNAVAILABLE series are unreadable by the model
+# reader at any timing; VALUE_EQUIVALENT keeps the 70.8 behaviour.
+STORE_PATHS: dict[str, Path] = {
+    "fred_DTWEXBGS": EXO_DIR / "vintage_store_fred_DTWEXBGS.csv",
+    "fred_NASDAQ100": EXO_DIR / "raw" / "vintage_store_fred_NASDAQ100.csv",
+}
+
+
+def _provenance() -> dict[str, str]:
+    manifest = json.loads((EXO_DIR / "MANIFEST.json").read_text("utf-8"))
+    return {e["key"]: e.get("vintage_provenance", "")
+            for e in manifest["series"]}
+
+
+class SeriesUnavailable(RuntimeError):
+    """70.9.2: neither value equivalence nor a valid PIT reconstruction
+    exists - the feature does not exist for Trial 1. Not a warning."""
+
+
+def pit_view_reconstructed(key: str, t_utc: datetime
+                           ) -> list[tuple[date, float]]:
+    """70.9.3 PIT query against the revision store: for each
+    observation, the value of the LATEST vintage with
+    vintage_available_utc <= t. Never touches the current archive."""
+    if t_utc.tzinfo is None:
+        raise ValueError("t must be timezone-aware")
+    path = STORE_PATHS[key]
+    latest: dict[date, tuple[str, float]] = {}
+    with path.open(encoding="utf-8") as fh:
+        rows = list(csv.reader(fh))
+    for r in rows[1:]:
+        obs, avail, val = r[0], r[2], r[3]
+        if datetime.fromisoformat(avail) <= t_utc:
+            prev = latest.get(date.fromisoformat(obs))
+            if prev is None or avail >= prev[0]:
+                latest[date.fromisoformat(obs)] = (avail, float(val))
+    return sorted((d, v) for d, (_, v) in latest.items())
+
+
 def usable_utc(key: str, obs: date) -> datetime:
     """§70.6.1 possession time: the first scheduled fetch (g3.timing,
     daily at 22:00:00+00:00 — our own supervisor schedule, not a
@@ -254,10 +295,19 @@ def usable_utc(key: str, obs: date) -> datetime:
 
 
 def pit_view_usable(key: str, t_utc: datetime) -> list[tuple[date, float]]:
-    """§70.6.1 G3-C access rule: rows whose t_usable <= t, only —
-    possession-governed, strictly no earlier than pit_view's
-    publisher-availability view."""
+    """THE MODEL READER (70.6.1 possession + 70.9.2 provenance
+    dispatch): VALUE_EQUIVALENT serves the current archive at t_usable;
+    PIT_RECONSTRUCTED serves only the revision store; UNAVAILABLE
+    refuses at any timing."""
     if t_utc.tzinfo is None:
         raise ValueError("t must be timezone-aware")
+    prov = _provenance().get(key, "")
+    if prov == "UNAVAILABLE":
+        raise SeriesUnavailable(
+            f"{key} is UNAVAILABLE (NOTES 70.9.2): no value equivalence "
+            f"and no valid PIT reconstruction - the feature does not "
+            f"exist for Trial 1; no substitute is permitted")
+    if prov == "PIT_RECONSTRUCTED":
+        return pit_view_reconstructed(key, t_utc)
     return [(d, v) for d, v in load_series(key)
             if usable_utc(key, d) <= t_utc]

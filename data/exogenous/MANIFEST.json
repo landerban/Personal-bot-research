@@ -56,7 +56,8 @@
       "verification_evidence": "132/132 comparable (100%), 0 discrepancies, 0 between-snapshot revisions, tight 10/10 comparable 0 discrepancies (NOTES 70.8.1)",
       "publication_schedule": "16:15 America/New_York, next business day (H.15)",
       "usable_time_rule": "first scheduled acquisition >= publication (NOTES 70.6.1/70.8.0)",
-      "timing_rule": "publisher-time reconstruction (NOTES 70.8.0 mixed rule)"
+      "timing_rule": "publisher-time reconstruction (NOTES 70.8.0 mixed rule)",
+      "vintage_provenance": "VALUE_EQUIVALENT"
     },
     {
       "key": "fred_DGS10",
@@ -109,7 +110,8 @@
       "verification_evidence": "132/132 comparable (100%), 0 discrepancies, 0 between-snapshot revisions, tight 10/10 comparable 0 discrepancies (NOTES 70.8.1)",
       "publication_schedule": "16:15 America/New_York, next business day (H.15)",
       "usable_time_rule": "first scheduled acquisition >= publication (NOTES 70.6.1/70.8.0)",
-      "timing_rule": "publisher-time reconstruction (NOTES 70.8.0 mixed rule)"
+      "timing_rule": "publisher-time reconstruction (NOTES 70.8.0 mixed rule)",
+      "vintage_provenance": "VALUE_EQUIVALENT"
     },
     {
       "key": "fred_DTWEXBGS",
@@ -162,7 +164,11 @@
       "verification_evidence": "131/132 comparable (99.2%): 131 DISCREPANCIES (every comparable date; e.g. 2020-01-02 vintage 115.0169 vs today 114.9745), 106 between-snapshot revisions, tight 10/10 discrepant - the H.10 index history is recomputed on re-weighting (NOTES 70.8.1)",
       "publication_schedule": "16:15 America/New_York, next business day (H.10)",
       "usable_time_rule": "first scheduled acquisition >= publication (NOTES 70.6.1/70.8.0)",
-      "timing_rule": "CONSERVATIVE 68.12.1: publisher + 1 business day, same local time - handicapped, cannot leak (NOTES 70.8.0 mixed rule)"
+      "timing_rule": "PIT_RECONSTRUCTED (NOTES 70.9.3): serve the latest revision-store vintage with vintage_available_utc <= decision time; the current archive is never exposed at historical decision times",
+      "vintage_provenance": "PIT_RECONSTRUCTED",
+      "revision_store_path": "data/exogenous/vintage_store_fred_DTWEXBGS.csv",
+      "revision_store_sha256": "94cd90ee575b6d63fd6303eb3e31c81a84a2cf0d19a45cba1c8bc795f550603b",
+      "reconstruction_evidence": "1,258 business-daily as-of responses (0 failed), 1,268 observations + 2,930 real revision rows (|magnitude| median 0.0228, max 1.3293); earliest vintage available 2019-12-17T22:00:00+00:00; 100% decision-date coverage (NOTES 70.9.5)"
     },
     {
       "key": "cboe_VIX",
@@ -215,7 +221,8 @@
       "verification_evidence": "132/132 comparable (100%), 0 discrepancies (NOTES 70.8.1)",
       "publication_schedule": "16:15 America/New_York, same day",
       "usable_time_rule": "first scheduled acquisition >= publication (NOTES 70.6.1/70.8.0)",
-      "timing_rule": "publisher-time reconstruction (NOTES 70.8.0 mixed rule)"
+      "timing_rule": "publisher-time reconstruction (NOTES 70.8.0 mixed rule)",
+      "vintage_provenance": "VALUE_EQUIVALENT"
     },
     {
       "key": "fred_VIXCLS",
@@ -264,7 +271,8 @@
       "production_source": "CBOE",
       "publisher_value_equivalence": "VERIFIED",
       "verification_method": "ALFRED vintage-archive comparison (method 1)",
-      "verification_evidence": "132/132 comparable (100%), 0 discrepancies, 0 between-snapshot revisions, tight 10/10 comparable 0 discrepancies (NOTES 70.8.1)"
+      "verification_evidence": "132/132 comparable (100%), 0 discrepancies, 0 between-snapshot revisions, tight 10/10 comparable 0 discrepancies (NOTES 70.8.1)",
+      "vintage_provenance": "VALUE_EQUIVALENT"
     },
     {
       "key": "fred_SP500",
@@ -317,7 +325,10 @@
       "verification_evidence": "0/132 comparable (0%) (NOTES 70.8.1)",
       "publication_schedule": "16:00 America/New_York, same day (cash close)",
       "usable_time_rule": "first scheduled acquisition >= publication (NOTES 70.6.1/70.8.0)",
-      "timing_rule": "CONSERVATIVE 68.12.1: publisher + 1 business day, same local time - handicapped, cannot leak (NOTES 70.8.0 mixed rule)"
+      "timing_rule": "CONSERVATIVE 68.12.1: publisher + 1 business day, same local time - handicapped, cannot leak (NOTES 70.8.0 mixed rule)",
+      "vintage_provenance": "UNAVAILABLE",
+      "trial1_m1_component": false,
+      "unavailable_reason": "no vintage archive passes the 70.8.0 honesty guard, none held, no frozen acquisition protocol exists; the feature does not exist for Trial 1 - sp500_ret_1d removed from M1-dir and name_int_spx from M1-xs by the mechanical 70.9.3 contraction rule; no substitute index (NOTES 70.9)"
     },
     {
       "key": "fred_NASDAQ100",
@@ -370,7 +381,11 @@
       "verification_evidence": "132/132 comparable (100%): 19 discrepancies, 18 between-snapshot revisions, tight 2/9 discrepant - all observed at the 3rd decimal (e.g. 2020-01-02 vintage 8872.219 vs today 8872.220; serving precision changed in the 2025 vintage). Judging these representational would be post-hoc thresholding, prohibited by 70.8.0 (NOTES 70.8.1)",
       "publication_schedule": "16:00 America/New_York, same day (cash close)",
       "usable_time_rule": "first scheduled acquisition >= publication (NOTES 70.6.1/70.8.0)",
-      "timing_rule": "CONSERVATIVE 68.12.1: publisher + 1 business day, same local time - handicapped, cannot leak (NOTES 70.8.0 mixed rule)"
+      "timing_rule": "PIT_RECONSTRUCTED (NOTES 70.9.3): serve the latest revision-store vintage with vintage_available_utc <= decision time; the current archive is never exposed at historical decision times",
+      "vintage_provenance": "PIT_RECONSTRUCTED",
+      "revision_store_path": "data/exogenous/raw/vintage_store_fred_NASDAQ100.csv",
+      "revision_store_sha256": "ac1ce1bd6bdcbadf5740992bf092cf2bf440b89f33629e6dbb6e9006dc21be74",
+      "reconstruction_evidence": "1,256 business-daily as-of responses (2 failed as-of dates, recorded), 1,279 observations + 441 real revision rows (|magnitude| median 0.002, max 80.21 - real revisions far beyond serving precision); earliest vintage available 2019-12-17T22:00:00+00:00; 100% decision-date coverage (NOTES 70.9.5)"
     },
     {
       "key": "gold_LBMA",
@@ -394,7 +409,7 @@
     }
   ],
   "originally_generated": "2026-09-01",
-  "manifest_updated_utc": "2026-09-02T21:00:00+00:00",
+  "manifest_updated_utc": "2026-09-02T23:00:00+00:00",
   "timestamp_model": "Four timestamps per observation (NOTES 68.11.1.2): observation_time, underlying_public_time, source_available_time, retrieved_at_utc. ACCESS RULE: a model may consume a value only when source_available_time <= t. Per-observation values come from tools/g3_exogenous_loader.py; NO UTC release constant exists anywhere in this manifest.",
   "revisable_series_rule": "Any future revisable series (CPI/PCE/NFP class) must carry revision_id/vintage fields: observation -> publication -> revision -> retrieval, four distinct fields (68.11.1.2). None staged yet.",
   "raw_data_policy": "Vendor/index raw data is NEVER committed; public-domain series may be, by explicit licence_class (NOTES 68.11.3). Restricted raw files live untracked in data/exogenous/raw/.",

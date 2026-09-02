@@ -13,13 +13,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-# 70.8: the loader (per-series mixed-timing enforcement) and the
-# manifest (verification statuses the loader reads) join the set —
-# a strategy locked while its data timing is unlocked is not locked.
+# 70.9: the two revision stores join the set (the NASDAQ100 store is
+# untracked-restricted and checked locally, like the raw archives).
 LOCKED = {"g3/timing.py", "g3/features.py", "g3/models.py",
           "g3/calibration.py", "g3/sequential.py", "g3/eval.py",
           "rcm/eval_ic.py", "tools/g3_exogenous_loader.py",
-          "data/exogenous/MANIFEST.json"}
+          "data/exogenous/MANIFEST.json",
+          "data/exogenous/vintage_store_fred_DTWEXBGS.csv",
+          "data/exogenous/raw/vintage_store_fred_NASDAQ100.csv"}
 
 
 def test_g3_lock_hashes_match_the_files():

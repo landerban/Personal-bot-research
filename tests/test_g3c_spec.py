@@ -375,14 +375,18 @@ def test_feature_transforms_and_one_lag():
 
 
 def test_frozen_feature_orders_v2():
-    """70.6.4/70.6.5: direction 9/19; cross-section 7/13 with the six
-    exposure interactions per-name; funding MEAN (not dispersion) in
-    the direction table; no per-asset vol-of-vol in the cross-section."""
-    assert len(feat.DIRECTION_M0) == 9 and len(feat.DIRECTION_M1) == 19
+    """70.6.4/70.6.5 as contracted by 70.9.3: direction 9/18;
+    cross-section 7/12 — fred_SP500 is UNAVAILABLE, so sp500_ret_1d and
+    name_int_spx no longer exist; no substitute appears; funding MEAN
+    (not dispersion) in the direction table; no per-asset vol-of-vol in
+    the cross-section."""
+    assert len(feat.DIRECTION_M0) == 9 and len(feat.DIRECTION_M1) == 18
     assert "funding_mean" in feat.DIRECTION_M0
     assert "funding_dispersion" not in feat.DIRECTION_M0
-    assert len(feat.XSEC_M0) == 7 and len(feat.XSEC_M1) == 13
+    assert "sp500_ret_1d" not in feat.DIRECTION_M1
+    assert len(feat.XSEC_M0) == 7 and len(feat.XSEC_M1) == 12
     assert "name_volofvol_21d" not in feat.XSEC_M0
+    assert "name_int_spx" not in feat.XSEC_M1
     assert feat.XSEC_M1[7:] == feat.INTERACTIONS
     assert all(k.startswith("name_int_") for k in feat.INTERACTIONS)
     per_name = {"AAA": {k: np.arange(3.0) for k in feat.XSEC_M1
@@ -390,7 +394,7 @@ def test_frozen_feature_orders_v2():
     common = {k: np.zeros(3) for k in feat.XSEC_M1
               if not k.startswith("name_")}
     m = feat.xsec_matrices(per_name, common, feat.XSEC_M1)
-    assert m["AAA"].shape == (3, 13)
+    assert m["AAA"].shape == (3, 12)
     with pytest.raises(KeyError):
         feat.direction_matrix({"trend_1d": np.zeros(3)}, feat.DIRECTION_M0)
     print("PASS g3c_orders_v2")

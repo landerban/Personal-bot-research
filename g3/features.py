@@ -22,11 +22,16 @@ LAMBDA_DOC = "see g3.models.LAMBDA_GRID"
 # the cross-section ONLY through per-asset exposure interactions
 # (beta_i,t x market move); a shared exogenous term is the recorded Q4
 # degeneracy and is pinned impossible by test.
+# 70.9.3 contraction (NOT feature selection - the discovery that a
+# sensor lacks historical records, applied mechanically before any
+# forecast existed): fred_SP500 is UNAVAILABLE (no vintage archive), so
+# sp500_ret_1d left M1-dir and name_int_spx left M1-xs. The equities
+# family is NASDAQ100 alone. M1-dir = 18, M1-xs = 12.
 DIRECTION_M0 = ("trend_1d", "trend_5d", "trend_21d",
                 "vol_21d", "volofvol_21d",
                 "funding_level", "funding_mean",
                 "xsec_dispersion", "breadth_positive")
-CROSS_ASSET = ("sp500_ret_1d", "nasdaq100_ret_1d",
+CROSS_ASSET = ("nasdaq100_ret_1d",
                "vix_level", "vix_chg_1d",
                "us2y_level", "us2y_chg_1d",
                "us10y_level", "us10y_chg_1d", "slope_2s10s",
@@ -35,7 +40,7 @@ DIRECTION_M1 = DIRECTION_M0 + CROSS_ASSET
 XSEC_M0 = ("name_trend_1d", "name_trend_5d", "name_trend_21d",
            "name_vol_21d", "name_funding_level",
            "xsec_dispersion", "breadth_positive")
-INTERACTIONS = ("name_int_spx", "name_int_ndx", "name_int_vix",
+INTERACTIONS = ("name_int_ndx", "name_int_vix",
                 "name_int_2y", "name_int_10y", "name_int_usd")
 XSEC_M1 = XSEC_M0 + INTERACTIONS
 
