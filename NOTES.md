@@ -12809,3 +12809,48 @@ pre-fix code, not an argument.
 consuming Gen-3 trial 1 of 20. No return was read beyond the
 pre-registered vintage reconstructions; no forecast was fitted on real
 data; the holdout is sealed.**
+
+### 71 Gen-3 Trial 1 — the run record (STAGE_G3_C_RUN)
+
+#### 71.0 Pre-fit gate and trial start (2026-09-03)
+
+Both delegates confirmed §70.10 and cleared this run (recorded in the
+stage file). The §1 gate PASSED before anything was fitted:
+
+- All 15 LOCK-G3-line files verified by recomputed sha256 (the 14
+  §70.10.5 pins plus the superseded-but-unchanged `backtest/costs.py`
+  line): ALL MATCH.
+- Full test suite: 326 passed, 0 failed (§70.9.4 vintage pins, the
+  degeneracy pin, possession-rule and B.1 timestamp tests, the
+  sequential-protocol test, evaluator determinism — all green).
+- Both refusals re-exercised and logged verbatim:
+
+```
+REFUSAL EXERCISED: SealViolation: request [1577836800000, 1735689600000] intersects the SEALED interval [1735689600000, 1785542399999] (2025-01-01 .. 2026-07-31). The seal is re-affirmed on Gen-2 grounds (NOTES 59.1); opening the challenge set requires an explicit UnlockToken AND a ledger entry committed beforehand — by deliberate user decision, once, ever.
+REFUSAL EXERCISED: RangeRefused: G3-B request for 2025-01-01 > 2024-12-31 — the frozen development window (NOTES 69.1.2); refused before any read
+```
+
+**Seed, derived and printed, never predicted:**
+
+```
+lock_commit_hex: 07c9f604ea1a74e09808821a9dc8c32dab2e13d8
+SEED: 3020275635
+```
+
+Runner: `research/g3c_trial1/` (plumbing only; every frozen quantity
+imported from the locked modules; features read through the locked
+provenance-dispatching reader). Two mechanical implementation
+alignments recorded: rows are indexed by target day T with the
+decision at 22:00 UTC on D = T−1, so every locked array transform is
+evaluated at calendar index D (features end at the last complete day
+D−1); and the beta regression pairs each complete day's crypto return
+with the exogenous change served at that same day's cutoff, over the
+locked trailing-90 window ending D−1. Deterministic pre-fit assembly
+(exogenous panel and exposure caches, pure memoization of locked
+functions) was completed BEFORE this entry; no model was fitted.
+
+```
+G3-TRIAL-1 status=started attempt_id=1 valid_trial_count=0
+```
+
+An errored run from here consumes the attempt (§60.12.4 accounting).
