@@ -12040,3 +12040,128 @@ predicted.
 executes. G3-C is a separate stage; it consumes Gen-3 trial 1 of 20
 when it runs. No forecast has been fitted on real data; the holdout is
 sealed.**
+
+### 70.8 Stage G3-C-SPEC v3 — vintage provenance, then the re-lock (2026-09-02)
+
+**No forecast fitted on real data. No return-based result. No trial
+consumed. Gen-3 0 of 20. Holdout sealed.** Closes the last delegate
+hold. §70.0–§70.7 unedited; this section supersedes §70.7's lock on
+completion (§70.7's LOCK-G3 lines struck as superseded — retained,
+never deleted; the immutability test's last-lock-wins semantics make
+the strike mechanical).
+
+#### 70.8.0 The defect, the label split, and the pre-registered method — BEFORE any comparison
+
+**The defect, stated exactly.** Today's FRED archive supplies the
+CURRENT VINTAGE of each historical observation. §70.6 assigns those
+bytes a historical availability time derived from the publisher's
+release schedule. If a value was later revised, the model receives a
+number that did not exist at the timestamp it is stamped with. The
+timestamp arithmetic is flawless; the VALUE is potentially wrong —
+vintage leakage. §68.11's `revision_policy` / `vintage_support` fields
+anticipated this; §70 did not use them.
+
+**Scope, recorded:** exogenous panel only. BTC/ETH bars and funding
+come from the PIT store, are exchange-settled, and do not revise —
+M0-dir and M0-xs are unaffected. **Q1 and Q3 are unaffected by this
+defect.** Only M1 depends on the resolution.
+
+**Availability quality — the label split.** §69 defined `"observed"`
+as genuine historical serving timestamps or a direct publisher feed;
+§70.1.1 applied it to a documented schedule, which is weaker evidence.
+Restored:
+
+    source_availability_quality = "documented_schedule"
+        publication_schedule    = the per-source local-time rule
+        usable_time_rule        = "first scheduled acquisition >= publication"
+    source_availability_quality = "observed"
+        reserved for actual publication/retrieval timestamps we possess
+        (held for NO series today)
+
+Every adopted exogenous series is re-labelled `"documented_schedule"`;
+fred_VIXCLS keeps `"conservative_assumption"`.
+
+**Per-series verification — no blanket policy.** For each of the six
+adopted exogenous series (cboe_VIX, fred_DGS2, fred_DGS10,
+fred_DTWEXBGS, fred_SP500, fred_NASDAQ100) the manifest gains:
+`historical_value_source`, `production_source`, `revision_policy` (as
+documented), `vintage_support`, `publisher_value_equivalence`
+(VERIFIED | UNVERIFIED), `verification_method`,
+`verification_evidence`. Verification means COMPARISON, not
+assertion; methods in order of strength: (1) vintage-archive
+comparison (ALFRED as-of vintages); (2) independent publisher archive;
+(3) documented non-revision policy plus a spot check. If none is
+achievable, UNVERIFIED — equivalence is never inferred from "probably
+not revising."
+
+**THE SAMPLE RULE, FIXED NOW, BEFORE ANY COMPARISON:**
+
+- Observation sample, per series: every 10th business day of the
+  development window 2020-01-02 → 2024-12-31 under the frozen union
+  calendar (`us_market_holidays`), PLUS the first and last business
+  day of each calendar year 2020–2024. No FOMC calendar exists in
+  this repository, so no event-conditioned dates are added — recorded
+  rather than improvised.
+- Annual vintage snapshots (method 1), per FRED-archived id (DGS2,
+  DGS10, DTWEXBGS, SP500, NASDAQ100, VIXCLS): as-of
+  {2021-01-15, 2022-01-14, 2023-01-13, 2024-01-12, 2025-01-15}. Each
+  sampled observation date is compared between the EARLIEST snapshot
+  containing it and today's archive; revisions BETWEEN consecutive
+  snapshots on sampled dates are counted too.
+- Tight vintage sub-sample, per id: the first business day of each
+  half-year of the development window (10 dates), vintage as-of the
+  observation date + 10 calendar days; if the service rejects that
+  exact as-of date, the first later date it accepts, recorded.
+- Endpoint honesty guard: an ALFRED response is USED only if its CSV
+  value-column header carries the requested vintage date (the
+  vintage-suffixed column name); otherwise the request is treated as
+  failed — a mirror silently serving the current vintage must not
+  produce a false "no discrepancies."
+- Comparison precision: values compare EQUAL only after rounding both
+  sides to the coarser of the two sources' published decimal
+  precisions; any difference beyond that is a DISCREPANCY. Missing-in-
+  vintage sampled dates are UNCOMPARABLE — counted and reported, never
+  discrepancies, never silently dropped.
+- **VERIFIED for a series requires, fixed in advance: comparable
+  coverage >= 80% of its sampled observation dates AND zero
+  discrepancies among the comparable ones.** Anything else ⇒
+  UNVERIFIED. A discrepancy rate is reported, never thresholded into a
+  pass by judgement after the fact.
+- cboe_VIX (no FRED archive of its own file): method 2 — today's CBOE
+  close against the EARLIEST ALFRED VIXCLS vintage containing each
+  sampled date (an independent publisher-sourced archive with true
+  vintages), same precision and coverage rules; CBOE's documented
+  revision policy recorded beside it.
+
+**The mixed timing rule (the outcome):**
+
+    publisher_value_equivalence = VERIFIED    ⇒ publisher-time reconstruction
+                                                (t_usable = first 22:00Z fetch >= release)
+    publisher_value_equivalence = UNVERIFIED  ⇒ the CONSERVATIVE §68.12.1 rule
+                                                (publisher + 1 business day, same
+                                                local time) — handicapped, never
+                                                dropped: costs information, cannot
+                                                leak
+
+The manifest records the rule per series; the LOADER enforces it per
+series by reading the manifest's verification status (a test asserts a
+series marked UNVERIFIED cannot be read at publisher timing).
+
+**Two prohibitions, fixed in advance:** a discrepancy ⇒ UNVERIFIED and
+the conservative rule, recorded rather than argued around; and
+verification status may NOT be revisited after any Q1–Q4 result — a
+series that runs handicapped through Trial 1 stays handicapped for
+that trial's record, whatever the outcome.
+
+**Information age (non-blocking, recorded not adopted):** the
+two-most-recent-observations convention means the model does not know
+whether an observation is 2 or 50 hours old. §69.2 already measured
+the staleness profile; expanding the frozen feature set immediately
+before Trial 1 is precisely what the lock exists to prevent. Recorded
+as a candidate for a later pre-registered improvement in the manifest's
+`open_refinements` — not in M0/M1.
+
+Raw vintage downloads land in the gitignored
+`data/exogenous/raw/vintages/` (the SP500/NASDAQ100 vintages are
+restricted like their parents); their sha256s are recorded in the
+execution record. Evidence is quoted from printed output only.
