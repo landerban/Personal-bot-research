@@ -12854,3 +12854,82 @@ G3-TRIAL-1 status=started attempt_id=1 valid_trial_count=0
 ```
 
 An errored run from here consumes the attempt (§60.12.4 accounting).
+
+#### 71.1 Trial 1 result record (2026-09-03; single execution; graded mechanically against §70.6 D.1; quoted verbatim from printed output)
+
+Execution artifacts: `research/g3c_trial1/out/summary.json` and
+`out/daily.jsonl` (hashes in this commit's message, quoted from
+printed output). Per-series provenance actually used: cboe_VIX
+VALUE_EQUIVALENT; fred_DGS2 VALUE_EQUIVALENT; fred_DGS10
+PIT_RECONSTRUCTED; fred_DTWEXBGS PIT_RECONSTRUCTED; fred_NASDAQ100
+PIT_RECONSTRUCTED; fred_SP500 UNAVAILABLE (absent per §70.9.5).
+
+```
+lock_commit_hex: 07c9f604ea1a74e09808821a9dc8c32dab2e13d8
+SEED: 3020275635
+building panel...
+  eligible symbols: 396
+  exogenous panel complete
+  per-name features + exposures complete
+direction models...
+    dir M0 segment 1: C=0.01 fit_n=322 oos_n=365 clim=0.5745
+    dir M0 segment 2: C=0.01 fit_n=687 oos_n=365 clim=0.5400
+    dir M0 segment 3: C=0.01 fit_n=1052 oos_n=365 clim=0.5124
+    dir M0 segment 4: C=0.01 fit_n=1417 oos_n=366 clim=0.5095
+    dir M1 segment 1: C=0.01 fit_n=322 oos_n=365 clim=0.5745
+    dir M1 segment 2: C=0.01 fit_n=687 oos_n=365 clim=0.5400
+    dir M1 segment 3: C=0.01 fit_n=1052 oos_n=365 clim=0.5124
+    dir M1 segment 4: C=0.01 fit_n=1417 oos_n=366 clim=0.5095
+cross-sectional models...
+    xsec M0 segment 1: alpha=10.0 fit_rows=12523 oos_rows=39997
+    xsec M0 segment 2: alpha=10.0 fit_rows=52520 oos_rows=49045
+    xsec M0 segment 3: alpha=10.0 fit_rows=101565 oos_rows=70194
+    xsec M0 segment 4: alpha=10.0 fit_rows=171759 oos_rows=104828
+    xsec M1 segment 1: alpha=10.0 fit_rows=9392 oos_rows=37729
+    xsec M1 segment 2: alpha=10.0 fit_rows=47121 oos_rows=47997
+    xsec M1 segment 3: alpha=10.0 fit_rows=95118 oos_rows=66814
+    xsec M1 segment 4: alpha=10.0 fit_rows=161932 oos_rows=100376
+
+OOS direction days (both models defined): 1461
+IC dates defined: M0 1461  M1 1461  paired-diff 1461
+IC undefined reasons: {}
+mean cross-section size: M0 180.74195756  M1 173.11156742
+
+Q1  BSS_M0 = -0.007390  CI90 = [-0.014553, -0.000302]  half-width 0.007126  VERDICT FAIL
+Q2  BSS_M1 = -0.056766  CI90 = [-0.073531, -0.041144]  leg FAIL
+    BSS_M1-BSS_M0 = -0.049376  CI90 = [-0.066516, -0.033273]  leg FAIL   VERDICT FAIL
+Q3  IC_M0 = +0.002993  CI90 = [-0.005071, +0.011223]  half-width 0.008147  VERDICT FAIL
+Q4  IC_M1 = +0.005852  CI90 = [-0.001479, +0.013039]  leg FAIL
+    IC_M1-IC_M0(paired) = +0.005072  CI90 = [-0.000239, +0.010291]  leg FAIL  n_common 1461   VERDICT FAIL
+
+D.3 M0: BSS -0.00738978  log_loss 0.7013531  brier_binned 0.25366169
+    P(up) 0.4-0.5: n=732 up_rate=0.51775956 mean=0.00236849 median=0.00052122
+    P(up) 0.5-0.6: n=412 up_rate=0.45873786 mean=-0.00204561 median=-0.00205494
+    P(up) 0.6-0.7: n=316 up_rate=0.51582278 mean=0.00057938 median=0.00161535
+    P(up) 0.7-0.8: n=1 up_rate=1.0 mean=0.09882858 median=0.09882858
+D.3 M1: BSS -0.05676587  log_loss 0.72815347  brier_binned 0.26656399
+    P(up) 0.4-0.5: n=725 up_rate=0.51862069 mean=0.00242813 median=0.00053088
+    P(up) 0.5-0.6: n=80 up_rate=0.5125 mean=0.00044565 median=0.00076993
+    P(up) 0.6-0.7: n=587 up_rate=0.49574106 mean=0.00019062 median=-0.000225
+    P(up) 0.7-0.8: n=68 up_rate=0.33823529 mean=-0.01226348 median=-0.00893912
+    P(up) 0.8-0.9: n=1 up_rate=1.0 mean=0.09882858 median=0.09882858
+
+VERDICTS: Q1 FAIL | Q2 FAIL | Q3 FAIL | Q4 FAIL
+```
+
+Counts: 1,461 out-of-sample direction days (both models defined on
+all of them); 1,461 defined daily IC dates for M0, M1, and the paired
+difference; zero undefined dates (no exclusion reasons); mean
+cross-section 180.7 names (M0) / 173.1 (M1); eligible symbol pool 396.
+Realized CI half-widths (observed resolving precision, §60.12.3 — not
+a criterion): Q1 0.007126; Q3 0.008147.
+
+**Verdicts, mechanical: Q1 FAIL. Q2 FAIL. Q3 FAIL. Q4 FAIL.**
+
+```
+G3-TRIAL-1 status=completed attempt_id=1 valid_trial_count=1
+```
+
+Gen-3 trials: 1 of 20 consumed. The §70.6.10 consequences are applied
+in a separate review, not in this stage. The holdout was not read; no
+2025+ data was requested; the specification was not modified.

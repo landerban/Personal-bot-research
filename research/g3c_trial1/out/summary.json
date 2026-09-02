@@ -1,0 +1,332 @@
+{
+  "trial": "G3-trial-1",
+  "seed": 3020275635,
+  "lock_commit": "07c9f604ea1a74e09808821a9dc8c32dab2e13d8",
+  "oos_days_direction": 1461,
+  "ic_dates_m0_defined": 1461,
+  "ic_dates_m1_defined": 1461,
+  "ic_dates_diff_defined": 1461,
+  "ic_undefined_reasons": {},
+  "xsec_names_mean_m0": 180.74195756,
+  "xsec_names_mean_m1": 173.11156742,
+  "Q1": {
+    "stat": -0.007389778055065133,
+    "ci90": [
+      -0.014553043712626458,
+      -0.00030186411549997313
+    ],
+    "ci_half_width": 0.007125589798563242,
+    "verdict": "FAIL"
+  },
+  "Q2": {
+    "leg_bss_m1": {
+      "stat": -0.056765865304068575,
+      "ci90": [
+        -0.07353136314688245,
+        -0.0411439873776739
+      ],
+      "ci_half_width": 0.016193687884604277,
+      "verdict": "FAIL"
+    },
+    "leg_bss_diff": {
+      "stat": -0.04937608724900344,
+      "ci90": [
+        -0.066515889084042,
+        -0.03327299546440201
+      ],
+      "ci_half_width": 0.016621446809819997,
+      "verdict": "FAIL"
+    },
+    "verdict": "FAIL"
+  },
+  "Q3": {
+    "stat": 0.0029925523930317503,
+    "ci90": [
+      -0.0050713417778131065,
+      0.011223014669896449
+    ],
+    "ci_half_width": 0.008147178223854778,
+    "verdict": "FAIL"
+  },
+  "Q4": {
+    "leg_ic_m1": {
+      "stat": 0.005851982898241151,
+      "ci90": [
+        -0.0014787809351275245,
+        0.013038697978807965
+      ],
+      "ci_half_width": 0.007258739456967745,
+      "verdict": "FAIL"
+    },
+    "leg_ic_diff": {
+      "stat": 0.005071654732490782,
+      "ci90": [
+        -0.0002389978674950264,
+        0.01029141452477943
+      ],
+      "ci_half_width": 0.0052652061961372286,
+      "verdict": "FAIL"
+    },
+    "n_common_dates": 1461,
+    "verdict": "FAIL"
+  },
+  "descriptive_d3": {
+    "M0": {
+      "reliability": {
+        "curve": [
+          {
+            "bin": 0,
+            "n": 0,
+            "p_mean": null,
+            "y_rate": null
+          },
+          {
+            "bin": 1,
+            "n": 0,
+            "p_mean": null,
+            "y_rate": null
+          },
+          {
+            "bin": 2,
+            "n": 0,
+            "p_mean": null,
+            "y_rate": null
+          },
+          {
+            "bin": 3,
+            "n": 0,
+            "p_mean": null,
+            "y_rate": null
+          },
+          {
+            "bin": 4,
+            "n": 732,
+            "p_mean": 0.476085,
+            "y_rate": 0.51776
+          },
+          {
+            "bin": 5,
+            "n": 412,
+            "p_mean": 0.514916,
+            "y_rate": 0.458738
+          },
+          {
+            "bin": 6,
+            "n": 316,
+            "p_mean": 0.62818,
+            "y_rate": 0.515823
+          },
+          {
+            "bin": 7,
+            "n": 1,
+            "p_mean": 0.775501,
+            "y_rate": 1.0
+          },
+          {
+            "bin": 8,
+            "n": 0,
+            "p_mean": null,
+            "y_rate": null
+          },
+          {
+            "bin": 9,
+            "n": 0,
+            "p_mean": null,
+            "y_rate": null
+          }
+        ],
+        "brier_reliability": 0.0045251,
+        "brier_resolution": 0.00086236,
+        "brier_uncertainty": 0.24999895,
+        "brier_binned": 0.25366169,
+        "log_loss": 0.7013531,
+        "n": 1461
+      },
+      "prob_bins": [
+        {
+          "bin": "0.0-0.1",
+          "n": 0
+        },
+        {
+          "bin": "0.1-0.2",
+          "n": 0
+        },
+        {
+          "bin": "0.2-0.3",
+          "n": 0
+        },
+        {
+          "bin": "0.3-0.4",
+          "n": 0
+        },
+        {
+          "bin": "0.4-0.5",
+          "n": 732,
+          "up_rate": 0.51775956,
+          "mean_next_ret": 0.00236849,
+          "median_next_ret": 0.00052122
+        },
+        {
+          "bin": "0.5-0.6",
+          "n": 412,
+          "up_rate": 0.45873786,
+          "mean_next_ret": -0.00204561,
+          "median_next_ret": -0.00205494
+        },
+        {
+          "bin": "0.6-0.7",
+          "n": 316,
+          "up_rate": 0.51582278,
+          "mean_next_ret": 0.00057938,
+          "median_next_ret": 0.00161535
+        },
+        {
+          "bin": "0.7-0.8",
+          "n": 1,
+          "up_rate": 1.0,
+          "mean_next_ret": 0.09882858,
+          "median_next_ret": 0.09882858
+        },
+        {
+          "bin": "0.8-0.9",
+          "n": 0
+        },
+        {
+          "bin": "0.9-1.0",
+          "n": 0
+        }
+      ],
+      "bss": -0.00738978
+    },
+    "M1": {
+      "reliability": {
+        "curve": [
+          {
+            "bin": 0,
+            "n": 0,
+            "p_mean": null,
+            "y_rate": null
+          },
+          {
+            "bin": 1,
+            "n": 0,
+            "p_mean": null,
+            "y_rate": null
+          },
+          {
+            "bin": 2,
+            "n": 0,
+            "p_mean": null,
+            "y_rate": null
+          },
+          {
+            "bin": 3,
+            "n": 0,
+            "p_mean": null,
+            "y_rate": null
+          },
+          {
+            "bin": 4,
+            "n": 725,
+            "p_mean": 0.481754,
+            "y_rate": 0.518621
+          },
+          {
+            "bin": 5,
+            "n": 80,
+            "p_mean": 0.574543,
+            "y_rate": 0.5125
+          },
+          {
+            "bin": 6,
+            "n": 587,
+            "p_mean": 0.65903,
+            "y_rate": 0.495741
+          },
+          {
+            "bin": 7,
+            "n": 68,
+            "p_mean": 0.712514,
+            "y_rate": 0.338235
+          },
+          {
+            "bin": 8,
+            "n": 1,
+            "p_mean": 0.817101,
+            "y_rate": 1.0
+          },
+          {
+            "bin": 9,
+            "n": 0,
+            "p_mean": null,
+            "y_rate": null
+          }
+        ],
+        "brier_reliability": 0.01814095,
+        "brier_resolution": 0.00157591,
+        "brier_uncertainty": 0.24999895,
+        "brier_binned": 0.26656399,
+        "log_loss": 0.72815347,
+        "n": 1461
+      },
+      "prob_bins": [
+        {
+          "bin": "0.0-0.1",
+          "n": 0
+        },
+        {
+          "bin": "0.1-0.2",
+          "n": 0
+        },
+        {
+          "bin": "0.2-0.3",
+          "n": 0
+        },
+        {
+          "bin": "0.3-0.4",
+          "n": 0
+        },
+        {
+          "bin": "0.4-0.5",
+          "n": 725,
+          "up_rate": 0.51862069,
+          "mean_next_ret": 0.00242813,
+          "median_next_ret": 0.00053088
+        },
+        {
+          "bin": "0.5-0.6",
+          "n": 80,
+          "up_rate": 0.5125,
+          "mean_next_ret": 0.00044565,
+          "median_next_ret": 0.00076993
+        },
+        {
+          "bin": "0.6-0.7",
+          "n": 587,
+          "up_rate": 0.49574106,
+          "mean_next_ret": 0.00019062,
+          "median_next_ret": -0.000225
+        },
+        {
+          "bin": "0.7-0.8",
+          "n": 68,
+          "up_rate": 0.33823529,
+          "mean_next_ret": -0.01226348,
+          "median_next_ret": -0.00893912
+        },
+        {
+          "bin": "0.8-0.9",
+          "n": 1,
+          "up_rate": 1.0,
+          "mean_next_ret": 0.09882858,
+          "median_next_ret": 0.09882858
+        },
+        {
+          "bin": "0.9-1.0",
+          "n": 0
+        }
+      ],
+      "bss": -0.05676587
+    }
+  }
+}
