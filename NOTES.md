@@ -12340,3 +12340,157 @@ predicted.
 consumes Gen-3 trial 1 of 20 when it runs. No return was read beyond
 the pre-registered vintage comparisons of exogenous values; no
 forecast was fitted on real data; the holdout is sealed.**
+
+### 70.9 Stage G3-C-SPEC v4 — vintage integrity (2026-09-02; §§70.9.1–70.9.4 appended before any reconstruction is attempted)
+
+**No forecast fitted on real data. No return-based result. No trial
+consumed. Gen-3 0 of 20. Holdout sealed.** §70.0–§70.8 unedited; this
+section supersedes §70.8's fallback and, on completion, §70.8.2's
+lock.
+
+#### 70.9.1 The withdrawn claim
+
+§70.8 stated that serving a current-vintage value at
+publisher-time-plus-one-business-day "cannot leak." **Withdrawn as
+false — and the §70.8.1 audit itself supplied the proof:**
+
+    DTWEXBGS 2020-01-02
+      2020 vintage (what was knowable then) : 115.0172
+      2021 vintage                          : 115.0169
+      today's 2026 archive                  : 114.9745  <- what the loader holds
+
+    §70.8 fallback: serve 114.9745 stamped 2020-01-03 22:00 — a 2026
+    recomputation delivered to a January 2020 decision, one day late.
+    Still the wrong number. Delay fixes WHEN a value was knowable;
+    vintage fixes WHICH value was knowable.
+
+**Frozen rule, recorded verbatim:**
+
+> A timestamp delay cannot substitute for vintage integrity. For any
+> series whose current historical values are not proven equivalent to
+> historical publisher values, current-vintage observations may not be
+> exposed at historical decision times. Such a series must either be
+> reconstructed from point-in-time vintages — each value timestamped
+> no earlier than that vintage's actual availability — or be
+> UNAVAILABLE to the model. No imputation, zero-filling,
+> current-vintage substitution, proxy substitution, or replacement
+> factor is permitted.
+
+For the record: the §70.8 audit produced the evidence that condemned
+the §70.8 fallback. That is the apparatus working, not failing.
+
+#### 70.9.2 Three provenance states, replacing the binary
+
+    VALUE_EQUIVALENT   current archive proven equivalent to historical
+                       vintages ⇒ served at historical possession times
+                       (t_usable = first 22:00Z fetch >= publisher release)
+    PIT_RECONSTRUCTED  not equivalent, but historical as-of vintages
+                       reconstructed ⇒ serve the actual PIT vintage
+                       (§70.9.3), NEVER the current archive
+    UNAVAILABLE        neither ⇒ the feature does not exist for Trial 1;
+                       the series is unreadable by the model at any timing
+
+Carried forward from §70.8.1: fred_DGS2, fred_DGS10, cboe_VIX =
+VALUE_EQUIVALENT (fred_VIXCLS likewise on the record; it stays a
+cross-check under the mirror rule and is not an M1 component).
+fred_DTWEXBGS, fred_NASDAQ100, fred_SP500 = pending §70.9.3.
+
+#### 70.9.3 The reconstruction and inclusion algorithm — FROZEN BEFORE EXECUTION
+
+**The reconstructed object** is a revision store, not a value table:
+rows `(observation_date, vintage_available_time, value)`, and the PIT
+query at each historical decision instant t is: the row for each
+observation with the LATEST `vintage_available_time <= t` — never
+today's value for that observation date.
+
+**Vintage timestamping, frozen (with the service's semantics recorded
+honestly):** the §70.8.1 runs established that ALFRED's value-column
+suffix ECHOES the requested as-of date (a Sunday request returns a
+Sunday suffix), so true internal vintage dates are not observable
+through this endpoint; what IS proven by the honesty guard is that the
+response contains the data as known on the requested as-of date.
+Therefore: a value first appearing (or changing) in the as-of-V
+response is stamped available from **22:00:00 UTC on V + 1 calendar
+day** — the first scheduled fetch strictly after the as-of date. No
+intraday time is invented; the stamp is conservative and delay-only
+(§68.11 anti-lookahead).
+
+**Enumeration, frozen:** as-of requests for every BUSINESS DAY (frozen
+union calendar) from 2019-12-16 through 2024-12-31, ascending, per
+series — dense enough that every decision date in
+2020-01-01 → 2024-12-31 has a preceding vintage, with pre-window
+as-ofs so the first decision dates resolve. The store keeps DIFFS: a
+row is written when an observation first appears or its value changes
+versus the previous as-of state; each row carries the as-of date and
+the response's sha256. A failed request or a response failing the
+§70.8.0 honesty guard contributes nothing (never interpolated,
+forward-filled, or synthesised).
+
+**Integrity and coverage, fixed now:** every decision date in
+2020-01-01 → 2024-12-31 must resolve to some vintage row
+(equivalently: the earliest stored vintage availability is
+<= 2020-01-01T22:00Z and the store is non-empty through the window);
+the honesty guard applies to every response used; **anything less than
+100% ⇒ UNAVAILABLE.** No partial-coverage series enters M1.
+
+**Store locations by licence (§68.11.3):** the DTWEXBGS store
+(public-domain Fed data) is TRACKED under `data/exogenous/`; the
+NASDAQ100 store (redistribution-restricted values) lives in the
+gitignored `data/exogenous/raw/`, with its sha256 pinned in the
+re-lock and checked locally by the immutability test — the same
+tracked/untracked split §68.11.3 froze for the raw archives.
+
+**fred_NASDAQ100 — no after-the-fact tolerance:** §70.8.1's
+third-decimal discrepancies are NOT judged representational; the
+reconstruction route is taken (preferred: requires no new rule). The
+alternative — a precision-aware comparison at the source's officially
+documented historical precision — would require its own ledger entry
+BEFORE re-running, and is not taken here.
+
+**fred_SP500 — no substitute may appear:** §70.8.1 found 0% vintage
+coverage (no archive passes the honesty guard, none held). No frozen
+acquisition/verification protocol for a legitimate historical archive
+exists, so §70.9.3 CANNOT be executed for it ⇒ **UNAVAILABLE**, by the
+algorithm, before any fetch. No substitute equity index may be
+introduced in v4 — swapping an index changes the hypothesis and would
+need its own pre-registration.
+
+**The contraction rule — frozen, mechanical:**
+
+> For each pre-registered M1 exogenous component, attempt the
+> procedure above. If it yields valid PIT observations meeting the
+> integrity and coverage requirements, the component REMAINS.
+> Otherwise it becomes UNAVAILABLE and is REMOVED from Trial-1 M1. No
+> zero-filling, current-vintage substitution, proxy substitution, or
+> replacement factor.
+
+Whatever falls out is the result. **This is not feature selection:**
+no forecast has been fitted and no Q result seen; it is the discovery
+that a sensor lacks historical records. Recorded because the two look
+identical from outside and are opposite in epistemics. If the
+contraction changes M1's dimensionality, the feature specification is
+re-locked with the reduced family list stated explicitly (already
+knowable now: fred_SP500 is UNAVAILABLE, so `sp500_ret_1d` leaves
+M1-dir and `name_int_spx` leaves M1-xs whatever else happens;
+DTWEXBGS and NASDAQ100 depend on their §70.9.3 outcomes).
+
+#### 70.9.4 The pinning tests — the exact bug, made impossible
+
+    given   historical vintage = 110.10
+            current archive    = 110.35
+            decision_time      = historical date + 1 business day
+    assert  110.35 is NEVER returned
+            (110.10 if its PIT vintage is held; otherwise MISSING)
+
+Plus: a series marked UNAVAILABLE is unreadable by the model reader at
+any timing; a series marked PIT_RECONSTRUCTED reads ONLY from the
+revision store (a test proves the current-archive path is never
+touched for it); VALUE_EQUIVALENT retains §70.8's behaviour. The
+model reader (`pit_view_usable` and the run-stage feature path)
+dispatches on the manifest's provenance state, so the enforcement is
+structural.
+
+**Execution follows in §70.9.5 (evidence verbatim) and §70.9.6 (the
+re-lock superseding §70.8.2, last-wins). Trial 1 remains
+pre-registered, attempt 1, valid_trial_count 0; the run seed derives
+from the NEW lock commit hash, printed at run time, never predicted.**
