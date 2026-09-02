@@ -11749,3 +11749,248 @@ predicted (§70.3.2, inheriting §60.12.3 governance).
 **STOP. Both delegates review §70 before G3-C executes. G3-C is a
 separate stage; it consumes Gen-3 trial 1 of 20 when it runs. No
 forecast has been fitted on real data; the holdout is sealed.**
+
+### 70.6 Stage G3-C-SPEC v2 — eleven corrections from delegate review (2026-09-02; appended before any correcting code)
+
+**No forecast fitted on real data. No return-based result. No trial
+consumed. Gen-3 0 of 20. Holdout sealed.** The first delegate's review
+of §70.1–§70.5 found eleven items — including one ALGEBRAIC DEGENERACY
+that would have wasted the trial — and the second accepted. This
+section supersedes the named parts of §70.1–§70.4; §70.5's LOCK-G3
+lines are VOID (the code they pinned changes here) and are replaced by
+§70.7's at the new lock commit. Trial 1 remains
+`status: pre-registered, attempt_id = 1, valid_trial_count = 0` — v1
+never ran, so nothing is consumed by re-specification.
+
+#### 70.6.1 Source timing — possession time, not publisher time (supersedes the timing rule of §70.1.1)
+
+v1 trained at publisher release time. **Wrong:** publisher time is not
+the time the bot knows the value — if the Fed publishes at 21:15 UTC
+and the scheduled job runs at 22:00 UTC, the bot possesses it at
+22:00. Frozen:
+
+    t_usable = the first scheduled fetch instant >= the publisher's
+               release (equivalently max(t_publisher,
+               t_scheduled_retrieval) on the fetch day)
+
+**Train at the earliest timestamp the deployed acquisition system
+would actually possess the observation.** Training at t_publisher
+would hand the model up to ~45 minutes it will not have.
+
+**Completion, recorded:** the scheduled fetch is **daily at 22:00:00
+UTC** — the §70.6.3 decision instant, so possession and decision
+coincide and no possessed value waits. This is a genuine UTC constant
+because it is OUR OWN supervisor schedule (cron runs in UTC,
+DST-invariant by design); the §68.11.1.1 ban on UTC release constants
+governs PUBLISHER schedules, which remain zoneinfo-local throughout.
+Every publisher release in the adopted set (16:00/16:15
+America/New_York = 20:00–21:15 UTC) precedes the same-evening fetch in
+both DST regimes, so t_usable lands on the release's own UTC date.
+Single definition: the fetch hour and the t_usable grid live in
+`g3/timing.py`; `tools/g3_exogenous_loader.py` consumes them
+(`usable_utc`, `pit_view_usable`) — the §69.2 record and the
+publisher-availability view are unchanged underneath.
+
+The §70.1.1 architectural justification stands (never the §69
+sensitivity map); the invariants stand; a missed fetch yields a STALE
+value with its true knowable-at stamp, never a forward-filled value
+posing as fresh. The `"observed"` quality flags stand — the basis
+strings gain the possession clause.
+
+#### 70.6.2 Panel B — deferred, NOT conditional (supersedes §70.1.3's gate)
+
+v1's "reconsidered only if Q2 or Q4 pass" was CIRCULAR: a daily test
+cannot falsify an intraday transmission hypothesis — an effect lasting
+twenty minutes would fail Q2 and still be real. Frozen: Panel B
+remains deferred and may later be proposed as an INDEPENDENT,
+separately pre-registered mechanism if justified by architecture and
+resources. **A daily G3-C PASS is not a prerequisite.**
+
+#### 70.6.3 The four timestamps of the daily arm (new; sharpens §70.2.1's decision instant)
+
+    22:00 UTC day D    decision_time = feature_cutoff_time
+                       (features: only observations with t_usable <= 22:00 D)
+    00:00 UTC D+1      target_start_time (hypothetical execution)
+    00:00 UTC D+2      target_end_time — the next COMPLETE UTC day
+
+**Stated so it cannot be misread later: the strategy does not
+notionally enter at 22:00.** The 22:00 observation is a decision
+snapshot; execution is defined at the next 00:00 UTC boundary, and the
+target is the next complete UTC-day return. The two-hour gap is
+deliberately forgone — losing two hours of possible edge is preferred
+to ambiguous training/live alignment. No information arriving between
+22:00 and 00:00 may enter that forecast. Panel B may recover the gap
+later. Crypto features use COMPLETE UTC days only: at the day-D
+cutoff, the most recent complete day is D−1. A test asserts every
+feature's t_usable <= 22:00 D and every target window is
+[00:00 D+1, 00:00 D+2).
+
+#### 70.6.4 Two models, distinct semantics (supersedes §70.2.1's single table)
+
+v1 conflated the direction and cross-sectional feature semantics; the
+conflation is what produced the Q4 defect. Frozen separately:
+
+    M0-dir  (families 1–4)
+      1 btc_trend : BTC log-return over {1, 5, 21} complete UTC days
+      2 btc_vol   : realised vol = sample std (ddof=1) of daily BTC
+                    log-returns over 21 complete days, NOT annualised;
+                    vol_of_vol = sample std of that 21d series over 21 days
+      3 carry     : BTC funding rate, most recent settlement with
+                    t_usable <= cutoff; cross-sectional MEAN funding
+                    over the eligible universe, same rule
+                    (v1's funding DISPERSION is superseded)
+      4 dispersion: cross-sectional sample std (ddof=1) of 1-day
+                    log-returns over the eligible universe; breadth =
+                    fraction with positive 1-day log-return
+    M1-dir = M0-dir + (families 5–8)
+      5 equities  : SP500 1-day log-return; NASDAQ100 1-day log-return
+      6 volatility: VIX level; VIX 1-day change (levels, not log)
+      7 rates     : 2Y level; 2Y Δ1d; 10Y level; 10Y Δ1d; 2s10s = 10Y − 2Y
+      8 usd       : USD measure 1-day log-return
+
+Direction: M0 = 9 features, M1 = 19. Funding settlements use the
+frozen 8h grid; "most recent with t_usable <= 22:00 D" = the 16:00 UTC
+day-D settlement in normal operation.
+
+#### 70.6.5 The Q4 degeneracy and the exposure-interaction fix (supersedes §70.1.4's instantiation and §70.2.1's cross-sectional table)
+
+**The degeneracy, recorded:** with exogenous terms common to every
+asset, r̂ᴹ¹_i = r̂ᴹ⁰_i + γᵀX_t, every pairwise difference is unchanged
+and the cross-sectional ranking is IDENTICAL BY CONSTRUCTION —
+Spearman exactly 1.0. v1's Q4 could not return anything but zero (its
+only live channel was coefficient purification of the per-name terms).
+It was not a weak test; it was not a test. v1's raw-target derivation
+is MOOT under this fix and is withdrawn with it.
+
+    M0-xs   per-asset predictors, market state as conditioning only
+      1 asset_trend : log-return over {1, 5, 21} complete UTC days, per asset
+      2 asset_vol   : sample std (ddof=1) of daily log-returns over 21
+                      days, per asset  (NO per-asset vol-of-vol)
+      3 asset_carry : the asset's funding rate, most recent settlement
+                      with t_usable <= cutoff
+      4 market_state: the M0-dir family-4 dispersion and breadth
+                      (shared; conditioning only)
+    M1-xs = M0-xs + asset-specific EXPOSURE × exogenous state
+      5 equity_beta_int : β^SPX_{i,t}·r_SPX,t ;  β^NDX_{i,t}·r_NDX,t
+      6 vol_beta_int    : β^VIX_{i,t}·ΔVIX_t
+      7 rates_beta_int  : β^2Y_{i,t}·Δ2Y_t ;  β^10Y_{i,t}·Δ10Y_t
+      8 usd_beta_int    : β^USD_{i,t}·r_USD,t
+
+Cross-section: M0 = 7 features, M1 = 13. The same market move now
+affects a high-exposure and a low-exposure coin differently; Q4 asks a
+real question. The cross-sectional target remains the next complete
+UTC-day log return per asset (raw; ranks are demeaning-invariant).
+
+#### 70.6.6 The exposure estimator — frozen, or it becomes the next tuning surface (new)
+
+    β^X_{i,t} = Cov(r_i, r_X) / Var(r_X)   over the trailing 90 complete
+                                           UTC days ending at the cutoff
+      intercept        : yes (OLS with intercept; β is the slope)
+      min observations : 60 valid paired days, else the asset's
+                         interaction features are MISSING for that date
+      missing data     : the date/asset is excluded from that day's
+                         cross-section, counted and reported; never
+                         zero-filled
+      standard error   : computed and recorded (not a feature in Trial 1)
+      shrinkage        : NONE in Trial 1
+      estimated        : separately per X ∈ {SPX, NDX, VIX, 2Y, 10Y, USD}
+      universe         : mature names only — assets meeting the
+                         min-observation rule (supersedes v1's 180d
+                         eligibility inheritance for this evaluation)
+
+**No hierarchical shrinkage in Trial 1**, deliberately: sliding the
+juvenile solution into Q4 would let it earn credit before the juvenile
+hypothesis has its own pre-registered trial (§68.12.6, gated on Q3
+PASS).
+
+**Completion (paired evaluation):** Q3's own criterion runs on M0-xs's
+defined cross-sections; Q4's difference leg runs on the per-date
+INTERSECTION cross-section (assets valid for both models that day),
+with both ICs recomputed there — the paired construction of §70.3.2,
+extended from dates to assets. Exclusions counted and reported per
+model and per date.
+
+#### 70.6.7 Regularisation — explicit grids, calendar folds, strongest-tie-break (supersedes §70.2.2)
+
+Form unchanged: L2 logistic (direction), L2 linear/ridge
+(cross-section); simplest forms admitting the features; the neural
+network stays a later rung (§68.6 rule 5).
+
+    logistic grid : C ∈ {0.01, 0.03, 0.1, 0.3, 1, 3, 10}
+                    objective: Σ nll + (1/(2C))·‖w_slopes‖²  (intercept unpenalised)
+    ridge grid    : α ∈ {0.001, 0.01, 0.1, 1, 10}
+                    objective: ‖y − Aw‖² + α·‖w_slopes‖²      (intercept unpenalised)
+    inner folds   : expanding-window CV inside the training years only,
+                    split at CALENDAR-YEAR boundaries (fit the first k
+                    years, validate year k+1, for every k); for the
+                    single-year 2020 first fit, at QUARTER boundaries
+                    (fit Q1 → val Q2; fit Q1–Q2 → val Q3; fit Q1–Q3 → val Q4)
+    metric        : mean inner-fold log-loss (direction) / MSE (cross-section)
+    tie-break     : the STRONGEST regularisation among exact ties —
+                    smallest C / largest α (supersedes v1's weakest-wins)
+    standardise   : training-window statistics only (ddof=1); constant
+                    feature ⇒ zero (guard)
+
+v1's 7-point λ grid, 40/55/70+15% fractional folds, and larger-λ
+tie-break are superseded.
+
+#### 70.6.8 Calibration fitted OUT-OF-FOLD (supersedes §70.2.4's 80/20 procedure)
+
+Method unchanged: Platt scaling, chosen for stability at these sample
+sizes. The calibrator is NEVER fitted to in-sample fitted
+probabilities. Frozen: after penalty selection, refit at the chosen
+value on each §70.6.7 inner fold's fit span and predict its validation
+span; fit Platt on the concatenated time-respecting OUT-OF-FOLD
+predictions; fit the final model on the full training window; forecast
+the target year; apply the already-fitted calibrator. Reliability
+curve and Brier decomposition reported, never a criterion.
+
+#### 70.6.9 Descriptive reporting only — the economic gate is REMOVED (supersedes §70.3.4)
+
+v1 asked a classifier for E[r] it does not produce: a calibrated model
+gives P(r > 0 | X), not E[r | X]; deriving one would require an
+invented magnitude mapping. Removed entirely — no trade count, no cost
+gate, no profitability claim, and `backtest/costs.py` LEAVES the lock
+set. Reported instead, descriptively, with no pass/fail effect:
+Brier/BSS; reliability curve; probability-bin counts; and realized
+subsequent returns conditional on calibrated-probability bin (the ten
+§70.6.8 reporting bins: n, actual up-rate, mean and median next-day
+return per bin). The expected-return machinery belongs to a later
+stage whose model produces a return distribution.
+
+#### 70.6.10 Consequences — the macro rung survives (supersedes §70.3.5 row 3; wording fixed)
+
+    Q2 or Q4 PASS                        cross-asset exogenous hypothesis supported at that
+                                         level; next rung per the §68.12.7 ladder
+    Q2 and Q4 fail/INDET, Q1 or Q3 PASS  cross-asset exogenous hypothesis unsupported; the
+                                         §68.1 construction may proceed on crypto-native
+                                         forecasts, relabelled as such
+    All four fail                        the crypto-native + cross-asset PREDICTIVE BRANCH
+                                         fails; the scheduled-macro cheap rung remains
+                                         eligible on its own pre-registration — NOT the
+                                         death of Gen-3 (§68.12.7)
+    Q3 PASS                              hierarchical cold-start rung testable (§68.12.6);
+                                         Q4 decides only feature inheritance
+    Reproduced implementation defect     attempt VOID (void: true, retained, budget
+                                         unconsumed — §60.12.4); corrected run is next
+
+Wording fixed throughout: "CROSS-ASSET exogenous hypothesis", never
+"exogenous hypothesis" — scheduled macro, filings, and news are
+different mechanisms. No post-result discretion.
+
+#### 70.6.11 The new lock plan (supersedes §70.4's file list; voids §70.5's LOCK-G3 lines)
+
+§70.7 pins, at the new lock commit: `g3/timing.py` (NEW — the fetch
+hour, t_usable grid, B.1 four timestamps), `g3/features.py` (both
+feature tables + the exposure estimator), `g3/models.py`,
+`g3/calibration.py`, `g3/sequential.py`, `g3/eval.py`, and
+`rcm/eval_ic.py`. `backtest/costs.py` leaves the set (§70.6.9). The
+immutability test keeps last-lock-wins semantics, so §70.7's lines
+supersede §70.5's mechanically. Deterministic evaluator tests gain the
+DEGENERACY PIN: a shared additive term applied to every asset's
+forecast leaves the per-date cross-sectional Spearman IC exactly
+unchanged (the v1 failure, pinned so it cannot recur). Bootstrap,
+INDETERMINATE guards, MDE disclosure, and the seed rule are unchanged
+from §70.3 — the seed's lock_commit_hex becomes the §70.7 lock
+commit's. **After §70.7: STOP for both delegates; G3-C is a separate
+stage.**
