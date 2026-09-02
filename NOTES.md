@@ -12601,3 +12601,88 @@ predicted.
 consumes Gen-3 trial 1 of 20 when it runs. No return was read beyond
 the pre-registered vintage reconstruction of exogenous values; no
 forecast was fitted on real data; the holdout is sealed.**
+
+### 70.10 Stage G3-C-SPEC v5 — exhaustive provenance, final re-lock (2026-09-02; §§70.10.1–70.10.3 appended before the reconstruction runs)
+
+**No forecast fitted on real data. No return-based result. No trial
+consumed by this stage. Gen-3 0 of 20. Holdout sealed.** §70.0–§70.9
+unedited; this section supersedes §70.9.6's lock on completion. The
+last provenance stage: no model or statistical decision is reopened.
+
+#### 70.10.1 The residual gap, with the sample-power arithmetic
+
+fred_DGS2, fred_DGS10 and cboe_VIX are VALUE_EQUIVALENT because a
+pre-registered 132-date sample found zero discrepancies (§70.8.1).
+Against the principle v4 established — the historical value itself
+must be PIT-correct — that is not the same claim: "132 sampled dates
+were clean" ≠ "every value the model uses is historically identical."
+~1,250 business days lie in the development window; ~1,100 were never
+compared. The sample was decisive for Nasdaq (34.5% revision rate on
+the §70.9.5 store: 441 revisions over 1,279 observations — a clean
+132-sample was essentially impossible, P ≈ 6e-25), but a RARE-
+correction series is exactly what it cannot certify:
+
+    true revision rate   P(clean 132-sample)   contaminated dates in ~1,250
+    0.5%                 52%                   ~6
+    1.0%                 27%                   ~12
+    2.0%                 7%                    ~25
+
+H.15 does issue corrections. The dense ALFRED machinery of §70.9.5
+makes closing this cheap: API calls and disk, not design.
+
+#### 70.10.2 Exhaustive reconstruction — the §70.9.3 procedure UNCHANGED
+
+Run the frozen §70.9.3 procedure unchanged — the same business-daily
+as-of enumeration 2019-12-16 → 2024-12-31, the same honesty guard, the
+same conservative stamping (a changed value becomes available at the
+first 22:00 UTC fetch strictly after its as-of date), the same
+string-diff build with the recorded exact-Decimal normalization pass,
+the same 100% coverage requirement — for fred_DGS2, fred_DGS10 and
+fred_VIXCLS. Store licence split per §70.9.3: the DGS2/DGS10 stores
+(public-domain Fed data) are TRACKED under `data/exogenous/`; the
+VIXCLS store (redistribution-restricted values) lives in the
+gitignored `data/exogenous/raw/`, hash-pinned and checked locally.
+
+**VIX:** CBOE's own file is a single archive with no vintage service,
+so the exhaustive comparison against reconstructed VIXCLS vintages is
+the available evidence: for EVERY development-window observation date
+the model would use, today's CBOE close is compared against the
+EARLIEST VIXCLS vintage row for that date (what was first published),
+at the §70.8.0 coarser-precision equality. cboe_VIX remains
+VALUE_EQUIVALENT only if that comparison covers every such date and
+finds zero discrepancies.
+
+**VALUE_EQUIVALENT (exhaustive) for the FRED series requires BOTH,
+fixed now:** (a) the reconstructed store shows zero revisions (exactly
+one row per observation), AND (b) every store value equals today's
+archive value under exact-Decimal comparison at the coarser served
+precision, across ALL development-window observations. Either failing
+⇒ the series moves by the §70.9.3 rule, mechanically, no judgement.
+
+**Expected outcome, stated so it is not read as a finding:** if these
+series genuinely do not revise, their stores collapse to one row per
+observation. That is the hypothesis, not the assumption — the run
+reports what it finds.
+
+#### 70.10.3 The label, tightened
+
+    VALUE_EQUIVALENT   reserved for: ALL model-used historical
+                       observations verified equivalent (exhaustive),
+                       never "a sample found none"
+    PIT_RECONSTRUCTED  serves the revision store only
+    UNAVAILABLE        the feature does not exist for Trial 1
+
+Any series whose exhaustive check reveals revisions moves to
+PIT_RECONSTRUCTED (its store already exists from §70.10.2) —
+mechanically. Any series that cannot be exhaustively established
+becomes PIT_RECONSTRUCTED if a valid store exists, else UNAVAILABLE.
+The §70.9.3 contraction rule applies unchanged if a series falls out;
+no substitute may appear. After this stage every exogenous value
+entering Trial 1 carries exactly one of two guarantees: historically
+PIT-correct value, or UNAVAILABLE.
+
+**Execution follows in §70.10.4 (evidence verbatim), the re-lock in
+§70.10.5 (superseding §70.9.6, last-wins), and the review-closure rule
+in §70.10.6 — appended only after the work is green. Trial 1 remains
+pre-registered, attempt 1, valid_trial_count 0; the run seed derives
+from the NEW lock commit hash, printed at run time, never predicted.**
